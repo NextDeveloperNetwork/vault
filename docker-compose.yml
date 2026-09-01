@@ -6,7 +6,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: passkeeper-app
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -20,7 +19,6 @@ services:
   # Cloudflare Tunnel for Secure Internet Access (Zero Open Ports)
   cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: passkeeper-tunnel
     restart: unless-stopped
     depends_on:
       - app
