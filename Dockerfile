@@ -13,7 +13,8 @@ RUN npm ci
 
 COPY . .
 
-RUN npx prisma generate
+# Run prisma generate directly via node to bypass shell permission issues
+RUN node node_modules/prisma/build/index.js generate
 
 # Production stage
 FROM node:20-alpine AS runner
@@ -36,4 +37,4 @@ COPY --from=builder /app/public ./public
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma db push && node src/app.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js db push && node src/app.js"]
