@@ -1,37 +1,31 @@
-/* PassKeeper Design System - Obsidian Glass Dark Theme */
+/* PassKeeper Design System - Crystal Clear Modern Dark Theme */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   /* Color Tokens */
-  --bg-dark: #090d16;
-  --bg-card: rgba(18, 24, 38, 0.75);
-  --bg-card-hover: rgba(28, 36, 56, 0.85);
-  --bg-input: rgba(15, 23, 42, 0.6);
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(99, 102, 241, 0.5);
+  --bg-dark: #0a0e17;
+  --bg-card: rgba(15, 22, 36, 0.82);
+  --bg-card-hover: rgba(22, 32, 52, 0.9);
+  --bg-input: rgba(13, 20, 33, 0.85);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --border-hover: rgba(255, 255, 255, 0.22);
+  --border-focus: #6366f1;
 
   /* Accents */
   --accent-primary: #6366f1;
   --accent-primary-hover: #4f46e5;
   --accent-secondary: #8b5cf6;
   --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
-  --accent-glow: rgba(99, 102, 241, 0.25);
-
-  /* Category Specific Badges */
-  --cat-password: #3b82f6;
-  --cat-db: #10b981;
-  --cat-api: #f59e0b;
-  --cat-ssh: #ec4899;
-  --cat-other: #8b5cf6;
+  --accent-glow: rgba(99, 102, 241, 0.3);
 
   /* Typography */
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Text Colors */
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --text-main: #ffffff;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
 
   /* iPhone 14 Pro Max Safe Area Insets */
   --safe-area-top: env(safe-area-inset-top, 47px);
@@ -40,10 +34,10 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 
   /* Radius & Shadows */
-  --radius-lg: 20px;
+  --radius-lg: 24px;
   --radius-md: 14px;
-  --radius-sm: 8px;
-  --glass-blur: blur(20px);
-  --box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-  --glow-shadow: 0 0 25px rgba(99, 102, 241, 0.3);
+  --radius-sm: 10px;
+  --glass-blur: blur(24px);
+  --box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+  --glow-shadow: 0 0 30px rgba(99, 102, 241, 0.35);
 }

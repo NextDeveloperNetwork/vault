@@ -2,6 +2,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
   const togglePassBtns = document.querySelectorAll('.toggle-password-btn');
+  const pendingBanner = document.getElementById('pending-banner');
+
+  // Check URL params for pending state banner
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('pending') === 'true' && pendingBanner) {
+    pendingBanner.style.display = 'flex';
+  }
 
   // Password visibility toggle
   togglePassBtns.forEach(btn => {
@@ -23,35 +30,53 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const submitBtn = loginForm.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Authenticating...';
+      submitBtn.textContent = 'Unlocking Vault...';
 
-      const email = document.getElementById('email').value;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
       try {
-        await apiRequest('/api/auth/login', {
+        const res = await apiRequest('/api/auth/login', {
           method: 'POST',
           body: { email, password }
         });
-        showToast('Login successful! Redirecting...', 'success');
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 600);
+
+        if (res && res.user) {
+          if (res.user.status === 'PENDING') {
+            showToast('Account is pending admin approval.', 'info');
+            if (pendingBanner) pendingBanner.style.display = 'flex';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign In to Vault 🔓';
+            return;
+          }
+
+          showToast('Login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 400);
+        }
       } catch (err) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Sign In';
+        submitBtn.textContent = 'Sign In to Vault 🔓';
       }
     });
   }
 
-  // Register handler
+  // Register handler with password strength calculator
   if (registerForm) {
     const passwordInput = document.getElementById('password');
     const strengthBar = document.getElementById('password-strength-bar');
+    const strengthText = document.getElementById('password-strength-text');
 
     if (passwordInput && strengthBar) {
       passwordInput.addEventListener('input', () => {
         const val = passwordInput.value;
+        if (!val) {
+          strengthBar.style.width = '0%';
+          if (strengthText) strengthText.textContent = 'Min 8 chars';
+          return;
+        }
+
         let score = 0;
         if (val.length >= 8) score++;
         if (/[A-Z]/.test(val)) score++;
@@ -59,9 +84,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (/[^A-Za-z0-9]/.test(val)) score++;
 
         const colors = ['#ef4444', '#f59e0b', '#10b981', '#6366f1'];
+        const labels = ['Weak', 'Fair', 'Strong', 'Ultra Strong 🛡️'];
         const width = (score / 4) * 100;
+        
         strengthBar.style.width = `${width}%`;
         strengthBar.style.backgroundColor = colors[Math.max(0, score - 1)] || '#ef4444';
+        
+        if (strengthText) {
+          strengthText.textContent = labels[Math.max(0, score - 1)] || 'Weak';
+          strengthText.style.color = colors[Math.max(0, score - 1)] || '#ef4444';
+        }
       });
     }
 
@@ -69,17 +101,17 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const submitBtn = registerForm.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating Account...';
+      submitBtn.textContent = 'Creating Vault Account...';
 
-      const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
 
       if (password !== confirmPassword) {
         showToast('Passwords do not match.', 'error');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Vault Account';
+        submitBtn.textContent = 'Create Vault Account 🔑';
         return;
       }
 
@@ -92,17 +124,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res && res.user && res.user.status === 'PENDING') {
           showToast('Account registered! Pending admin approval before vault access.', 'info');
           setTimeout(() => {
-            window.location.href = '/login';
-          }, 1500);
+            window.location.href = '/login?pending=true';
+          }, 1200);
         } else {
           showToast('Admin Vault created! Redirecting to Dashboard...', 'success');
           setTimeout(() => {
             window.location.href = '/dashboard';
-          }, 600);
+          }, 400);
         }
       } catch (err) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Vault Account';
+        submitBtn.textContent = 'Create Vault Account 🔑';
       }
     });
   }
