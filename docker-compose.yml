@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: passkeeper-app
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - VAULT_MASTER_KEY=${VAULT_MASTER_KEY}
+    # Uncomment depends_on below if using the bundled 'db' container instead of an external database
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    container_name: passkeeper-db
+    restart: always
+    environment:
+      POSTGRES_USER: passkeeper
+      POSTGRES_PASSWORD: passkeeper_db_secret_pass
+      POSTGRES_DB: passkeeper_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U passkeeper -d passkeeper_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Cloudflare Tunnel Service for remote self-hosted access
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: passkeeper-tunnel
+    restart: always
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:

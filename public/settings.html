@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Settings - PassKeeper Vault</title>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/mobile.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo">⚙️</div>
+        <h2 style="font-size: 1.3rem;">Vault Settings</h2>
+      </div>
+    </header>
+
+    <div style="display:flex; flex-direction:column; gap: 16px;">
+      
+      <!-- Profile Card -->
+      <div class="glass-card" style="padding: 20px;">
+        <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--accent-primary);">👤 Account Profile</h3>
+        <div style="display:flex; flex-direction:column; gap:8px; font-size: 0.9rem;">
+          <div><span style="color:var(--text-muted)">Name:</span> <strong id="user-name">Loading...</strong></div>
+          <div><span style="color:var(--text-muted)">Email:</span> <strong id="user-email">Loading...</strong></div>
+          <div><span style="color:var(--text-muted)">Created:</span> <span id="user-created-date" style="color:var(--text-dim)">-</span></div>
+        </div>
+      </div>
+
+      <!-- Cloudflare Status & Security -->
+      <div class="glass-card" style="padding: 20px;">
+        <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--accent-primary);">🌐 Cloudflare & Security</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+          <span style="font-size: 0.9rem;">Cloudflare Tunnel:</span>
+          <span id="cf-status" class="badge badge-OTHER">Checking...</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size: 0.9rem;">Encryption Standard:</span>
+          <span class="badge badge-DB_CONNECTION">AES-256-GCM</span>
+        </div>
+      </div>
+
+      <!-- Backup & Data Export -->
+      <div class="glass-card" style="padding: 20px;">
+        <h3 style="font-size: 1rem; margin-bottom: 8px; color: var(--accent-primary);">💾 Vault Backup & Export</h3>
+        <p style="font-size: 0.82rem; margin-bottom: 14px;">Download an offline encrypted JSON backup of your stored passwords and database connection strings.</p>
+        <button id="export-vault-btn" class="btn btn-secondary" style="width: 100%;">
+          📥 Download Vault Backup (.json)
+        </button>
+      </div>
+
+      <!-- Quick Self-Hosting Docker Guide -->
+      <div class="glass-card" style="padding: 20px;">
+        <h3 style="font-size: 1rem; margin-bottom: 8px; color: var(--accent-primary);">🐳 Docker Self-Hosting</h3>
+        <p style="font-size: 0.82rem; margin-bottom: 10px;">To start your stack locally or on a VPS:</p>
+        <div class="conn-string-box" style="user-select: all; font-size: 0.75rem;">
+          docker-compose up -d --build
+        </div>
+      </div>
+
+      <!-- Logout -->
+      <button id="logout-btn" class="btn btn-danger" style="width: 100%; margin-top: 8px;">
+        🚪 Log Out of Vault
+      </button>
+
+    </div>
+
+    <!-- Floating Navigation Bar -->
+    <nav class="bottom-nav">
+      <a href="/dashboard" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        <span>Vault</span>
+      </a>
+
+      <a href="/add" class="nav-add-btn" aria-label="Add Secret">
+        <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </a>
+
+      <a href="/settings" class="nav-item active">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Add Secret - PassKeeper Vault</title>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/mobile.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <header class="app-header">
+      <div class="brand">
+        <a href="/dashboard" class="btn-icon" style="text-decoration:none;">←</a>
+        <h2 style="font-size: 1.3rem;">New Vault Secret</h2>
+      </div>
+    </header>
+
+    <div class="glass-card" style="padding: 20px;">
+      <form id="add-secret-form">
+        
+        <div class="form-group">
+          <label class="form-label" for="category">Secret Type</label>
+          <select id="category" class="form-select" style="background: rgba(30, 41, 59, 0.8);">
+            <option value="PASSWORD">🔑 Password Credential</option>
+            <option value="DB_CONNECTION">🗄️ Database Connection String</option>
+            <option value="API_KEY">⚡ API Key / Token</option>
+            <option value="SSH_KEY">💻 SSH Key / Private Certificate</option>
+            <option value="OTHER">📦 General Note / Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="title">Title / Name</label>
+          <input type="text" id="title" class="form-input" placeholder="e.g. Production Postgres DB or GitHub Account" required>
+        </div>
+
+        <!-- Password Specific Fields -->
+        <div id="category-password-fields">
+          <div class="form-group">
+            <label class="form-label" for="username">Username / Email</label>
+            <input type="text" id="username" class="form-input" placeholder="user@example.com">
+          </div>
+
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label class="form-label" for="secret-password" style="margin-bottom:0;">Password</label>
+              <button type="button" id="gen-pass-btn" class="btn-secondary" style="padding: 4px 10px; min-height: 28px; font-size: 0.75rem;">
+                ⚡ Auto Generate
+              </button>
+            </div>
+            <div class="input-wrapper">
+              <input type="password" id="secret-password" class="form-input code-font" placeholder="SuperStrongSecret123!">
+              <button type="button" class="input-icon-btn toggle-password-btn">👁️</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="websiteUrl">Website URL</label>
+            <input type="url" id="websiteUrl" class="form-input" placeholder="https://app.example.com">
+          </div>
+        </div>
+
+        <!-- DB Connection String Specific Fields -->
+        <div id="category-db-fields" style="display:none;">
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label class="form-label" for="db-conn-string" style="margin-bottom:0;">Full Connection URI</label>
+              <button type="button" id="parse-conn-btn" class="btn-secondary" style="padding: 4px 10px; min-height: 28px; font-size: 0.75rem;">
+                🧩 Auto Parse URI
+              </button>
+            </div>
+            <input type="text" id="db-conn-string" class="form-input code-font" placeholder="postgresql://postgres:pass@db.example.com:5432/my_database">
+          </div>
+
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 8px;">
+            <div class="form-group">
+              <label class="form-label" for="db-host">Host</label>
+              <input type="text" id="db-host" class="form-input code-font" placeholder="db.example.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="db-port">Port</label>
+              <input type="text" id="db-port" class="form-input code-font" placeholder="5432">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div class="form-group">
+              <label class="form-label" for="db-user">DB User</label>
+              <input type="text" id="db-user" class="form-input code-font" placeholder="postgres">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="db-pass">DB Password</label>
+              <input type="password" id="db-pass" class="form-input code-font" placeholder="••••••••">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="db-name">Database Name</label>
+            <input type="text" id="db-name" class="form-input code-font" placeholder="production_db">
+          </div>
+        </div>
+
+        <!-- API / SSH Fields -->
+        <div id="category-api-fields" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" for="api-key-val">Key / Token Content</label>
+            <textarea id="api-key-val" class="form-textarea code-font" rows="4" placeholder="Paste secret key or private certificate content here..."></textarea>
+          </div>
+        </div>
+
+        <!-- Common Notes & Tags -->
+        <div class="form-group">
+          <label class="form-label" for="notes">Encrypted Notes</label>
+          <textarea id="notes" class="form-textarea" rows="2" placeholder="Optional extra instructions, recovery codes..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="tags">Tags (Comma separated)</label>
+          <input type="text" id="tags" class="form-input" placeholder="prod, postgres, aws">
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom: 20px;">
+          <input type="checkbox" id="favorite" style="width: 20px; height: 20px; accent-color: var(--accent-primary);">
+          <label for="favorite" style="font-size: 0.9rem; font-weight: 600; cursor: pointer;">Add to Favorites ⭐</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          Encrypt & Save to Vault 🔒
+        </button>
+
+      </form>
+    </div>
+
+    <!-- Floating Navigation Bar -->
+    <nav class="bottom-nav">
+      <a href="/dashboard" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        <span>Vault</span>
+      </a>
+
+      <a href="/add" class="nav-add-btn" aria-label="Add Secret">
+        <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </a>
+
+      <a href="/settings" class="nav-item">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/add-item.js"></script>
+</body>
+</html>
