@@ -36,6 +36,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Root route redirect
+app.get('/', (req, res) => {
+  res.redirect('/login');
+});
+
 // HTML Route fallbacks
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/login.html'));
