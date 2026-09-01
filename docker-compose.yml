@@ -1,53 +1,32 @@
 version: '3.8'
 
 services:
+  # PassKeeper Vault Node.js App
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: passkeeper-app
-    restart: always
+    restart: unless-stopped
     ports:
       - "3000:3000"
-    env_file:
-      - .env
     environment:
       - PORT=3000
       - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - VAULT_MASTER_KEY=${VAULT_MASTER_KEY}
-    # Uncomment depends_on below if using the bundled 'db' container instead of an external database
-    # depends_on:
-    #   db:
-    #     condition: service_healthy
+      - DATABASE_URL=${DATABASE_URL:-postgresql://myapp:arial123@192.168.1.40:5432/my_app_db?schema=public}
+      - JWT_SECRET=${JWT_SECRET:-99434b7109d79ec784b27e242622bf6e43f3d8f2e43277fae948ed5727d0934a}
+      - VAULT_MASTER_KEY=${VAULT_MASTER_KEY:-4f8a2b9c7d1e3f6a8b0c2d4e6f8a0b2c}
 
-  db:
-    image: postgres:16-alpine
-    container_name: passkeeper-db
-    restart: always
-    environment:
-      POSTGRES_USER: passkeeper
-      POSTGRES_PASSWORD: passkeeper_db_secret_pass
-      POSTGRES_DB: passkeeper_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U passkeeper -d passkeeper_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # Cloudflare Tunnel Service for remote self-hosted access
-  tunnel:
+  # Cloudflare Tunnel for Secure Internet Access (Zero Open Ports)
+  cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: passkeeper-tunnel
-    restart: always
+    restart: unless-stopped
+    depends_on:
+      - app
+    # Named Tunnel Mode (permanent custom domain via Cloudflare Zero Trust Dashboard):
     command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
-    depends_on:
-      - app
-
-volumes:
-  postgres_data:
+    # Quick Tunnel Mode (zero config, generates free *.trycloudflare.com URL) — commented out:
+    # command: tunnel --no-autoupdate --url http://app:3000
