@@ -1,4 +1,4 @@
-// API Client Helper & Toast System
+// API Client Helper, Toast System, and Desktop Sidebar Component
 
 function showToast(message, type = 'info') {
   let container = document.getElementById('toast-container');
@@ -42,7 +42,11 @@ async function apiRequest(url, options = {}) {
 
     if (!response.ok) {
       if ((response.status === 401 || response.status === 403) && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
-        window.location.href = '/login';
+        if (data.status === 'PENDING') {
+          showToast(data.error || 'Your account is pending admin approval.', 'error');
+        } else {
+          window.location.href = '/login';
+        }
         return;
       }
       throw new Error(data.error || 'API Request failed');
@@ -67,7 +71,6 @@ async function copyToClipboard(text, label = 'Content') {
     await navigator.clipboard.writeText(text);
     showToast(`${label} copied to clipboard!`, 'success');
   } catch (err) {
-    // Fallback for non-HTTPS or unsupported browsers
     const textarea = document.createElement('textarea');
     textarea.value = text;
     document.body.appendChild(textarea);
@@ -78,6 +81,73 @@ async function copyToClipboard(text, label = 'Content') {
   }
 }
 
+// Render Desktop Sidebar Navigation across all pages
+function renderDesktopSidebar(activePage = 'dashboard', currentUser = null) {
+  const existingSidebar = document.querySelector('.desktop-sidebar');
+  if (existingSidebar) existingSidebar.remove();
+
+  const sidebar = document.createElement('aside');
+  sidebar.className = 'desktop-sidebar';
+
+  const isAdmin = currentUser && currentUser.role === 'ADMIN';
+
+  sidebar.innerHTML = `
+    <div class="sidebar-brand">
+      <div class="brand-logo">🔐</div>
+      <div>
+        <div class="brand-title" style="font-size:1.2rem;">PassKeeper</div>
+        <div style="font-size:0.72rem; color:var(--text-muted)">Encrypted Secret Vault</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-menu">
+      <a href="/dashboard" class="sidebar-link ${activePage === 'dashboard' ? 'active' : ''}">
+        <span style="font-size:1.2rem">🛡️</span> Vault Dashboard
+      </a>
+      <a href="/add" class="sidebar-link ${activePage === 'add' ? 'active' : ''}">
+        <span style="font-size:1.2rem">➕</span> Add New Secret
+      </a>
+      ${isAdmin ? `
+        <a href="/users" class="sidebar-link ${activePage === 'users' ? 'active' : ''}">
+          <span style="font-size:1.2rem">👥</span> User Approvals
+        </a>
+      ` : ''}
+      <a href="/settings" class="sidebar-link ${activePage === 'settings' ? 'active' : ''}">
+        <span style="font-size:1.2rem">⚙️</span> Settings & Backup
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      ${currentUser ? `
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <div>
+            <div style="font-weight:700; font-size:0.85rem; color:#fff;">${currentUser.name || currentUser.email.split('@')[0]}</div>
+            <div style="font-size:0.75rem; color:var(--text-dim);">${currentUser.email}</div>
+          </div>
+          <span class="badge badge-${currentUser.role}">${currentUser.role}</span>
+        </div>
+      ` : ''}
+      <button onclick="handleSidebarLogout()" class="btn btn-secondary" style="width:100%; font-size:0.85rem; padding:8px 12px; min-height:36px;">
+        🚪 Log Out
+      </button>
+    </div>
+  `;
+
+  document.body.prepend(sidebar);
+}
+
+async function handleSidebarLogout() {
+  try {
+    await apiRequest('/api/auth/logout', { method: 'POST' });
+    showToast('Logged out.', 'info');
+    setTimeout(() => window.location.href = '/login', 300);
+  } catch (e) {
+    window.location.href = '/login';
+  }
+}
+
 window.showToast = showToast;
 window.apiRequest = apiRequest;
 window.copyToClipboard = copyToClipboard;
+window.renderDesktopSidebar = renderDesktopSidebar;
+window.handleSidebarLogout = handleSidebarLogout;

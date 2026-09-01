@@ -9,14 +9,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const totalCountEl = document.getElementById('total-count');
 
   // Check auth user
+  let currentUser = null;
   try {
     const authRes = await apiRequest('/api/auth/me');
     if (authRes && authRes.user) {
+      currentUser = authRes.user;
       const userGreeting = document.getElementById('user-name-display');
-      if (userGreeting) userGreeting.textContent = authRes.user.name || authRes.user.email.split('@')[0];
+      if (userGreeting) userGreeting.textContent = currentUser.name || currentUser.email.split('@')[0];
+      
+      // Inject Desktop Sidebar Navigation
+      renderDesktopSidebar('dashboard', currentUser);
     }
   } catch (e) {
-    // Auth redirect handled by apiRequest
     return;
   }
 

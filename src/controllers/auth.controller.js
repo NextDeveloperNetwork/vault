@@ -36,6 +36,13 @@ async function register(req, res, next) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
 
+    // Check if this is the first user registered in the system
+    const userCount = await prisma.user.count();
+    const isFirstUser = userCount === 0;
+
+    const role = isFirstUser ? 'ADMIN' : 'USER';
+    const status = isFirstUser ? 'APPROVED' : 'PENDING';
+
     // Hash password
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(password, salt);
@@ -44,13 +51,15 @@ async function register(req, res, next) {
       data: {
         email: email.toLowerCase().trim(),
         passwordHash,
-        name: name || null
+        name: name || null,
+        role,
+        status
       }
     });
 
     // Generate JWT
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, role: user.role, status: user.status },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -58,8 +67,16 @@ async function register(req, res, next) {
     setAuthCookie(res, token);
 
     return res.status(201).json({
-      message: 'Account created successfully.',
-      user: { id: user.id, email: user.email, name: user.name }
+      message: isFirstUser
+        ? 'Admin account created and approved!'
+        : 'Registration successful. Your account is pending admin approval.',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        status: user.status
+      }
     });
   } catch (err) {
     next(err);
@@ -87,8 +104,12 @@ async function login(req, res, next) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
+    if (user.status === 'REJECTED') {
+      return res.status(403).json({ error: 'Your account registration was rejected by an administrator.' });
+    }
+
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, role: user.role, status: user.status },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -97,7 +118,13 @@ async function login(req, res, next) {
 
     return res.json({
       message: 'Login successful.',
-      user: { id: user.id, email: user.email, name: user.name }
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        status: user.status
+      }
     });
   } catch (err) {
     next(err);
@@ -117,11 +144,11 @@ async function me(req, res, next) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, email: true, name: true, createdAt: true }
+      select: { id: true, email: true, name: true, role: true, status: true, createdAt: true }
     });
 
     if (!user) {
-      return res.status(444).json({ error: 'User not found.' });
+      return res.status(404).json({ error: 'User not found.' });
     }
 
     return res.json({ user });

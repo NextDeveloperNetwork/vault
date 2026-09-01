@@ -84,14 +84,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
-        await apiRequest('/api/auth/register', {
+        const res = await apiRequest('/api/auth/register', {
           method: 'POST',
           body: { name, email, password }
         });
-        showToast('Vault created! Redirecting to Dashboard...', 'success');
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 600);
+
+        if (res && res.user && res.user.status === 'PENDING') {
+          showToast('Account registered! Pending admin approval before vault access.', 'info');
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
+        } else {
+          showToast('Admin Vault created! Redirecting to Dashboard...', 'success');
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 600);
+        }
       } catch (err) {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Create Vault Account';

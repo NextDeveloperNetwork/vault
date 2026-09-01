@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth.routes');
 const secretsRoutes = require('./routes/secrets.routes');
+const adminRoutes = require('./routes/admin.routes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -30,6 +31,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/secrets', secretsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Healthcheck Route for Cloudflare & Docker
 app.get('/api/health', (req, res) => {
@@ -56,6 +58,10 @@ app.get('/dashboard', (req, res) => {
 
 app.get('/add', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/add-item.html'));
+});
+
+app.get('/users', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/users.html'));
 });
 
 app.get('/settings', (req, res) => {

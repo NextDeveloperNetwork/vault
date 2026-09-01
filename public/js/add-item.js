@@ -1,6 +1,16 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('add-secret-form');
   const categorySelect = document.getElementById('category');
+
+  // Check auth user
+  try {
+    const authRes = await apiRequest('/api/auth/me');
+    if (authRes && authRes.user) {
+      renderDesktopSidebar('add', authRes.user);
+    }
+  } catch (e) {
+    return;
+  }
 
   const passwordFields = document.getElementById('category-password-fields');
   const dbFields = document.getElementById('category-db-fields');

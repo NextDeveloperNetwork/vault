@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const emailEl = document.getElementById('user-email');
   const nameEl = document.getElementById('user-name');
+  const roleEl = document.getElementById('user-role');
+  const statusEl = document.getElementById('user-status');
   const dateEl = document.getElementById('user-created-date');
   const logoutBtn = document.getElementById('logout-btn');
   const exportBtn = document.getElementById('export-vault-btn');
@@ -11,7 +13,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (res && res.user) {
       if (emailEl) emailEl.textContent = res.user.email;
       if (nameEl) nameEl.textContent = res.user.name || 'Not set';
+      if (roleEl) {
+        roleEl.textContent = res.user.role;
+        roleEl.className = `badge badge-${res.user.role}`;
+      }
+      if (statusEl) {
+        statusEl.textContent = res.user.status;
+        statusEl.className = `badge badge-${res.user.status}`;
+      }
       if (dateEl) dateEl.textContent = new Date(res.user.createdAt).toLocaleDateString();
+
+      renderDesktopSidebar('settings', res.user);
     }
   } catch (e) {
     return;

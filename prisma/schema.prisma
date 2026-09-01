@@ -7,6 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum Category {
   PASSWORD
   DB_CONNECTION
@@ -20,6 +31,8 @@ model User {
   email        String       @unique
   passwordHash String
   name         String?
+  role         Role         @default(USER)
+  status       Status       @default(PENDING)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   secrets      SecretItem[]
