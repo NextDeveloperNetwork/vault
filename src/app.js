@@ -27,7 +27,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Static Assets (HTML, CSS, JS)
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.ico')) {
+      res.set('Content-Type', 'image/x-icon');
+      res.set('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
+
+// Explicit favicon route — browsers sometimes skip static middleware for /favicon.ico
+app.get('/favicon.ico', (req, res) => {
+  res.set('Content-Type', 'image/x-icon');
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.sendFile(path.join(__dirname, '../public/favicon.ico'));
+});
+
 
 // API Routes
 app.use('/api/auth', authRoutes);
