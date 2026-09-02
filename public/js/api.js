@@ -82,7 +82,7 @@ async function copyToClipboard(text, label = 'Content') {
 }
 
 // Render Desktop Sidebar Navigation across all pages
-function renderDesktopSidebar(activePage = 'dashboard', currentUser = null) {
+function renderDesktopSidebar(activePage = 'dashboard', currentUser = null, groupsData = null, activeGroupId = 'ALL') {
   const existingSidebar = document.querySelector('.desktop-sidebar');
   if (existingSidebar) existingSidebar.remove();
 
@@ -90,6 +90,52 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null) {
   sidebar.className = 'desktop-sidebar';
 
   const isAdmin = currentUser && currentUser.role === 'ADMIN';
+
+  let groupsHtml = '';
+  if (activePage === 'dashboard' && groupsData) {
+    const { groups = [], ungroupedCount = 0, totalCount = 0 } = groupsData;
+
+    groupsHtml = `
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:1.5rem; margin-bottom:0.375rem; padding: 0 0.5rem;">
+        <span style="font-size:0.6875rem; font-weight:700; color:var(--muted-foreground); text-transform:uppercase; letter-spacing:0.05em;">Folders & Groups</span>
+        <button onclick="window.openCreateGroupModal()" class="btn-icon" style="width:1.5rem; height:1.5rem;" title="Create Group">
+          <i data-lucide="plus" class="icon-xs"></i>
+        </button>
+      </div>
+
+      <div class="sidebar-groups-list" style="display:flex; flex-direction:column; gap:0.2rem; margin-bottom:1rem; overflow-y:auto; max-height: 40vh;">
+        <a href="javascript:void(0)" onclick="window.filterByGroup('ALL')" class="sidebar-link ${activeGroupId === 'ALL' ? 'active' : ''}">
+          <i data-lucide="folder-open" class="icon-sm"></i>
+          <span style="flex:1;">All Items</span>
+          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${totalCount}</span>
+        </a>
+
+        <a href="javascript:void(0)" onclick="window.filterByGroup('FAV')" class="sidebar-link ${activeGroupId === 'FAV' ? 'active' : ''}">
+          <i data-lucide="star" class="icon-sm" style="color:#f59e0b;"></i>
+          <span style="flex:1;">Favorites</span>
+        </a>
+
+        ${groups.map(g => `
+          <div style="display:flex; align-items:center; position:relative;" class="group-row">
+            <a href="javascript:void(0)" onclick="window.filterByGroup('${g.id}')" class="sidebar-link ${activeGroupId === g.id ? 'active' : ''}" style="flex:1; padding-right:1.75rem;">
+              <i data-lucide="${g.icon || 'folder'}" class="icon-sm" style="${g.color ? `color:${g.color};` : ''}"></i>
+              <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlSidebar(g.name)}</span>
+              <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${g.count}</span>
+            </a>
+            <button onclick="event.stopPropagation(); window.deleteGroupConfirm('${g.id}', '${escapeHtmlSidebar(g.name)}')" class="btn-icon delete-group-btn" style="position:absolute; right:4px; width:1.25rem; height:1.25rem; border:none; opacity:0.4; cursor:pointer;" title="Delete Group">
+              <i data-lucide="x" class="icon-xs"></i>
+            </button>
+          </div>
+        `).join('')}
+
+        <a href="javascript:void(0)" onclick="window.filterByGroup('NONE')" class="sidebar-link ${activeGroupId === 'NONE' ? 'active' : ''}">
+          <i data-lucide="folder" class="icon-sm" style="color:#94a3b8;"></i>
+          <span style="flex:1;">Ungrouped</span>
+          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${ungroupedCount}</span>
+        </a>
+      </div>
+    `;
+  }
 
   sidebar.innerHTML = `
     <div class="sidebar-brand">
@@ -117,6 +163,8 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null) {
         <i data-lucide="settings" class="icon-sm"></i>
         <span>Settings & Backup</span>
       </a>
+
+      ${groupsHtml}
     </nav>
 
     <div class="sidebar-footer">
@@ -140,6 +188,16 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null) {
   if (window.lucide) {
     lucide.createIcons();
   }
+}
+
+function escapeHtmlSidebar(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 async function handleSidebarLogout() {

@@ -5,7 +5,7 @@ const { encrypt, decrypt } = require('../utils/crypto');
 async function getAllSecrets(req, res, next) {
   try {
     const userId = req.user.id;
-    const { category, favorite, search } = req.query;
+    const { category, favorite, search, groupId } = req.query;
 
     const where = { userId };
 
@@ -15,6 +15,12 @@ async function getAllSecrets(req, res, next) {
 
     if (favorite === 'true') {
       where.favorite = true;
+    }
+
+    if (groupId === 'none' || groupId === 'ungrouped') {
+      where.groupId = null;
+    } else if (groupId && groupId !== 'ALL') {
+      where.groupId = groupId;
     }
 
     if (search) {
@@ -28,6 +34,11 @@ async function getAllSecrets(req, res, next) {
 
     const secrets = await prisma.secretItem.findMany({
       where,
+      include: {
+        group: {
+          select: { id: true, name: true, icon: true, color: true }
+        }
+      },
       orderBy: { updatedAt: 'desc' }
     });
 
@@ -45,6 +56,8 @@ async function getAllSecrets(req, res, next) {
         id: item.id,
         title: item.title,
         category: item.category,
+        groupId: item.groupId,
+        group: item.group || null,
         username: item.username,
         websiteUrl: item.websiteUrl,
         favorite: item.favorite,
@@ -67,11 +80,16 @@ async function getSecretById(req, res, next) {
     const userId = req.user.id;
 
     const secret = await prisma.secretItem.findFirst({
-      where: { id, userId }
+      where: { id, userId },
+      include: {
+        group: {
+          select: { id: true, name: true, icon: true, color: true }
+        }
+      }
     });
 
     if (!secret) {
-      return res.status(44.0).json({ error: 'Secret not found.' });
+      return res.status(404).json({ error: 'Secret not found.' });
     }
 
     const payload = decrypt(secret.encryptedPayload, secret.iv, secret.authTag);
@@ -81,6 +99,8 @@ async function getSecretById(req, res, next) {
         id: secret.id,
         title: secret.title,
         category: secret.category,
+        groupId: secret.groupId,
+        group: secret.group || null,
         username: secret.username,
         websiteUrl: secret.websiteUrl,
         favorite: secret.favorite,
@@ -98,7 +118,7 @@ async function getSecretById(req, res, next) {
 async function createSecret(req, res, next) {
   try {
     const userId = req.user.id;
-    const { title, category, username, websiteUrl, favorite, tags, payload } = req.body;
+    const { title, category, username, websiteUrl, favorite, tags, payload, groupId } = req.body;
 
     if (!title || !payload) {
       return res.status(400).json({ error: 'Title and secret payload are required.' });
@@ -110,6 +130,7 @@ async function createSecret(req, res, next) {
     const secret = await prisma.secretItem.create({
       data: {
         userId,
+        groupId: groupId || null,
         title,
         category: category || 'PASSWORD',
         username: username || null,
@@ -135,7 +156,7 @@ async function updateSecret(req, res, next) {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { title, category, username, websiteUrl, favorite, tags, payload } = req.body;
+    const { title, category, username, websiteUrl, favorite, tags, payload, groupId } = req.body;
 
     const existing = await prisma.secretItem.findFirst({
       where: { id, userId }
@@ -148,6 +169,7 @@ async function updateSecret(req, res, next) {
     const updateData = {};
     if (title !== undefined) updateData.title = title;
     if (category !== undefined) updateData.category = category;
+    if (groupId !== undefined) updateData.groupId = groupId ? groupId : null;
     if (username !== undefined) updateData.username = username;
     if (websiteUrl !== undefined) updateData.websiteUrl = websiteUrl;
     if (favorite !== undefined) updateData.favorite = Boolean(favorite);

@@ -68,6 +68,17 @@
       </div>
     </div>
 
+    <!-- Active Filter Indicator Banner (when filtering by group or search) -->
+    <div id="active-filter-indicator" style="display:none; align-items:center; justify-content:space-between; background:var(--secondary); border:1px solid var(--border); border-radius:var(--radius-md); padding:0.5rem 0.875rem; margin-bottom:0.875rem; font-size:0.8125rem;">
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <i data-lucide="filter" class="icon-xs"></i>
+        <span id="active-filter-text">Filtered by: <strong>All Items</strong></span>
+      </div>
+      <button onclick="window.filterByGroup('ALL')" class="btn btn-outline" style="height:1.5rem; font-size:0.6875rem; padding:0 0.5rem;">
+        Clear Filter
+      </button>
+    </div>
+
     <!-- Search Bar with Shortcut Hint -->
     <div class="form-group" style="margin-bottom: 0.875rem;">
       <div class="input-wrapper">
@@ -81,7 +92,7 @@
     <div class="category-pills">
       <button class="pill active" data-cat="ALL">
         <i data-lucide="layers" class="icon-xs"></i>
-        <span>All Items</span>
+        <span>All Types</span>
       </button>
       <button class="pill" data-cat="DB_CONNECTION">
         <i data-lucide="database" class="icon-xs"></i>
@@ -147,16 +158,31 @@
 
       <form id="modal-add-form">
         
-        <div class="form-group">
-          <label class="form-label" for="modal-category">Secret Type</label>
-          <select id="modal-category" class="form-select">
-            <option value="PASSWORD">Password Credential</option>
-            <option value="DB_CONNECTION">Database Connection String</option>
-            <option value="STEP_BY_STEP">Step-by-Step Explanation</option>
-            <option value="API_KEY">API Key / Token</option>
-            <option value="SSH_KEY">SSH Key / Private Certificate</option>
-            <option value="OTHER">General Note / Other</option>
-          </select>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label" for="modal-category">Secret Type</label>
+            <select id="modal-category" class="form-select">
+              <option value="PASSWORD">Password Credential</option>
+              <option value="DB_CONNECTION">Database Connection String</option>
+              <option value="STEP_BY_STEP">Step-by-Step Explanation</option>
+              <option value="API_KEY">API Key / Token</option>
+              <option value="SSH_KEY">SSH Key / Private Certificate</option>
+              <option value="OTHER">General Note / Other</option>
+            </select>
+          </div>
+
+          <!-- Group / Folder Selector -->
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+              <label class="form-label" for="modal-group" style="margin-bottom:0;">Folder / Group</label>
+              <button type="button" onclick="openCreateGroupModal()" class="btn btn-secondary" style="padding: 0 0.375rem; height: 1.375rem; font-size: 0.6875rem;">
+                <i data-lucide="plus" class="icon-xs"></i> New
+              </button>
+            </div>
+            <select id="modal-group" class="form-select">
+              <option value="">None (Ungrouped)</option>
+            </select>
+          </div>
         </div>
 
         <div class="form-group">
@@ -286,21 +312,101 @@
   </div>
 
   <!-- ======================================================
-       RIGHT SLIDE-OVER DRAWER PANEL (shadcn Sheet)
+       CREATE / EDIT GROUP MODAL OVERLAY
        ====================================================== -->
-  <div id="step-drawer-overlay" class="drawer-overlay">
+  <div id="create-group-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 26rem;">
+      <div class="modal-header">
+        <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--foreground); display: flex; align-items: center; gap: 0.5rem;">
+          <i data-lucide="folder-plus" class="icon-sm"></i>
+          <span>Create New Group</span>
+        </h2>
+        <button id="close-group-modal-btn" class="modal-close-btn" aria-label="Close Dialog">
+          <i data-lucide="x" class="icon-sm"></i>
+        </button>
+      </div>
+
+      <form id="create-group-form">
+        <div class="form-group">
+          <label class="form-label" for="group-name-input">Group Name</label>
+          <input type="text" id="group-name-input" class="form-input" placeholder="e.g. Proxmox Infrastructure, Work, Personal" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="group-icon-select">Folder Icon</label>
+          <select id="group-icon-select" class="form-select">
+            <option value="folder">📁 Standard Folder</option>
+            <option value="server">🖥️ Server / Infrastructure</option>
+            <option value="briefcase">💼 Work / Business</option>
+            <option value="home">🏠 Personal / Home</option>
+            <option value="cloud">☁️ Cloud / DevOps</option>
+            <option value="database">🗄️ Database</option>
+            <option value="lock">🔒 Secure / Financial</option>
+            <option value="code">💻 Code / Development</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Accent Color</label>
+          <div style="display:flex; gap:0.5rem; align-items:center; margin-top:0.25rem;">
+            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
+              <input type="radio" name="group-color" value="#4f46e5" checked style="accent-color:#4f46e5;">
+              <span style="display:inline-block; width:1.25rem; height:1.25rem; border-radius:50%; background:#4f46e5;"></span>
+            </label>
+            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
+              <input type="radio" name="group-color" value="#10b981" style="accent-color:#10b981;">
+              <span style="display:inline-block; width:1.25rem; height:1.25rem; border-radius:50%; background:#10b981;"></span>
+            </label>
+            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
+              <input type="radio" name="group-color" value="#8b5cf6" style="accent-color:#8b5cf6;">
+              <span style="display:inline-block; width:1.25rem; height:1.25rem; border-radius:50%; background:#8b5cf6;"></span>
+            </label>
+            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
+              <input type="radio" name="group-color" value="#f59e0b" style="accent-color:#f59e0b;">
+              <span style="display:inline-block; width:1.25rem; height:1.25rem; border-radius:50%; background:#f59e0b;"></span>
+            </label>
+            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
+              <input type="radio" name="group-color" value="#ef4444" style="accent-color:#ef4444;">
+              <span style="display:inline-block; width:1.25rem; height:1.25rem; border-radius:50%; background:#ef4444;"></span>
+            </label>
+            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
+              <input type="radio" name="group-color" value="#18181b" style="accent-color:#18181b;">
+              <span style="display:inline-block; width:1.25rem; height:1.25rem; border-radius:50%; background:#18181b;"></span>
+            </label>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.25rem;">
+          <button type="button" id="cancel-group-modal-btn" class="btn btn-outline">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Group</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       UNIVERSAL RIGHT SLIDE-OVER DETAIL PANEL (shadcn Sheet)
+       Opens for ANY secret type: Password, DB Connection,
+       Step-by-Step Guide, API Key, SSH Key, Other!
+       ====================================================== -->
+  <div id="detail-drawer-overlay" class="drawer-overlay">
     <div class="drawer-panel">
       
+      <!-- Drawer Header -->
       <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.25rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">
-        <div>
-          <div style="display:flex; align-items:center; gap:0.5rem;">
-            <i data-lucide="book-open" class="icon-md"></i>
-            <h2 id="drawer-title" style="font-size:1.125rem; font-weight:700; color:var(--foreground);">Guide Title</h2>
+        <div style="flex:1; padding-right:1rem;">
+          <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.25rem;">
+            <span id="drawer-cat-badge" class="badge">CATEGORY</span>
+            <span id="drawer-group-badge" class="badge badge-USER" style="display:none;">GROUP</span>
           </div>
-          <div id="drawer-subtitle" style="font-size:0.8125rem; color:var(--muted-foreground); margin-top:0.25rem;">Procedure Steps</div>
+          <h2 id="drawer-title" style="font-size:1.25rem; font-weight:700; color:var(--foreground); word-break:break-word;">Secret Title</h2>
+          <div id="drawer-subtitle" style="font-size:0.8125rem; color:var(--muted-foreground); margin-top:0.25rem;">Details & Credentials</div>
         </div>
-        <div style="display:flex; align-items:center; gap:0.5rem;">
-          <button id="drawer-edit-btn" class="btn btn-outline" style="height:2rem; font-size:0.75rem;">
+        <div style="display:flex; align-items:center; gap:0.375rem;">
+          <button id="drawer-fav-btn" class="btn-icon" style="width:2rem; height:2rem;" title="Toggle Favorite">
+            <i data-lucide="star" class="icon-xs"></i>
+          </button>
+          <button id="drawer-edit-btn" class="btn btn-outline" style="height:2rem; font-size:0.75rem;" title="Edit Secret">
             <i data-lucide="pencil" class="icon-xs"></i>
             <span>Edit</span>
           </button>
@@ -310,16 +416,23 @@
         </div>
       </div>
 
-      <!-- Steps Timeline Container -->
-      <div id="drawer-steps-list" style="display:flex; flex-direction:column; gap:1rem; flex:1;">
-        <!-- Rendered dynamically by dashboard.js -->
+      <!-- Universal Dynamic Content Body -->
+      <div id="drawer-content-body" style="display:flex; flex-direction:column; gap:1.25rem; flex:1;">
+        <!-- Dynamically rendered per category by dashboard.js -->
       </div>
 
+      <!-- Drawer Footer -->
       <div style="margin-top:1.5rem; border-top:1px solid var(--border); padding-top:1rem; display:flex; justify-content:space-between; align-items:center;">
-        <button id="drawer-edit-footer-btn" class="btn btn-outline">
-          <i data-lucide="pencil" class="icon-xs"></i>
-          <span>Edit Guide</span>
-        </button>
+        <div style="display:flex; gap:0.5rem;">
+          <button id="drawer-edit-footer-btn" class="btn btn-outline">
+            <i data-lucide="pencil" class="icon-xs"></i>
+            <span>Edit</span>
+          </button>
+          <button id="drawer-delete-footer-btn" class="btn btn-danger">
+            <i data-lucide="trash-2" class="icon-xs"></i>
+            <span>Delete</span>
+          </button>
+        </div>
         <button id="close-drawer-footer-btn" class="btn btn-secondary">Close</button>
       </div>
 

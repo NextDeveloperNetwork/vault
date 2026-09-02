@@ -37,12 +37,30 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   secrets      SecretItem[]
+  groups       Group[]
+}
+
+model Group {
+  id        String       @id @default(uuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  icon      String?      @default("folder")
+  color     String?      @default("#6366f1")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  secrets   SecretItem[]
+
+  @@unique([userId, name])
+  @@index([userId])
 }
 
 model SecretItem {
   id               String   @id @default(uuid())
   userId           String
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId          String?
+  group            Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
   title            String
   category         Category @default(PASSWORD)
   
@@ -62,4 +80,5 @@ model SecretItem {
 
   @@index([userId])
   @@index([category])
+  @@index([groupId])
 }
