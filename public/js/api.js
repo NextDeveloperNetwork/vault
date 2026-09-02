@@ -137,9 +137,9 @@ async function handleSidebarLogout() {
   try {
     await apiRequest('/api/auth/logout', { method: 'POST' });
     showToast('Logged out.', 'info');
-    setTimeout(() => window.location.href = '/login', 300);
+    setTimeout(() => window.location.replace('/login'), 300);
   } catch (e) {
-    window.location.href = '/login';
+    window.location.replace('/login');
   }
 }
 

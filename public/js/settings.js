@@ -71,10 +71,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         await apiRequest('/api/auth/logout', { method: 'POST' });
         showToast('Logged out.', 'info');
         setTimeout(() => {
-          window.location.href = '/login';
+          window.location.replace('/login');
         }, 300);
       } catch (e) {
-        window.location.href = '/login';
+        window.location.replace('/login');
       }
     });
   }

@@ -7,6 +7,17 @@
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/mobile.css">
+  <script>
+    // Instant redirect if active approved session exists
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.user && data.user.status === 'APPROVED') {
+          window.location.replace('/dashboard');
+        }
+      })
+      .catch(() => {});
+  </script>
 </head>
 <body class="auth-body">
 

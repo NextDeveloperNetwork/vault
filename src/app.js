@@ -38,33 +38,73 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Root route redirect
-app.get('/', (req, res) => {
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'passkeeper_jwt_super_secret_key_change_in_production_32bytes';
+
+// Helper middleware: If already logged in, redirect away from login/register to dashboard
+function redirectIfAuthenticated(req, res, next) {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  const token = req.cookies?.auth_token;
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded && decoded.id && decoded.status === 'APPROVED') {
+      return res.redirect('/dashboard');
+    }
+  } catch (err) {
+    res.clearCookie('auth_token');
+  }
+  next();
+}
+
+// Helper middleware: If not logged in, redirect to login page
+function requireAuthPage(req, res, next) {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  const token = req.cookies?.auth_token;
+  if (!token) {
+    return res.redirect('/login');
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!decoded || !decoded.id) {
+      return res.redirect('/login');
+    }
+    next();
+  } catch (err) {
+    res.clearCookie('auth_token');
+    return res.redirect('/login');
+  }
+}
+
+// Root route: redirect to dashboard if logged in, otherwise login
+app.get('/', redirectIfAuthenticated, (req, res) => {
   res.redirect('/login');
 });
 
 // HTML Route fallbacks
-app.get('/login', (req, res) => {
+app.get('/login', redirectIfAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/login.html'));
 });
 
-app.get('/register', (req, res) => {
+app.get('/register', redirectIfAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/register.html'));
 });
 
-app.get('/dashboard', (req, res) => {
+app.get('/dashboard', requireAuthPage, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-app.get('/add', (req, res) => {
+app.get('/add', requireAuthPage, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/add-item.html'));
 });
 
-app.get('/users', (req, res) => {
+app.get('/users', requireAuthPage, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/users.html'));
 });
 
-app.get('/settings', (req, res) => {
+app.get('/settings', requireAuthPage, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/settings.html'));
 });
 

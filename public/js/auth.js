@@ -1,3 +1,21 @@
+// Check if user is already logged in and redirect immediately away from login/register
+async function checkAuthAndRedirect() {
+  try {
+    const res = await apiRequest('/api/auth/me');
+    if (res && res.user && res.user.status === 'APPROVED') {
+      window.location.replace('/dashboard');
+    }
+  } catch (err) {
+    // Not authenticated, stay on page
+  }
+}
+
+// Check on initial script execution and on bfcache restore
+checkAuthAndRedirect();
+window.addEventListener('pageshow', () => {
+  checkAuthAndRedirect();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
@@ -51,9 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           showToast('Login successful! Redirecting...', 'success');
+          // Use replace() so /login is removed from back-button history
           setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 400);
+            window.location.replace('/dashboard');
+          }, 300);
         }
       } catch (err) {
         submitBtn.disabled = false;
@@ -127,13 +146,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res && res.user && res.user.status === 'PENDING') {
           showToast('Account registered! Pending admin approval before vault access.', 'info');
           setTimeout(() => {
-            window.location.href = '/login?pending=true';
+            window.location.replace('/login?pending=true');
           }, 1200);
         } else {
           showToast('Admin Vault created! Redirecting to Dashboard...', 'success');
+          // Use replace() so registration page is removed from history
           setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 400);
+            window.location.replace('/dashboard');
+          }, 300);
         }
       } catch (err) {
         submitBtn.disabled = false;
