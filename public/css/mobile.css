@@ -10,10 +10,11 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-top: calc(var(--safe-area-top) + 0.75rem);
-  padding-bottom: calc(var(--safe-area-bottom) + 5.5rem);
-  padding-left: 1rem;
-  padding-right: 1rem;
+  /* iPhone: top padding = status bar, bottom = home indicator + bottom nav */
+  padding-top: calc(var(--safe-area-top) + 0.5rem);
+  padding-bottom: calc(var(--safe-area-bottom) + 5rem);
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
   position: relative;
 }
 
@@ -24,16 +25,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.375rem;
-  gap: 0.625rem;
-  padding: 0.625rem 0.875rem;
-  background: rgba(255,255,255,0.9);
+  margin-bottom: 0.875rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255,255,255,0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  margin-top: -0.25rem;
 }
 
 .mobile-menu-trigger {
@@ -55,20 +55,20 @@
 }
 
 .brand-logo {
-  width: 2.125rem;
-  height: 2.125rem;
-  border-radius: var(--radius-md);
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: var(--radius-sm);
   background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
   flex-shrink: 0;
-  box-shadow: 0 3px 10px rgba(79,70,229,0.35);
+  box-shadow: 0 2px 8px rgba(79,70,229,0.3);
 }
 
 .brand-title {
-  font-size: 1.0625rem;
+  font-size: 0.9375rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--foreground);
@@ -129,28 +129,29 @@
    ============================================================ */
 .category-pills {
   display: flex;
-  gap: 0.375rem;
+  gap: 0.3rem;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
-  margin-bottom: 1rem;
+  padding-bottom: 0.375rem;
+  margin-bottom: 0.75rem;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .category-pills::-webkit-scrollbar { display: none; }
 
 .pill {
-  padding: 0.4rem 0.875rem;
+  padding: 0.3rem 0.75rem;
   border-radius: 9999px;
   background: #ffffff;
   border: 1.5px solid var(--border);
   color: var(--muted-foreground);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.3rem;
   transition: all 0.15s ease;
   box-shadow: var(--shadow-xs);
 }
@@ -176,21 +177,58 @@
 
 /* ============================================================
    SECRET LIST & MOBILE CARDS
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 540px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+  }
+}
+
+.metric-card {
+  padding: 0.5rem 0.65rem;
+}
+
+.metric-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--foreground);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-top: 0.15rem;
+}
+
+/* ============================================================
+   SECRET LIST & MOBILE CARDS
    ============================================================ */
 .secret-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.625rem;
 }
 
 .secret-card {
-  padding: 1rem 1.125rem;
+  padding: 0.75rem 0.875rem;
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
-  border-radius: var(--radius-xl) !important;
+  gap: 0.5rem;
+  border-radius: var(--radius-lg) !important;
   cursor: pointer;
   transition: all 0.18s ease !important;
+  overflow: hidden;
 }
 
 .secret-card:hover {
@@ -201,47 +239,70 @@
 
 .card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .card-title-group {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.card-title-group > div:last-child {
+  min-width: 0;
+  flex: 1;
 }
 
 .card-icon {
-  width: 2.375rem;
-  height: 2.375rem;
-  border-radius: var(--radius-md);
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
   background: linear-gradient(135deg, var(--secondary), #ede9fe);
   border: 1.5px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--primary);
+  flex-shrink: 0;
 }
 
 .card-title-text {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--foreground);
   letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-subtext {
-  font-size: 0.8125rem;
+  font-size: 0.725rem;
   color: var(--muted-foreground);
   font-weight: 400;
-  margin-top: 0.1rem;
+  margin-top: 0.05rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
 }
 
 /* Copy button row on cards */
 .copy-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
-  gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
 }
 
 /* ============================================================
@@ -289,15 +350,20 @@
 #mobile-menu-drawer .drawer-panel.mobile-nav-panel {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  max-width: 19rem;
+  height: 100%;
+  height: 100vh; /* Fallback for browsers without dvh */
+  height: 100dvh; /* Exact viewport height on iOS Safari excluding toolbars */
+  max-height: 100dvh;
+  width: 82vw;
+  max-width: 18.5rem;
   padding: 0;
-  background: #fdfcff;
+  background: #ffffff;
   border-right: 1px solid var(--border);
   border-left: none;
-  box-shadow: 12px 0 48px rgba(79,70,229,0.12);
+  box-shadow: 12px 0 48px rgba(79,70,229,0.15);
   transform: translateX(-100%);
-  overflow-y: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 #mobile-menu-drawer.open .mobile-nav-panel {
@@ -308,7 +374,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.125rem 1rem 1.125rem;
+  /* Use safe-area so brand header clears iPhone notch */
+  padding: calc(var(--safe-area-top) + 0.5rem) 0.875rem 0.65rem 0.875rem;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: linear-gradient(135deg, rgba(79,70,229,0.05), rgba(124,58,237,0.03));
@@ -317,12 +384,12 @@
 .mobile-nav-brand-inner {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
 }
 
 .mobile-nav-brand-logo {
-  width: 2.375rem;
-  height: 2.375rem;
+  width: 2rem;
+  height: 2rem;
   border-radius: var(--radius-md);
   background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
   display: flex;
@@ -330,28 +397,28 @@
   justify-content: center;
   color: #fff;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(79,70,229,0.4);
+  box-shadow: 0 3px 8px rgba(79,70,229,0.35);
 }
 
 .mobile-nav-title {
   font-weight: 800;
-  font-size: 1.0625rem;
+  font-size: 0.9375rem;
   color: var(--foreground);
   letter-spacing: -0.03em;
 }
 
 .mobile-nav-subtitle {
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   color: var(--muted-foreground);
   font-weight: 500;
-  margin-top: 0.125rem;
+  margin-top: 0.1rem;
 }
 
 .mobile-nav-links {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
-  padding: 0.875rem 0.75rem 0.5rem 0.75rem;
+  gap: 0.1rem;
+  padding: 0.5rem 0.625rem;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
 }
@@ -359,18 +426,20 @@
 .mobile-nav-groups {
   flex: 1;
   overflow-y: auto;
-  padding: 0 0.75rem 0.5rem 0.75rem;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 0.625rem 0.5rem 0.625rem;
+  min-height: 0;
 }
 
 .mobile-nav-groups-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.875rem 0.125rem 0.375rem 0.125rem;
+  padding: 0.625rem 0.125rem 0.3rem 0.125rem;
 }
 
 .mobile-nav-section-label {
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 700;
   color: var(--muted-foreground);
   text-transform: uppercase;
@@ -379,12 +448,18 @@
 
 .mobile-nav-footer {
   border-top: 1px solid var(--border);
-  padding: 1rem 1rem;
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: #ffffff;
+  /* Account for iPhone home indicator with generous safe-area-bottom */
+  padding: 0.75rem 0.875rem calc(var(--safe-area-bottom) + 1.25rem) 0.875rem;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  background: linear-gradient(135deg, rgba(79,70,229,0.04), rgba(124,58,237,0.02));
+  gap: 0.5rem;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
 }
 
 .mobile-nav-user-row {

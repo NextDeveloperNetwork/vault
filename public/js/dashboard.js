@@ -579,11 +579,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="card-subtext">${escapeHtml(item.username || item.websiteUrl || item.category)}</div>
                   </div>
                 </div>
-                <div style="display:flex; align-items:center; gap: 0.375rem;" onclick="event.stopPropagation();">
+                <div class="card-header-right" onclick="event.stopPropagation();">
                   <button class="btn-icon" style="width:1.75rem; height:1.75rem;" onclick="toggleFav('${item.id}')">
                     <i data-lucide="star" class="icon-xs" style="${isFav ? 'fill: #f59e0b; stroke: #f59e0b;' : ''}"></i>
                   </button>
-                  <span class="badge badge-${item.category}">${item.category.replace('_', ' ')}</span>
+                  <span class="badge badge-${item.category}">
+                    ${item.category === 'DB_CONNECTION' ? 'DB' : item.category === 'STEP_BY_STEP' ? 'Guide' : item.category.replace('_', ' ')}
+                  </span>
                 </div>
               </div>
 
