@@ -213,6 +213,7 @@ p {
 .badge-DB_CONNECTION { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
 .badge-API_KEY { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
 .badge-SSH_KEY { background: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8; }
+.badge-STEP_BY_STEP { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
 .badge-OTHER { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
 
 /* User Status & Role Badges */
@@ -402,7 +403,7 @@ body.auth-body {
 
 .modal-dialog {
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
   background: #ffffff;
@@ -445,4 +446,76 @@ body.auth-body {
 .modal-close-btn:hover {
   background: #e2e8f0;
   color: #dc2626;
+}
+
+/* ======================================================
+   RIGHT SLIDE-OVER DRAWER PANEL (Step-by-Step Viewer)
+   ====================================================== */
+.drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  justify-content: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.drawer-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer-panel {
+  width: 100%;
+  max-width: 540px;
+  height: 100vh;
+  background: #ffffff;
+  border-left: 1px solid #e2e8f0;
+  box-shadow: -10px 0 40px rgba(15, 23, 42, 0.15);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+  padding: 32px 28px;
+}
+
+.drawer-overlay.open .drawer-panel {
+  transform: translateX(0);
+}
+
+.step-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.step-card:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.step-badge-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #4f46e5;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

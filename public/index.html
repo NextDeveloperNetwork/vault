@@ -47,15 +47,15 @@
       </div>
 
       <div class="glass-card" style="padding: 14px 16px; border-radius: 16px;">
-        <div style="font-size: 0.75rem; font-weight: 700; color: #d97706; text-transform: uppercase;">API Keys</div>
-        <div id="metric-api" style="font-size: 1.5rem; font-weight: 800; color: #d97706; margin-top: 2px;">0</div>
+        <div style="font-size: 0.75rem; font-weight: 700; color: #16a34a; text-transform: uppercase;">Guides / Steps</div>
+        <div id="metric-steps" style="font-size: 1.5rem; font-weight: 800; color: #16a34a; margin-top: 2px;">0</div>
       </div>
     </div>
 
     <!-- Search Bar with Shortcut Hint -->
     <div class="form-group" style="margin-bottom: 14px;">
       <div class="input-wrapper">
-        <input type="text" id="search-input" class="form-input" placeholder="🔍 Search passwords, connection strings, hosts, tags..." style="padding-left: 16px; padding-right: 44px; border-radius: 16px;">
+        <input type="text" id="search-input" class="form-input" placeholder="🔍 Search passwords, connection strings, hosts, guides, tags..." style="padding-left: 16px; padding-right: 44px; border-radius: 16px;">
         <span style="position: absolute; right: 14px; font-size: 0.75rem; font-weight: 700; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 6px; color: #64748b;">/</span>
       </div>
     </div>
@@ -65,6 +65,7 @@
       <button class="pill active" data-cat="ALL">All Items</button>
       <button class="pill" data-cat="DB_CONNECTION">🗄️ Connection Strings</button>
       <button class="pill" data-cat="PASSWORD">🔑 Passwords</button>
+      <button class="pill" data-cat="STEP_BY_STEP">📖 Step-by-Step</button>
       <button class="pill" data-cat="API_KEY">⚡ API Keys</button>
       <button class="pill" data-cat="SSH_KEY">💻 SSH Keys</button>
     </div>
@@ -101,7 +102,7 @@
       
       <div class="modal-header">
         <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-          <span>➕</span> Add New Secret Entry
+          <span>➕</span> Add New Entry
         </h2>
         <button id="close-modal-btn" class="modal-close-btn" aria-label="Close Dialog">✕</button>
       </div>
@@ -113,6 +114,7 @@
           <select id="modal-category" class="form-select" style="background: #ffffff; color: #0f172a; border: 1.5px solid #cbd5e1;">
             <option value="PASSWORD">🔑 Password Credential</option>
             <option value="DB_CONNECTION">🗄️ Database Connection String</option>
+            <option value="STEP_BY_STEP">📖 Step-by-Step Explanation</option>
             <option value="API_KEY">⚡ API Key / Token</option>
             <option value="SSH_KEY">💻 SSH Key / Private Certificate</option>
             <option value="OTHER">📦 General Note / Other</option>
@@ -121,7 +123,7 @@
 
         <div class="form-group">
           <label class="form-label" for="modal-title">Title / Name</label>
-          <input type="text" id="modal-title" class="form-input" placeholder="e.g. Production Postgres DB or GitHub Account" required>
+          <input type="text" id="modal-title" class="form-input" placeholder="e.g. Proxmox Server Setup Procedure" required>
         </div>
 
         <!-- Password Specific Fields -->
@@ -190,6 +192,19 @@
           </div>
         </div>
 
+        <!-- Dynamic Step-by-Step Builder Fields -->
+        <div id="modal-cat-steps-fields" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <label class="form-label" style="margin-bottom:0;">Procedure Steps</label>
+            <button type="button" id="modal-add-step-btn" class="btn-secondary" style="padding:4px 12px; min-height:30px; font-size:0.78rem;">
+              ➕ Add Another Step
+            </button>
+          </div>
+          <div id="modal-steps-container" style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
+            <!-- Dynamic step rows inserted here -->
+          </div>
+        </div>
+
         <!-- API / SSH Fields -->
         <div id="modal-cat-api-fields" style="display:none;">
           <div class="form-group">
@@ -206,7 +221,7 @@
 
         <div class="form-group">
           <label class="form-label" for="modal-tags">Tags (Comma separated)</label>
-          <input type="text" id="modal-tags" class="form-input" placeholder="prod, postgres, aws">
+          <input type="text" id="modal-tags" class="form-input" placeholder="proxmox, deployment, guide">
         </div>
 
         <div style="display:flex; align-items:center; gap:10px; margin-bottom: 20px;">
@@ -220,6 +235,35 @@
         </div>
 
       </form>
+
+    </div>
+  </div>
+
+  <!-- ======================================================
+       RIGHT SLIDE-OVER DRAWER PANEL (Step-by-Step Viewer)
+       ====================================================== -->
+  <div id="step-drawer-overlay" class="drawer-overlay">
+    <div class="drawer-panel">
+      
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid #e2e8f0; padding-bottom:16px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.6rem;">📖</span>
+            <h2 id="drawer-title" style="font-size:1.3rem; font-weight:800; color:#0f172a;">Guide Title</h2>
+          </div>
+          <div id="drawer-subtitle" style="font-size:0.85rem; color:#64748b; margin-top:4px;">Procedure Steps</div>
+        </div>
+        <button id="close-drawer-btn" class="modal-close-btn" aria-label="Close Drawer">✕</button>
+      </div>
+
+      <!-- Steps Timeline Container -->
+      <div id="drawer-steps-list" style="display:flex; flex-direction:column; gap:16px; flex:1;">
+        <!-- Rendered dynamically by dashboard.js -->
+      </div>
+
+      <div style="margin-top:24px; border-top:1px solid #e2e8f0; padding-top:16px; display:flex; justify-content:flex-end;">
+        <button id="close-drawer-footer-btn" class="btn btn-secondary" style="min-height:40px;">Close Panel</button>
+      </div>
 
     </div>
   </div>

@@ -23,6 +23,7 @@ enum Category {
   DB_CONNECTION
   API_KEY
   SSH_KEY
+  STEP_BY_STEP
   OTHER
 }
 

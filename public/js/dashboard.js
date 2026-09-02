@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const metricTotal = document.getElementById('metric-total');
   const metricDb = document.getElementById('metric-db');
   const metricPasswords = document.getElementById('metric-passwords');
-  const metricApi = document.getElementById('metric-api');
+  const metricSteps = document.getElementById('metric-steps');
 
   // Modal elements
   const addModal = document.getElementById('add-secret-modal');
@@ -23,9 +23,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   const modalCategorySelect = document.getElementById('modal-category');
   const modalPassFields = document.getElementById('modal-cat-password-fields');
   const modalDbFields = document.getElementById('modal-cat-db-fields');
+  const modalStepsFields = document.getElementById('modal-cat-steps-fields');
   const modalApiFields = document.getElementById('modal-cat-api-fields');
+  const modalStepsContainer = document.getElementById('modal-steps-container');
+  const modalAddStepBtn = document.getElementById('modal-add-step-btn');
+
   const modalGenPassBtn = document.getElementById('modal-gen-pass-btn');
   const modalParseConnBtn = document.getElementById('modal-parse-conn-btn');
+
+  // Slide-Over Drawer Elements
+  const drawerOverlay = document.getElementById('step-drawer-overlay');
+  const closeDrawerBtn = document.getElementById('close-drawer-btn');
+  const closeDrawerFooterBtn = document.getElementById('close-drawer-footer-btn');
+  const drawerTitle = document.getElementById('drawer-title');
+  const drawerSubtitle = document.getElementById('drawer-subtitle');
+  const drawerStepsList = document.getElementById('drawer-steps-list');
 
   // Check auth user
   let currentUser = null;
@@ -67,13 +79,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (metricTotal) metricTotal.textContent = items.length;
     if (metricDb) metricDb.textContent = items.filter(i => i.category === 'DB_CONNECTION').length;
     if (metricPasswords) metricPasswords.textContent = items.filter(i => i.category === 'PASSWORD').length;
-    if (metricApi) metricApi.textContent = items.filter(i => i.category === 'API_KEY').length;
+    if (metricSteps) metricSteps.textContent = items.filter(i => i.category === 'STEP_BY_STEP').length;
   }
 
   function getCategoryIcon(cat) {
     switch (cat) {
       case 'PASSWORD': return '🔑';
       case 'DB_CONNECTION': return '🗄️';
+      case 'STEP_BY_STEP': return '📖';
       case 'API_KEY': return '⚡';
       case 'SSH_KEY': return '💻';
       default: return '🔐';
@@ -88,7 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="glass-card" style="padding: 44px 20px; text-align: center; grid-column: 1 / -1;">
           <div style="font-size: 3rem; margin-bottom: 12px;">🛡️</div>
           <h3 style="margin-bottom: 6px; font-weight: 800; color: #0f172a;">No Vault Entries Found</h3>
-          <p style="color: #64748b; margin-bottom: 16px;">Click '+ Add New Entry' above to store your passwords or database connection strings.</p>
+          <p style="color: #64748b; margin-bottom: 16px;">Click '+ Add New Entry' above to store your passwords, connection strings, or procedures.</p>
           <button class="btn btn-primary" onclick="openAddModal()" style="margin: 0 auto;">+ Add First Entry</button>
         </div>
       `;
@@ -106,6 +119,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       let targetInfo = item.username || item.websiteUrl || '-';
       if (item.category === 'DB_CONNECTION') {
         targetInfo = payload.host ? `${payload.host}:${payload.port || '5432'} (${payload.dbName || 'db'})` : (payload.connectionString ? 'Connection String' : '-');
+      } else if (item.category === 'STEP_BY_STEP') {
+        const stepCount = (payload.steps && Array.isArray(payload.steps)) ? payload.steps.length : 0;
+        targetInfo = `📖 ${stepCount} Procedure Step${stepCount === 1 ? '' : 's'}`;
       }
 
       let copyActionsHtml = '';
@@ -119,6 +135,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         copyActionsHtml = `
           ${item.username ? `<button class="btn-copy" onclick="copyToClipboard('${escapeJs(item.username)}', 'Username')">👤 User</button>` : ''}
           ${payload.password ? `<button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Password')">🔑 Pass</button>` : ''}
+        `;
+      } else if (item.category === 'STEP_BY_STEP') {
+        copyActionsHtml = `
+          <button class="btn-copy" style="background:#eff6ff; color:#4f46e5; border-color:#c7d2fe;" onclick="openStepDrawer('${item.id}')">
+            📖 Open Steps Panel
+          </button>
         `;
       } else if (item.category === 'API_KEY') {
         copyActionsHtml = `
@@ -135,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         : '<span style="color:#94a3b8; font-size:0.8rem;">-</span>';
 
       return `
-        <tr>
+        <tr style="cursor: ${item.category === 'STEP_BY_STEP' ? 'pointer' : 'default'};" onclick="${item.category === 'STEP_BY_STEP' ? `openStepDrawer('${item.id}')` : ''}">
           <td>
             <div style="display:flex; align-items:center; gap:12px;">
               <span style="font-size:1.4rem;">${icon}</span>
@@ -150,7 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span style="font-size:0.88rem; color:#334155; font-weight:600;">${escapeHtml(targetInfo)}</span>
           </td>
 
-          <td>
+          <td onclick="event.stopPropagation();">
             <div style="display:flex; gap:6px; flex-wrap:wrap;">${copyActionsHtml}</div>
           </td>
 
@@ -160,7 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             ${new Date(item.updatedAt).toLocaleDateString()}
           </td>
 
-          <td style="text-align:right; white-space:nowrap;">
+          <td style="text-align:right; white-space:nowrap;" onclick="event.stopPropagation();">
             <div style="display:inline-flex; align-items:center; gap:6px;">
               <button class="btn-icon" style="width:34px; height:34px; font-size:1rem;" onclick="toggleFav('${item.id}')" title="Favorite">${isFav}</button>
               <button class="btn-secondary" style="padding:4px 10px; min-height:34px; font-size:0.75rem;" onclick="deleteSecretItem('${item.id}')" title="Delete Entry">🗑️</button>
@@ -176,8 +198,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           <thead>
             <tr>
               <th>Entry Title & Type</th>
-              <th>Target / Account</th>
-              <th>Quick Copy Actions</th>
+              <th>Target / Details</th>
+              <th>Quick Actions</th>
               <th>Tags</th>
               <th>Updated</th>
               <th style="text-align:right;">Actions</th>
@@ -226,6 +248,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                   🔑 Password
                 </button>
               ` : ''}
+            `;
+          } else if (item.category === 'STEP_BY_STEP') {
+            copyButtonsHtml = `
+              <button class="btn-copy" style="background:#eff6ff; color:#4f46e5; border-color:#c7d2fe;" onclick="openStepDrawer('${item.id}')">
+                📖 View Step-by-Step Instructions Panel
+              </button>
             `;
           } else if (item.category === 'API_KEY') {
             copyButtonsHtml = `
@@ -345,6 +373,108 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // ======================================================
+  // STEP-BY-STEP SLIDE-OVER DRAWER PANEL LOGIC
+  // ======================================================
+  window.openStepDrawer = function(id) {
+    const item = secretsData.find(s => s.id === id);
+    if (!item) return;
+
+    const payload = item.payload || {};
+    const steps = payload.steps || [];
+
+    if (drawerTitle) drawerTitle.textContent = item.title;
+    if (drawerSubtitle) drawerSubtitle.textContent = `${steps.length} Procedure Step${steps.length === 1 ? '' : 's'} • Created ${new Date(item.createdAt).toLocaleDateString()}`;
+
+    if (drawerStepsList) {
+      if (steps.length === 0) {
+        drawerStepsList.innerHTML = `
+          <div style="text-align:center; padding:32px 16px; color:#64748b;">
+            <div style="font-size:2rem; margin-bottom:8px;">📝</div>
+            No procedure steps recorded for this guide.
+          </div>
+        `;
+      } else {
+        drawerStepsList.innerHTML = steps.map((step, idx) => `
+          <div class="step-card">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="step-badge-num">${idx + 1}</div>
+                <h4 style="font-size:1.05rem; font-weight:800; color:#0f172a;">${escapeHtml(step.title || `Step ${idx + 1}`)}</h4>
+              </div>
+              ${step.description ? `
+                <button class="btn-copy" style="padding:4px 8px; font-size:0.75rem;" onclick="copyToClipboard('${escapeJs(step.description)}', 'Step ${idx + 1} Instructions')">
+                  📋 Copy Text
+                </button>
+              ` : ''}
+            </div>
+            ${step.description ? `
+              <div style="font-size:0.9rem; color:#334155; white-space:pre-wrap; line-height:1.6; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; font-family:${step.description.includes('\n') || step.description.includes('sudo') || step.description.includes('docker') ? 'var(--font-mono)' : 'var(--font-sans)'}; font-size:${step.description.includes('sudo') ? '0.85rem' : '0.9rem'}">
+${escapeHtml(step.description)}
+              </div>
+            ` : ''}
+          </div>
+        `).join('');
+      }
+    }
+
+    if (drawerOverlay) drawerOverlay.classList.add('open');
+  };
+
+  function closeStepDrawer() {
+    if (drawerOverlay) drawerOverlay.classList.remove('open');
+  }
+
+  if (closeDrawerBtn) closeDrawerBtn.addEventListener('click', closeStepDrawer);
+  if (closeDrawerFooterBtn) closeDrawerFooterBtn.addEventListener('click', closeStepDrawer);
+  if (drawerOverlay) {
+    drawerOverlay.addEventListener('click', (e) => {
+      if (e.target === drawerOverlay) closeStepDrawer();
+    });
+  }
+
+  // ======================================================
+  // DYNAMIC STEP BUILDER FOR ADD ENTRY MODAL
+  // ======================================================
+  function addStepRow(stepTitle = '', stepDesc = '') {
+    if (!modalStepsContainer) return;
+
+    const stepIndex = modalStepsContainer.children.length + 1;
+    const row = document.createElement('div');
+    row.className = 'modal-step-row';
+    row.style.cssText = 'background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:8px; position:relative;';
+
+    row.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:0.8rem; font-weight:800; color:#4f46e5; text-transform:uppercase; letter-spacing:0.04em;">
+          Step #${stepIndex}
+        </span>
+        <button type="button" class="btn-danger remove-step-btn" style="padding:2px 8px; min-height:24px; font-size:0.75rem; border-radius:6px;">
+          ✕ Remove
+        </button>
+      </div>
+      <input type="text" class="form-input step-title-input" placeholder="Step Title (e.g. Run docker-compose up)" value="${escapeHtml(stepTitle)}">
+      <textarea class="form-textarea step-desc-input" rows="2" placeholder="Detailed instructions or code snippet...">${escapeHtml(stepDesc)}</textarea>
+    `;
+
+    row.querySelector('.remove-step-btn').addEventListener('click', () => {
+      row.remove();
+      // Renumber step titles
+      const remainingRows = modalStepsContainer.querySelectorAll('.modal-step-row');
+      remainingRows.forEach((r, i) => {
+        r.querySelector('span').textContent = `Step #${i + 1}`;
+      });
+    });
+
+    modalStepsContainer.appendChild(row);
+  }
+
+  if (modalAddStepBtn) {
+    modalAddStepBtn.addEventListener('click', () => {
+      addStepRow();
+    });
+  }
+
+  // ======================================================
   // MODAL DIALOG CONTROLS & SUBMISSION
   // ======================================================
   function openAddModal() {
@@ -359,8 +489,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (addModal) {
       addModal.classList.remove('open');
       if (modalForm) modalForm.reset();
+      if (modalStepsContainer) modalStepsContainer.innerHTML = '';
       if (modalPassFields) modalPassFields.style.display = 'block';
       if (modalDbFields) modalDbFields.style.display = 'none';
+      if (modalStepsFields) modalStepsFields.style.display = 'none';
       if (modalApiFields) modalApiFields.style.display = 'none';
     }
   }
@@ -376,6 +508,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && addModal.classList.contains('open')) closeAddModal();
+      if (e.key === 'Escape' && drawerOverlay && drawerOverlay.classList.contains('open')) closeStepDrawer();
     });
   }
 
@@ -385,6 +518,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       const val = modalCategorySelect.value;
       if (modalPassFields) modalPassFields.style.display = val === 'PASSWORD' ? 'block' : 'none';
       if (modalDbFields) modalDbFields.style.display = val === 'DB_CONNECTION' ? 'block' : 'none';
+      if (modalStepsFields) {
+        modalStepsFields.style.display = val === 'STEP_BY_STEP' ? 'block' : 'none';
+        if (val === 'STEP_BY_STEP' && modalStepsContainer && modalStepsContainer.children.length === 0) {
+          addStepRow('Prerequisites & Credentials', 'Overview or required software...');
+          addStepRow('Execution Commands', 'docker-compose up -d');
+        }
+      }
       if (modalApiFields) modalApiFields.style.display = (val === 'API_KEY' || val === 'SSH_KEY' || val === 'OTHER') ? 'block' : 'none';
     });
   }
@@ -469,6 +609,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         payload.dbName = document.getElementById('modal-db-name').value.trim();
         payload.username = document.getElementById('modal-db-user').value.trim();
         payload.password = document.getElementById('modal-db-pass').value;
+        payload.notes = document.getElementById('modal-notes').value;
+      } else if (category === 'STEP_BY_STEP') {
+        const stepRows = modalStepsContainer ? modalStepsContainer.querySelectorAll('.modal-step-row') : [];
+        const steps = [];
+        stepRows.forEach(row => {
+          const t = row.querySelector('.step-title-input').value.trim();
+          const d = row.querySelector('.step-desc-input').value.trim();
+          if (t || d) steps.push({ title: t, description: d });
+        });
+        payload.steps = steps;
         payload.notes = document.getElementById('modal-notes').value;
       } else {
         payload.apiKey = document.getElementById('modal-api-key-val').value;
