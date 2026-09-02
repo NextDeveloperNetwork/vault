@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Vault Dashboard - PassKeeper</title>
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/global.css">
@@ -14,22 +14,29 @@
     
     <!-- Top Header -->
     <header class="app-header">
-      <div class="brand">
-        <div class="brand-logo">
-          <i data-lucide="shield-check" class="icon-md"></i>
-        </div>
-        <div>
-          <div class="brand-title">PassKeeper</div>
-          <div style="font-size: 0.8125rem; color: var(--muted-foreground);">
-            Welcome back, <span id="user-name-display" style="color: var(--foreground); font-weight:600;">User</span>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <!-- Mobile Hamburger Menu Button -->
+        <button id="mobile-menu-btn" class="btn-icon mobile-menu-trigger" aria-label="Open Navigation Menu">
+          <i data-lucide="menu" class="icon-sm"></i>
+        </button>
+        
+        <div class="brand">
+          <div class="brand-logo">
+            <i data-lucide="shield-check" class="icon-md"></i>
+          </div>
+          <div>
+            <div class="brand-title">PassKeeper</div>
+            <div class="desktop-greeting" style="font-size: 0.8125rem; color: var(--muted-foreground);">
+              Welcome back, <span id="user-name-display" style="color: var(--foreground); font-weight:600;">User</span>
+            </div>
           </div>
         </div>
       </div>
       
       <!-- Primary Action: Open Add New Entry Dialog -->
-      <button id="open-add-modal-btn" class="btn btn-primary">
+      <button id="open-add-modal-btn" class="btn btn-primary" style="flex-shrink:0;">
         <i data-lucide="plus" class="icon-sm"></i>
-        <span>Add New Entry</span>
+        <span>Add Entry</span>
       </button>
     </header>
 
@@ -434,6 +441,63 @@
           </button>
         </div>
         <button id="close-drawer-footer-btn" class="btn btn-secondary">Close</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================
+       MOBILE NAVIGATION SLIDE-OVER DRAWER (LEFT SHEET)
+       ====================================================== -->
+  <div id="mobile-menu-drawer" class="drawer-overlay" style="justify-content:flex-start;">
+    <div class="drawer-panel mobile-nav-panel" style="max-width:18.5rem; transform:translateX(-100%); border-right:1px solid var(--border); border-left:none; box-shadow:10px 0 30px rgba(0,0,0,0.15); padding:1.25rem;">
+      
+      <!-- Drawer Header -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border);">
+        <div style="display:flex; align-items:center; gap:0.625rem;">
+          <div class="brand-logo" style="width:2rem; height:2rem;">
+            <i data-lucide="shield-check" class="icon-sm"></i>
+          </div>
+          <div>
+            <div style="font-weight:700; font-size:1rem; color:var(--foreground);">PassKeeper</div>
+            <div style="font-size:0.6875rem; color:var(--muted-foreground);">Secret Vault</div>
+          </div>
+        </div>
+        <button id="close-mobile-menu-btn" class="modal-close-btn" aria-label="Close Navigation Menu">
+          <i data-lucide="x" class="icon-sm"></i>
+        </button>
+      </div>
+
+      <!-- Main Navigation Links -->
+      <div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:1.25rem;">
+        <a href="/dashboard" class="sidebar-link active">
+          <i data-lucide="layout-dashboard" class="icon-sm"></i>
+          <span>Vault Dashboard</span>
+        </a>
+        <a href="/users" id="mobile-menu-users-link" class="sidebar-link" style="display:none;">
+          <i data-lucide="users" class="icon-sm"></i>
+          <span>User Approvals</span>
+        </a>
+        <a href="/settings" class="sidebar-link">
+          <i data-lucide="settings" class="icon-sm"></i>
+          <span>Settings & Backup</span>
+        </a>
+      </div>
+
+      <!-- Mobile Folders & Groups Container -->
+      <div id="mobile-menu-groups-container" style="flex:1; overflow-y:auto; margin-bottom:1rem;">
+        <!-- Injected dynamically by dashboard.js -->
+      </div>
+
+      <!-- User Profile & Log Out Footer -->
+      <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.625rem;">
+        <div id="mobile-menu-user-info" style="display:flex; align-items:center; justify-content:space-between;">
+          <!-- Injected dynamically -->
+        </div>
+        <button onclick="handleSidebarLogout()" class="btn btn-secondary" style="width:100%; font-size:0.8125rem; height:2.25rem;">
+          <i data-lucide="log-out" class="icon-xs"></i>
+          <span>Log Out</span>
+        </button>
       </div>
 
     </div>

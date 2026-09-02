@@ -15,12 +15,24 @@ html, body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
 }
 
 body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+/* Fix iPhone / iOS Safari Auto-Zoom on Input Focus */
+@media screen and (max-width: 767px) {
+  input, select, textarea, .form-input, .form-select, .form-textarea {
+    font-size: 16px !important; /* iOS Safari will not zoom in if font-size is >= 16px */
+  }
+}
+
+button, a, input, select, textarea {
+  touch-action: manipulation; /* Prevents double-tap zoom delay and accidental zoom */
 }
 
 /* Lucide Icon Helpers */

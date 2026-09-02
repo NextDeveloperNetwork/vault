@@ -208,6 +208,89 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // ======================================================
+  // MOBILE NAVIGATION MENU DRAWER
+  // ======================================================
+  const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  const mobileMenuDrawer = document.getElementById('mobile-menu-drawer');
+  const closeMobileMenuBtn = document.getElementById('close-mobile-menu-btn');
+  const mobileMenuUsersLink = document.getElementById('mobile-menu-users-link');
+  const mobileMenuGroupsContainer = document.getElementById('mobile-menu-groups-container');
+  const mobileMenuUserInfo = document.getElementById('mobile-menu-user-info');
+
+  function openMobileMenu() {
+    if (!mobileMenuDrawer) return;
+
+    if (currentUser) {
+      if (mobileMenuUsersLink) {
+        mobileMenuUsersLink.style.display = currentUser.role === 'ADMIN' ? 'flex' : 'none';
+      }
+      if (mobileMenuUserInfo) {
+        mobileMenuUserInfo.innerHTML = `
+          <div style="overflow:hidden; text-overflow:ellipsis;">
+            <div style="font-weight:600; font-size:0.875rem; color:var(--foreground);">${escapeHtml(currentUser.name || currentUser.email.split('@')[0])}</div>
+            <div style="font-size:0.75rem; color:var(--muted-foreground); text-overflow:ellipsis; overflow:hidden;">${escapeHtml(currentUser.email)}</div>
+          </div>
+          <span class="badge badge-${currentUser.role}">${currentUser.role}</span>
+        `;
+      }
+    }
+
+    if (mobileMenuGroupsContainer && groupsData) {
+      const { groups = [], ungroupedCount = 0, totalCount = 0 } = groupsData;
+      mobileMenuGroupsContainer.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.375rem; padding: 0 0.25rem;">
+          <span style="font-size:0.6875rem; font-weight:700; color:var(--muted-foreground); text-transform:uppercase; letter-spacing:0.05em;">Folders & Groups</span>
+          <button onclick="window.closeMobileMenu(); window.openCreateGroupModal()" class="btn-icon" style="width:1.5rem; height:1.5rem;" title="Create Group">
+            <i data-lucide="plus" class="icon-xs"></i>
+          </button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:0.2rem;">
+          <a href="javascript:void(0)" onclick="window.filterByGroup('ALL'); window.closeMobileMenu();" class="sidebar-link ${activeGroupId === 'ALL' ? 'active' : ''}">
+            <i data-lucide="folder-open" class="icon-sm"></i>
+            <span style="flex:1;">All Items</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${totalCount}</span>
+          </a>
+
+          <a href="javascript:void(0)" onclick="window.filterByGroup('FAV'); window.closeMobileMenu();" class="sidebar-link ${activeGroupId === 'FAV' ? 'active' : ''}">
+            <i data-lucide="star" class="icon-sm" style="color:#f59e0b;"></i>
+            <span style="flex:1;">Favorites</span>
+          </a>
+
+          ${groups.map(g => `
+            <a href="javascript:void(0)" onclick="window.filterByGroup('${g.id}'); window.closeMobileMenu();" class="sidebar-link ${activeGroupId === g.id ? 'active' : ''}">
+              <i data-lucide="${g.icon || 'folder'}" class="icon-sm" style="${g.color ? `color:${g.color};` : ''}"></i>
+              <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g.name)}</span>
+              <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${g.count}</span>
+            </a>
+          `).join('')}
+
+          <a href="javascript:void(0)" onclick="window.filterByGroup('NONE'); window.closeMobileMenu();" class="sidebar-link ${activeGroupId === 'NONE' ? 'active' : ''}">
+            <i data-lucide="folder" class="icon-sm" style="color:#94a3b8;"></i>
+            <span style="flex:1;">Ungrouped</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${ungroupedCount}</span>
+          </a>
+        </div>
+      `;
+    }
+
+    mobileMenuDrawer.classList.add('open');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  window.closeMobileMenu = function() {
+    if (mobileMenuDrawer) mobileMenuDrawer.classList.remove('open');
+  };
+
+  if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMobileMenu);
+  if (closeMobileMenuBtn) closeMobileMenuBtn.addEventListener('click', window.closeMobileMenu);
+  if (mobileMenuDrawer) {
+    mobileMenuDrawer.addEventListener('click', (e) => {
+      if (e.target === mobileMenuDrawer) window.closeMobileMenu();
+    });
+  }
+
+  // ======================================================
   // SECRETS LISTING & FILTERING
   // ======================================================
   async function loadSecrets() {

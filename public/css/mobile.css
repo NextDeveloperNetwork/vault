@@ -21,12 +21,33 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.25rem;
+  gap: 0.5rem;
+}
+
+.mobile-menu-trigger {
+  display: inline-flex;
+}
+
+@media (min-width: 768px) {
+  .mobile-menu-trigger {
+    display: none !important;
+  }
+}
+
+#mobile-menu-drawer.open .mobile-nav-panel {
+  transform: translateX(0) !important;
+}
+
+@media (max-width: 480px) {
+  .desktop-greeting {
+    display: none !important;
+  }
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .brand-logo {
@@ -38,6 +59,7 @@
   align-items: center;
   justify-content: center;
   color: var(--primary-foreground);
+  flex-shrink: 0;
 }
 
 .brand-title {
@@ -45,6 +67,7 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--foreground);
+  white-space: nowrap;
 }
 
 /* Mobile Bottom Navigation Bar */
