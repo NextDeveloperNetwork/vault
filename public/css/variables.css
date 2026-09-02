@@ -1,62 +1,75 @@
-/* PassKeeper Design System - shadcn/ui Minimalist Light Theme */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* PassKeeper — Premium Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  /* shadcn/ui Neutral Palette (HSL & HEX) */
-  --background: #ffffff;
-  --foreground: #09090b;
-  --card: #ffffff;
-  --card-foreground: #09090b;
-  --popover: #ffffff;
-  --popover-foreground: #09090b;
-  
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
-  --primary-hover: #27272a;
-  
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --secondary-hover: #e4e4e7;
-  
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
-  
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --destructive-muted: #fef2f2;
-  
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #18181b;
-  --ring-offset: #ffffff;
-  
-  /* Accent Brand (Indigo) for highlights */
-  --brand: #4f46e5;
-  --brand-muted: #eff6ff;
-  --brand-border: #c7d2fe;
-  --brand-foreground: #4338ca;
+  /* ── Core Palette ────────────────────────── */
+  --background:         #f8f8fc;
+  --foreground:         #0f0f1a;
+  --card:               #ffffff;
+  --card-foreground:    #0f0f1a;
 
-  /* Typography */
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* ── Brand Indigo ───────────────────────── */
+  --primary:            #4f46e5;
+  --primary-hover:      #4338ca;
+  --primary-light:      #ede9fe;
+  --primary-foreground: #ffffff;
 
-  /* Radii */
-  --radius: 10px;
-  --radius-lg: 12px;
+  /* ── Violet accent ──────────────────────── */
+  --accent-purple:      #7c3aed;
+  --accent-indigo:      #6366f1;
+
+  /* ── Neutral surfaces ───────────────────── */
+  --secondary:          #f1f0f9;
+  --secondary-foreground:#4f46e5;
+  --secondary-hover:    #e8e6f8;
+
+  --muted:              #f3f4f6;
+  --muted-foreground:   #6b7280;
+
+  --accent:             #f5f3ff;
+  --accent-foreground:  #4f46e5;
+
+  /* ── Destructive ────────────────────────── */
+  --destructive:        #ef4444;
+  --destructive-foreground: #ffffff;
+  --destructive-muted:  #fef2f2;
+
+  /* ── Borders & inputs ────────────────────── */
+  --border:             #e5e4f0;
+  --input:              #e5e4f0;
+  --ring:               #4f46e5;
+  --ring-offset:        #ffffff;
+
+  /* ── Typography ─────────────────────────── */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ── Radii ───────────────────────────────── */
+  --radius:    10px;
+  --radius-lg: 14px;
   --radius-md: 8px;
   --radius-sm: 6px;
+  --radius-xl: 20px;
 
-  /* Shadows (shadcn style subtle elevations) */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-  --shadow-dialog: 0 25px 50px -12px rgb(0 0 0 / 0.18);
+  /* ── Shadows ─────────────────────────────── */
+  --shadow-xs:     0 1px 2px 0 rgba(79,70,229,0.04);
+  --shadow-sm:     0 1px 3px 0 rgba(79,70,229,0.07), 0 1px 2px -1px rgba(0,0,0,0.04);
+  --shadow-md:     0 4px 16px -2px rgba(79,70,229,0.10), 0 2px 6px -2px rgba(0,0,0,0.04);
+  --shadow-lg:     0 10px 30px -4px rgba(79,70,229,0.12), 0 4px 8px -4px rgba(0,0,0,0.05);
+  --shadow-xl:     0 20px 48px -8px rgba(79,70,229,0.18), 0 8px 16px -8px rgba(0,0,0,0.08);
+  --shadow-dialog: 0 32px 64px -12px rgba(15,15,26,0.22);
+  --shadow-glow:   0 0 0 3px rgba(79,70,229,0.18);
 
-  /* iPhone Safe Area */
-  --safe-area-top: env(safe-area-inset-top, 47px);
+  /* ── Glass / Blur ─────────────────────────── */
+  --glass-bg:      rgba(255,255,255,0.75);
+  --glass-border:  rgba(255,255,255,0.6);
+
+  /* ── Auth Gradient ───────────────────────── */
+  --auth-bg-from: #0f0c29;
+  --auth-bg-mid:  #302b63;
+  --auth-bg-to:   #24243e;
+
+  /* ── iPhone Safe Area ─────────────────────── */
+  --safe-area-top:    env(safe-area-inset-top, 47px);
   --safe-area-bottom: env(safe-area-inset-bottom, 34px);
 }
