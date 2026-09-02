@@ -121,8 +121,8 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null) {
       ${currentUser ? `
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
           <div>
-            <div style="font-weight:700; font-size:0.85rem; color:#fff;">${currentUser.name || currentUser.email.split('@')[0]}</div>
-            <div style="font-size:0.75rem; color:var(--text-dim);">${currentUser.email}</div>
+            <div style="font-weight:700; font-size:0.85rem; color:#0f172a;">${currentUser.name || currentUser.email.split('@')[0]}</div>
+            <div style="font-size:0.75rem; color:#64748b;">${currentUser.email}</div>
           </div>
           <span class="badge badge-${currentUser.role}">${currentUser.role}</span>
         </div>

@@ -1,31 +1,31 @@
-/* PassKeeper Design System - Crystal Clear Modern Dark Theme */
+/* PassKeeper Design System - Pristine White Clear Theme */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  /* Color Tokens */
-  --bg-dark: #0a0e17;
-  --bg-card: rgba(15, 22, 36, 0.82);
-  --bg-card-hover: rgba(22, 32, 52, 0.9);
-  --bg-input: rgba(13, 20, 33, 0.85);
-  --border-color: rgba(255, 255, 255, 0.12);
-  --border-hover: rgba(255, 255, 255, 0.22);
-  --border-focus: #6366f1;
+  /* Color Tokens - Light Theme */
+  --bg-dark: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-input: #ffffff;
+  --border-color: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --border-focus: #4f46e5;
 
   /* Accents */
-  --accent-primary: #6366f1;
-  --accent-primary-hover: #4f46e5;
-  --accent-secondary: #8b5cf6;
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
-  --accent-glow: rgba(99, 102, 241, 0.3);
+  --accent-primary: #4f46e5;
+  --accent-primary-hover: #4338ca;
+  --accent-secondary: #7c3aed;
+  --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #d946ef 100%);
+  --accent-glow: rgba(79, 70, 229, 0.15);
 
   /* Typography */
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Text Colors */
-  --text-main: #ffffff;
-  --text-muted: #a1a1aa;
-  --text-dim: #71717a;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #64748b;
 
   /* iPhone 14 Pro Max Safe Area Insets */
   --safe-area-top: env(safe-area-inset-top, 47px);
@@ -37,7 +37,7 @@
   --radius-lg: 24px;
   --radius-md: 14px;
   --radius-sm: 10px;
-  --glass-blur: blur(24px);
-  --box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
-  --glow-shadow: 0 0 30px rgba(99, 102, 241, 0.35);
+  --glass-blur: blur(20px);
+  --box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.08);
+  --glow-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
 }

@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="glass-card" style="padding:16px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
             <div>
-              <div style="font-weight:700; font-size:1.05rem; color:#fff; display:flex; align-items:center; gap:8px;">
+              <div style="font-weight:700; font-size:1.05rem; color:#0f172a; display:flex; align-items:center; gap:8px;">
                 ${escapeHtml(user.name || user.email.split('@')[0])}
                 ${isSelf ? '<span style="font-size:0.75rem; color:var(--accent-primary);">(You)</span>' : ''}
               </div>

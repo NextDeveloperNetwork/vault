@@ -1,4 +1,4 @@
-/* Mobile Navigation & Layout specifically tuned for iPhone 14 Pro Max & iOS devices */
+/* Mobile & Desktop Layout - Pristine White Clear Theme */
 
 .app-container {
   max-width: 440px;
@@ -26,30 +26,29 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .brand-logo {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 12px;
   background: var(--accent-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.3rem;
-  box-shadow: var(--glow-shadow);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  color: #fff;
 }
 
 .brand-title {
   font-size: 1.3rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #0f172a;
 }
 
-/* Floating Frosted Glass Bottom Navigation Bar (Mobile) */
+/* Floating White Bottom Navigation Bar (Mobile) */
 .bottom-nav {
   position: fixed;
   bottom: calc(var(--safe-area-bottom) + 8px);
@@ -58,16 +57,16 @@
   width: calc(100% - 32px);
   max-width: 400px;
   height: 64px;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-color);
+  border: 1px solid #cbd5e1;
   border-radius: 32px;
   display: flex;
   align-items: center;
   justify-content: space-around;
   z-index: 1000;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
 }
 
 .nav-item {
@@ -76,10 +75,10 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  color: var(--text-muted);
+  color: #64748b;
   text-decoration: none;
   font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: 700;
   width: 60px;
   height: 48px;
   transition: all 0.2s ease;
@@ -89,18 +88,18 @@
 .nav-item svg {
   width: 22px;
   height: 22px;
-  stroke: var(--text-muted);
+  stroke: #64748b;
   fill: none;
   stroke-width: 2;
   transition: all 0.2s ease;
 }
 
 .nav-item.active {
-  color: var(--accent-primary);
+  color: #4f46e5;
 }
 
 .nav-item.active svg {
-  stroke: var(--accent-primary);
+  stroke: #4f46e5;
   transform: translateY(-2px);
 }
 
@@ -114,8 +113,8 @@
   justify-content: center;
   color: #fff;
   margin-top: -24px;
-  box-shadow: var(--glow-shadow);
-  border: 4px solid var(--bg-dark);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+  border: 4px solid #f8fafc;
   transition: transform 0.2s ease;
 }
 
@@ -140,20 +139,26 @@
 .pill {
   padding: 8px 16px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-color);
-  color: var(--text-muted);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
   font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
+.pill:hover {
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
 .pill.active {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: var(--accent-primary);
-  color: #fff;
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
 }
 
 /* Secret Cards List */
@@ -164,10 +169,10 @@
 }
 
 .secret-card {
-  padding: 16px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .card-header {
@@ -183,25 +188,27 @@
 }
 
 .card-icon {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
 }
 
 .card-title-text {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
 }
 
 .card-subtext {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 /* Quick Action Copy Buttons */
@@ -213,13 +220,13 @@
 }
 
 .btn-copy {
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-  font-size: 0.78rem;
-  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -228,21 +235,27 @@
   transition: all 0.2s ease;
 }
 
+.btn-copy:hover {
+  background: #f1f5f9;
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+
 .btn-copy:active {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: var(--accent-primary);
+  transform: scale(0.98);
 }
 
 /* Connection String Parser Box */
 .conn-string-box {
-  background: rgba(10, 15, 26, 0.8);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 12px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 12px 14px;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   word-break: break-all;
-  color: #a5b4fc;
+  color: #312e81;
+  font-weight: 600;
 }
 
 /* Desktop Sidebar Hidden by default on Mobile */
@@ -257,6 +270,7 @@
   body {
     display: flex;
     flex-direction: row;
+    background-color: #f8fafc;
   }
 
   .bottom-nav {
@@ -271,19 +285,18 @@
     position: fixed;
     top: 0;
     left: 0;
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-right: 1px solid var(--border-color);
-    padding: 24px 16px;
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    padding: 28px 18px;
     z-index: 1000;
+    box-shadow: 4px 0 20px rgba(15, 23, 42, 0.03);
   }
 
   .sidebar-brand {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 32px;
+    margin-bottom: 36px;
     padding-left: 8px;
   }
 
@@ -299,27 +312,27 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    border-radius: var(--radius-md);
-    color: var(--text-muted);
+    border-radius: 12px;
+    color: #475569;
     text-decoration: none;
     font-size: 0.95rem;
-    font-weight: 600;
+    font-weight: 700;
     transition: all 0.2s ease;
   }
 
   .sidebar-link:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+    background: #f1f5f9;
+    color: #0f172a;
   }
 
   .sidebar-link.active {
-    background: rgba(99, 102, 241, 0.15);
-    color: var(--accent-primary);
-    border: 1px solid rgba(99, 102, 241, 0.3);
+    background: rgba(79, 70, 229, 0.08);
+    color: #4f46e5;
+    border: 1px solid rgba(79, 70, 229, 0.2);
   }
 
   .sidebar-footer {
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid #e2e8f0;
     padding-top: 16px;
     display: flex;
     flex-direction: column;
@@ -327,17 +340,17 @@
   }
 
   .app-container {
-    max-width: 900px;
+    max-width: 960px;
     margin-left: 260px;
     margin-right: auto;
-    padding-top: 32px;
+    padding-top: 36px;
     padding-bottom: 48px;
   }
 
   /* Desktop Grid for Cards */
   .secret-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
     gap: 16px;
   }
 }
