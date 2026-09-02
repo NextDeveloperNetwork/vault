@@ -26,12 +26,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Static Assets (HTML, CSS, JS)
+// Static Assets — smart cache headers
+// HTML: never cache (always fresh), CSS/JS: short cache (busted by ?v= in HTML), images: long cache
 app.use(express.static(path.join(__dirname, '../public'), {
   setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.ico')) {
-      res.set('Content-Type', 'image/x-icon');
-      res.set('Cache-Control', 'public, max-age=86400');
+    if (filePath.endsWith('.html')) {
+      // Always revalidate HTML — ensures new CSS/JS links are picked up immediately
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+    } else if (filePath.endsWith('.css') || filePath.endsWith('.js')) {
+      // CSS & JS: browser must revalidate each request (cache-busted by ?v= query string)
+      res.set('Cache-Control', 'no-cache, must-revalidate');
+    } else if (filePath.endsWith('.ico') || filePath.endsWith('.jpg') || filePath.endsWith('.png') || filePath.endsWith('.svg')) {
+      res.set('Cache-Control', 'public, max-age=604800'); // 7 days for images
     }
   }
 }));
