@@ -36,11 +36,17 @@ app.use(express.static(path.join(__dirname, '../public'), {
   }
 }));
 
-// Explicit favicon route — browsers sometimes skip static middleware for /favicon.ico
+// Favicon — served under both .ico and .jpg paths for maximum compatibility
+const faviconPath = path.join(__dirname, '../public/favicon.ico');
 app.get('/favicon.ico', (req, res) => {
   res.set('Content-Type', 'image/x-icon');
   res.set('Cache-Control', 'public, max-age=86400');
-  res.sendFile(path.join(__dirname, '../public/favicon.ico'));
+  res.sendFile(faviconPath);
+});
+app.get('/favicon.jpg', (req, res) => {
+  res.set('Content-Type', 'image/x-icon');
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.sendFile(faviconPath);
 });
 
 

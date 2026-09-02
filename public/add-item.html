@@ -27,11 +27,11 @@
         <div class="form-group">
           <label class="form-label" for="category">Secret Type</label>
           <select id="category" class="form-select" style="background: #ffffff; color: #0f172a; border: 1.5px solid #cbd5e1;">
-            <option value="PASSWORD">🔑 Password Credential</option>
-            <option value="DB_CONNECTION">🗄️ Database Connection String</option>
-            <option value="API_KEY">⚡ API Key / Token</option>
-            <option value="SSH_KEY">💻 SSH Key / Private Certificate</option>
-            <option value="OTHER">📦 General Note / Other</option>
+            <option value="PASSWORD">ðŸ”‘ Password Credential</option>
+            <option value="DB_CONNECTION">ðŸ—„ï¸ Database Connection String</option>
+            <option value="API_KEY">âš¡ API Key / Token</option>
+            <option value="SSH_KEY">ðŸ’» SSH Key / Private Certificate</option>
+            <option value="OTHER">ðŸ“¦ General Note / Other</option>
           </select>
         </div>
 
@@ -51,12 +51,12 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
               <label class="form-label" for="secret-password" style="margin-bottom:0;">Password</label>
               <button type="button" id="gen-pass-btn" class="btn-secondary" style="padding: 4px 10px; min-height: 28px; font-size: 0.75rem;">
-                ⚡ Auto Generate
+                âš¡ Auto Generate
               </button>
             </div>
             <div class="input-wrapper">
               <input type="password" id="secret-password" class="form-input code-font" placeholder="SuperStrongSecret123!">
-              <button type="button" class="input-icon-btn toggle-password-btn">👁️</button>
+              <button type="button" class="input-icon-btn toggle-password-btn">ðŸ‘ï¸</button>
             </div>
           </div>
 
@@ -72,7 +72,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
               <label class="form-label" for="db-conn-string" style="margin-bottom:0;">Full Connection URI</label>
               <button type="button" id="parse-conn-btn" class="btn-secondary" style="padding: 4px 10px; min-height: 28px; font-size: 0.75rem;">
-                🧩 Auto Parse URI
+                ðŸ§© Auto Parse URI
               </button>
             </div>
             <input type="text" id="db-conn-string" class="form-input code-font" placeholder="postgresql://postgres:pass@db.example.com:5432/my_database">
@@ -96,7 +96,7 @@
             </div>
             <div class="form-group">
               <label class="form-label" for="db-pass">DB Password</label>
-              <input type="password" id="db-pass" class="form-input code-font" placeholder="••••••••">
+              <input type="password" id="db-pass" class="form-input code-font" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
             </div>
           </div>
 
@@ -127,11 +127,11 @@
 
         <div style="display:flex; align-items:center; gap:10px; margin-bottom: 20px;">
           <input type="checkbox" id="favorite" style="width: 20px; height: 20px; accent-color: var(--accent-primary);">
-          <label for="favorite" style="font-size: 0.9rem; font-weight: 600; cursor: pointer;">Add to Favorites ⭐</label>
+          <label for="favorite" style="font-size: 0.9rem; font-weight: 600; cursor: pointer;">Add to Favorites â­</label>
         </div>
 
         <button type="submit" class="btn btn-primary" style="width: 100%;">
-          Encrypt & Save to Vault 🔒
+          Encrypt & Save to Vault ðŸ”’
         </button>
 
       </form>
