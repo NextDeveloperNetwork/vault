@@ -104,9 +104,6 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null) {
       <a href="/dashboard" class="sidebar-link ${activePage === 'dashboard' ? 'active' : ''}">
         <span style="font-size:1.2rem">🛡️</span> Vault Dashboard
       </a>
-      <a href="/add" class="sidebar-link ${activePage === 'add' ? 'active' : ''}">
-        <span style="font-size:1.2rem">➕</span> Add New Secret
-      </a>
       ${isAdmin ? `
         <a href="/users" class="sidebar-link ${activePage === 'users' ? 'active' : ''}">
           <span style="font-size:1.2rem">👥</span> User Approvals
