@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (items.length === 0) {
       secretListContainer.innerHTML = `
-        <div class="glass-card" style="padding: 40px 20px; text-align: center; grid-column: 1 / -1;">
+        <div class="glass-card" style="padding: 44px 20px; text-align: center; grid-column: 1 / -1;">
           <div style="font-size: 3rem; margin-bottom: 12px;">🛡️</div>
           <h3 style="margin-bottom: 6px; font-weight: 800; color: #0f172a;">No Vault Entries Found</h3>
           <p style="color: #64748b; margin-bottom: 16px;">Click '+ Add New Entry' above to store your passwords or database connection strings.</p>
@@ -95,87 +95,191 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    secretListContainer.innerHTML = items.map(item => {
+    // ======================================================
+    // 1. DESKTOP ENTERPRISE DATA TABLE VIEW (>= 768px)
+    // ======================================================
+    const desktopTableRows = items.map(item => {
       const icon = getCategoryIcon(item.category);
       const isFav = item.favorite ? '⭐' : '☆';
       const payload = item.payload || {};
 
-      let copyButtonsHtml = '';
+      let targetInfo = item.username || item.websiteUrl || '-';
+      if (item.category === 'DB_CONNECTION') {
+        targetInfo = payload.host ? `${payload.host}:${payload.port || '5432'} (${payload.dbName || 'db'})` : (payload.connectionString ? 'Connection String' : '-');
+      }
 
+      let copyActionsHtml = '';
       if (item.category === 'DB_CONNECTION') {
         const connStr = payload.connectionString || `postgresql://${item.username || 'user'}:${payload.password || ''}@${payload.host || 'localhost'}:${payload.port || '5432'}/${payload.dbName || 'db'}`;
-        copyButtonsHtml = `
-          <button class="btn-copy" onclick="copyToClipboard('${escapeJs(connStr)}', 'Connection String')">
-            🔗 Copy Connection URI
-          </button>
-          ${payload.password ? `
-            <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'DB Password')">
-              🔑 Password
-            </button>
-          ` : ''}
+        copyActionsHtml = `
+          <button class="btn-copy" onclick="copyToClipboard('${escapeJs(connStr)}', 'Connection String')">🔗 URI</button>
+          ${payload.password ? `<button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'DB Password')">🔑 Pass</button>` : ''}
         `;
       } else if (item.category === 'PASSWORD') {
-        copyButtonsHtml = `
-          ${item.username ? `
-            <button class="btn-copy" onclick="copyToClipboard('${escapeJs(item.username)}', 'Username')">
-              👤 Username
-            </button>
-          ` : ''}
-          ${payload.password ? `
-            <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Password')">
-              🔑 Password
-            </button>
-          ` : ''}
+        copyActionsHtml = `
+          ${item.username ? `<button class="btn-copy" onclick="copyToClipboard('${escapeJs(item.username)}', 'Username')">👤 User</button>` : ''}
+          ${payload.password ? `<button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Password')">🔑 Pass</button>` : ''}
         `;
       } else if (item.category === 'API_KEY') {
-        copyButtonsHtml = `
-          <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.apiKey || payload.password)}', 'API Key')">
-            ⚡ Copy API Key
-          </button>
+        copyActionsHtml = `
+          <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.apiKey || payload.password)}', 'API Key')">⚡ Key</button>
         `;
       } else {
-        copyButtonsHtml = `
-          ${payload.password ? `
-            <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Secret Payload')">
-              📋 Copy Secret
-            </button>
-          ` : ''}
+        copyActionsHtml = `
+          ${payload.password ? `<button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Secret Payload')">📋 Copy</button>` : ''}
         `;
       }
 
+      const tagsHtml = (item.tags && item.tags.length > 0)
+        ? item.tags.map(t => `<span class="badge badge-USER" style="font-size:0.68rem;">${escapeHtml(t)}</span>`).join(' ')
+        : '<span style="color:#94a3b8; font-size:0.8rem;">-</span>';
+
       return `
-        <div class="glass-card secret-card" id="card-${item.id}">
-          <div class="card-header">
-            <div class="card-title-group">
-              <div class="card-icon">${icon}</div>
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-size:1.4rem;">${icon}</span>
               <div>
-                <div class="card-title-text">${escapeHtml(item.title)}</div>
-                <div class="card-subtext">${escapeHtml(item.username || item.websiteUrl || item.category)}</div>
+                <strong style="font-size:0.98rem; color:#0f172a; display:block;">${escapeHtml(item.title)}</strong>
+                <span class="badge badge-${item.category}" style="margin-top:2px;">${item.category.replace('_', ' ')}</span>
               </div>
             </div>
-            <div style="display:flex; align-items:center; gap: 8px;">
-              <button class="btn-icon" style="font-size:1.1rem; width:36px; height:36px;" onclick="toggleFav('${item.id}')">${isFav}</button>
-              <span class="badge badge-${item.category}">${item.category.replace('_', ' ')}</span>
+          </td>
+
+          <td>
+            <span style="font-size:0.88rem; color:#334155; font-weight:600;">${escapeHtml(targetInfo)}</span>
+          </td>
+
+          <td>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">${copyActionsHtml}</div>
+          </td>
+
+          <td>${tagsHtml}</td>
+
+          <td style="font-size:0.8rem; color:#64748b; font-weight:600; white-space:nowrap;">
+            ${new Date(item.updatedAt).toLocaleDateString()}
+          </td>
+
+          <td style="text-align:right; white-space:nowrap;">
+            <div style="display:inline-flex; align-items:center; gap:6px;">
+              <button class="btn-icon" style="width:34px; height:34px; font-size:1rem;" onclick="toggleFav('${item.id}')" title="Favorite">${isFav}</button>
+              <button class="btn-secondary" style="padding:4px 10px; min-height:34px; font-size:0.75rem;" onclick="deleteSecretItem('${item.id}')" title="Delete Entry">🗑️</button>
             </div>
-          </div>
-
-          ${item.category === 'DB_CONNECTION' && payload.connectionString ? `
-            <div class="conn-string-box">${escapeHtml(payload.connectionString)}</div>
-          ` : ''}
-
-          <div class="copy-actions">
-            ${copyButtonsHtml}
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e2e8f0; padding-top:10px; margin-top:4px;">
-            <span style="font-size:0.75rem; color:#64748b; font-weight:600;">Updated ${new Date(item.updatedAt).toLocaleDateString()}</span>
-            <button class="btn-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem;" onclick="deleteSecretItem('${item.id}')">
-              🗑️ Delete
-            </button>
-          </div>
-        </div>
+          </td>
+        </tr>
       `;
     }).join('');
+
+    const desktopTableViewHtml = `
+      <div class="desktop-table-view">
+        <table class="vault-table">
+          <thead>
+            <tr>
+              <th>Entry Title & Type</th>
+              <th>Target / Account</th>
+              <th>Quick Copy Actions</th>
+              <th>Tags</th>
+              <th>Updated</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${desktopTableRows}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // ======================================================
+    // 2. MOBILE GLASS CARDS VIEW (< 768px)
+    // ======================================================
+    const mobileCardsHtml = `
+      <div class="mobile-card-view">
+        ${items.map(item => {
+          const icon = getCategoryIcon(item.category);
+          const isFav = item.favorite ? '⭐' : '☆';
+          const payload = item.payload || {};
+
+          let copyButtonsHtml = '';
+
+          if (item.category === 'DB_CONNECTION') {
+            const connStr = payload.connectionString || `postgresql://${item.username || 'user'}:${payload.password || ''}@${payload.host || 'localhost'}:${payload.port || '5432'}/${payload.dbName || 'db'}`;
+            copyButtonsHtml = `
+              <button class="btn-copy" onclick="copyToClipboard('${escapeJs(connStr)}', 'Connection String')">
+                🔗 Copy Connection URI
+              </button>
+              ${payload.password ? `
+                <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'DB Password')">
+                  🔑 Password
+                </button>
+              ` : ''}
+            `;
+          } else if (item.category === 'PASSWORD') {
+            copyButtonsHtml = `
+              ${item.username ? `
+                <button class="btn-copy" onclick="copyToClipboard('${escapeJs(item.username)}', 'Username')">
+                  👤 Username
+                </button>
+              ` : ''}
+              ${payload.password ? `
+                <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Password')">
+                  🔑 Password
+                </button>
+              ` : ''}
+            `;
+          } else if (item.category === 'API_KEY') {
+            copyButtonsHtml = `
+              <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.apiKey || payload.password)}', 'API Key')">
+                ⚡ Copy API Key
+              </button>
+            `;
+          } else {
+            copyButtonsHtml = `
+              ${payload.password ? `
+                <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Secret Payload')">
+                  📋 Copy Secret
+                </button>
+              ` : ''}
+            `;
+          }
+
+          return `
+            <div class="glass-card secret-card" id="card-${item.id}">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <div class="card-icon">${icon}</div>
+                  <div>
+                    <div class="card-title-text">${escapeHtml(item.title)}</div>
+                    <div class="card-subtext">${escapeHtml(item.username || item.websiteUrl || item.category)}</div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap: 8px;">
+                  <button class="btn-icon" style="font-size:1.1rem; width:36px; height:36px;" onclick="toggleFav('${item.id}')">${isFav}</button>
+                  <span class="badge badge-${item.category}">${item.category.replace('_', ' ')}</span>
+                </div>
+              </div>
+
+              ${item.category === 'DB_CONNECTION' && payload.connectionString ? `
+                <div class="conn-string-box">${escapeHtml(payload.connectionString)}</div>
+              ` : ''}
+
+              <div class="copy-actions">
+                ${copyButtonsHtml}
+              </div>
+
+              <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e2e8f0; padding-top:10px; margin-top:4px;">
+                <span style="font-size:0.75rem; color:#64748b; font-weight:600;">Updated ${new Date(item.updatedAt).toLocaleDateString()}</span>
+                <button class="btn-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem;" onclick="deleteSecretItem('${item.id}')">
+                  🗑️ Delete
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    secretListContainer.innerHTML = desktopTableViewHtml + mobileCardsHtml;
   }
 
   function escapeHtml(str) {
