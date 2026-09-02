@@ -73,7 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = passwordInput.value;
         if (!val) {
           strengthBar.style.width = '0%';
-          if (strengthText) strengthText.textContent = 'Min 8 chars';
+          if (strengthText) {
+            strengthText.textContent = 'Min 8 chars';
+            strengthText.style.color = '#94a3b8';
+          }
           return;
         }
 
@@ -83,16 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (/[0-9]/.test(val)) score++;
         if (/[^A-Za-z0-9]/.test(val)) score++;
 
-        const colors = ['#ef4444', '#f59e0b', '#10b981', '#6366f1'];
+        const colors = ['#dc2626', '#d97706', '#059669', '#4f46e5'];
         const labels = ['Weak', 'Fair', 'Strong', 'Ultra Strong 🛡️'];
         const width = (score / 4) * 100;
         
         strengthBar.style.width = `${width}%`;
-        strengthBar.style.backgroundColor = colors[Math.max(0, score - 1)] || '#ef4444';
+        strengthBar.style.backgroundColor = colors[Math.max(0, score - 1)] || '#dc2626';
         
         if (strengthText) {
           strengthText.textContent = labels[Math.max(0, score - 1)] || 'Weak';
-          strengthText.style.color = colors[Math.max(0, score - 1)] || '#ef4444';
+          strengthText.style.color = colors[Math.max(0, score - 1)] || '#dc2626';
         }
       });
     }

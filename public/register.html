@@ -3,27 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Create Vault Account - PassKeeper</title>
+  <title>Create Account - PassKeeper Vault</title>
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/mobile.css">
 </head>
-<body>
-  <div class="app-container" style="justify-content: center; padding-top: 32px; padding-bottom: 32px;">
+<body class="auth-body">
+
+  <div class="auth-wrapper">
     
     <!-- Clean Brand Header -->
     <div style="text-align: center; margin-bottom: 24px;">
-      <div class="brand-logo" style="width: 64px; height: 64px; margin: 0 auto 16px auto; font-size: 2rem; border-radius: 18px;">🛡️</div>
-      <h1 class="brand-title" style="font-size: 2rem; font-weight: 800;">Create Vault</h1>
-      <p style="margin-top: 6px; font-size: 0.95rem; color: var(--text-muted);">Set up your self-hosted master credentials</p>
+      <div class="auth-brand-logo">🛡️</div>
+      <h1 style="font-size: 2rem; font-weight: 800; color: #0f172a; letter-spacing: -0.03em;">Create Vault</h1>
+      <p style="margin-top: 4px; font-size: 0.95rem; color: #64748b;">Set up your self-hosted master credentials</p>
     </div>
 
-    <!-- Crystal Clear Register Card -->
-    <div class="glass-card" style="padding: 28px 24px; border: 1px solid var(--border-color);">
+    <!-- Pristine White Auth Card Container -->
+    <div class="auth-card">
       
       <div style="margin-bottom: 20px;">
-        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Registration</h2>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+        <h2 style="font-size: 1.35rem; font-weight: 800; color: #0f172a;">Registration</h2>
+        <p style="font-size: 0.85rem; color: #64748b; margin-top: 2px;">
           First user becomes Admin. Subsequent accounts require quick admin approval.
         </p>
       </div>
@@ -43,14 +44,14 @@
         <div class="form-group">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
             <label class="form-label" for="password" style="margin-bottom: 0;">Master Password</label>
-            <span id="password-strength-text" style="font-size: 0.75rem; font-weight: 700; color: var(--text-dim);">Min 8 chars</span>
+            <span id="password-strength-text" style="font-size: 0.75rem; font-weight: 700; color: #94a3b8;">Min 8 chars</span>
           </div>
           <div class="input-wrapper">
             <input type="password" id="password" class="form-input" placeholder="••••••••••••" required autocomplete="new-password">
             <button type="button" class="input-icon-btn toggle-password-btn" aria-label="Toggle password visibility">👁️</button>
           </div>
           <!-- Clear Strength Meter Bar -->
-          <div style="height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; margin-top: 8px; overflow: hidden;">
+          <div style="height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 8px; overflow: hidden;">
             <div id="password-strength-bar" style="height: 100%; width: 0%; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);"></div>
           </div>
         </div>
@@ -62,24 +63,25 @@
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1rem; letter-spacing: 0.02em;">
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1rem; letter-spacing: 0.01em;">
           Create Vault Account 🔑
         </button>
 
       </form>
 
-      <div style="text-align: center; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 20px;">
-        <p style="font-size: 0.88rem;">Already have a vault?</p>
-        <a href="/login" style="display: inline-block; margin-top: 6px; color: var(--accent-primary); font-weight: 700; text-decoration: none; font-size: 0.92rem;">
+      <div style="text-align: center; margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+        <p style="font-size: 0.88rem; color: #64748b;">Already have a vault?</p>
+        <a href="/login" class="auth-footer-link" style="display: inline-block; margin-top: 6px; font-size: 0.92rem;">
           ← Return to Login
         </a>
       </div>
     </div>
 
     <!-- Security Footer -->
-    <div style="text-align: center; margin-top: 28px; font-size: 0.78rem; color: var(--text-dim); display: flex; align-items: center; justify-content: center; gap: 6px;">
+    <div style="text-align: center; margin-top: 24px; font-size: 0.8rem; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 6px;">
       <span>🔒</span> <span>Multi-Tenant Role-Based Access Control • Self-Hosted</span>
     </div>
+
   </div>
 
   <script src="/js/api.js"></script>
