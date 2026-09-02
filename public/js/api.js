@@ -93,44 +93,53 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null) {
 
   sidebar.innerHTML = `
     <div class="sidebar-brand">
-      <div class="brand-logo">🔐</div>
+      <div class="brand-logo">
+        <i data-lucide="shield-check" class="icon-md"></i>
+      </div>
       <div>
-        <div class="brand-title" style="font-size:1.2rem;">PassKeeper</div>
-        <div style="font-size:0.72rem; color:var(--text-muted)">Encrypted Secret Vault</div>
+        <div class="brand-title">PassKeeper</div>
+        <div style="font-size:0.75rem; color:var(--muted-foreground)">Encrypted Secret Vault</div>
       </div>
     </div>
 
     <nav class="sidebar-menu">
       <a href="/dashboard" class="sidebar-link ${activePage === 'dashboard' ? 'active' : ''}">
-        <span style="font-size:1.2rem">🛡️</span> Vault Dashboard
+        <i data-lucide="layout-dashboard" class="icon-sm"></i>
+        <span>Vault Dashboard</span>
       </a>
       ${isAdmin ? `
         <a href="/users" class="sidebar-link ${activePage === 'users' ? 'active' : ''}">
-          <span style="font-size:1.2rem">👥</span> User Approvals
+          <i data-lucide="users" class="icon-sm"></i>
+          <span>User Approvals</span>
         </a>
       ` : ''}
       <a href="/settings" class="sidebar-link ${activePage === 'settings' ? 'active' : ''}">
-        <span style="font-size:1.2rem">⚙️</span> Settings & Backup
+        <i data-lucide="settings" class="icon-sm"></i>
+        <span>Settings & Backup</span>
       </a>
     </nav>
 
     <div class="sidebar-footer">
       ${currentUser ? `
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-          <div>
-            <div style="font-weight:700; font-size:0.85rem; color:#0f172a;">${currentUser.name || currentUser.email.split('@')[0]}</div>
-            <div style="font-size:0.75rem; color:#64748b;">${currentUser.email}</div>
+          <div style="overflow:hidden; text-overflow:ellipsis;">
+            <div style="font-weight:600; font-size:0.875rem; color:var(--foreground);">${currentUser.name || currentUser.email.split('@')[0]}</div>
+            <div style="font-size:0.75rem; color:var(--muted-foreground); text-overflow:ellipsis; overflow:hidden;">${currentUser.email}</div>
           </div>
           <span class="badge badge-${currentUser.role}">${currentUser.role}</span>
         </div>
       ` : ''}
-      <button onclick="handleSidebarLogout()" class="btn btn-secondary" style="width:100%; font-size:0.85rem; padding:8px 12px; min-height:36px;">
-        🚪 Log Out
+      <button onclick="handleSidebarLogout()" class="btn btn-secondary" style="width:100%; font-size:0.8125rem; height:2rem;">
+        <i data-lucide="log-out" class="icon-xs"></i>
+        <span>Log Out</span>
       </button>
     </div>
   `;
 
   document.body.prepend(sidebar);
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 }
 
 async function handleSidebarLogout() {

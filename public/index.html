@@ -7,67 +7,102 @@
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/mobile.css">
+  <script src="/js/lucide.min.js"></script>
 </head>
 <body>
   <div class="app-container">
     
-    <!-- Professional Top Header -->
+    <!-- Top Header -->
     <header class="app-header">
       <div class="brand">
-        <div class="brand-logo">🔐</div>
+        <div class="brand-logo">
+          <i data-lucide="shield-check" class="icon-md"></i>
+        </div>
         <div>
           <div class="brand-title">PassKeeper</div>
-          <div style="font-size: 0.8rem; color: #64748b;">
-            Welcome back, <span id="user-name-display" style="color: #4f46e5; font-weight:800;">User</span>
+          <div style="font-size: 0.8125rem; color: var(--muted-foreground);">
+            Welcome back, <span id="user-name-display" style="color: var(--foreground); font-weight:600;">User</span>
           </div>
         </div>
       </div>
       
       <!-- Primary Action: Open Add New Entry Dialog -->
-      <button id="open-add-modal-btn" class="btn btn-primary" style="padding: 10px 18px; font-size: 0.9rem; min-height: 42px; gap: 6px;">
-        <span style="font-size: 1.1rem; font-weight: 800;">+</span> Add New Entry
+      <button id="open-add-modal-btn" class="btn btn-primary">
+        <i data-lucide="plus" class="icon-sm"></i>
+        <span>Add New Entry</span>
       </button>
     </header>
 
-    <!-- Professional Summary Metric Cards -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div class="glass-card" style="padding: 14px 16px; border-radius: 16px;">
-        <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Secrets</div>
-        <div id="metric-total" style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2px;">0</div>
+    <!-- Summary Metric Cards (shadcn Style) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
+      <div class="card" style="padding: 0.875rem 1rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; color: var(--muted-foreground); margin-bottom: 0.25rem;">
+          <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">Total Secrets</span>
+          <i data-lucide="shield" class="icon-sm"></i>
+        </div>
+        <div id="metric-total" style="font-size: 1.5rem; font-weight: 700; color: var(--foreground);">0</div>
       </div>
 
-      <div class="glass-card" style="padding: 14px 16px; border-radius: 16px;">
-        <div style="font-size: 0.75rem; font-weight: 700; color: #059669; text-transform: uppercase;">DB Strings</div>
-        <div id="metric-db" style="font-size: 1.5rem; font-weight: 800; color: #059669; margin-top: 2px;">0</div>
+      <div class="card" style="padding: 0.875rem 1rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; color: var(--muted-foreground); margin-bottom: 0.25rem;">
+          <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">DB Strings</span>
+          <i data-lucide="database" class="icon-sm"></i>
+        </div>
+        <div id="metric-db" style="font-size: 1.5rem; font-weight: 700; color: var(--foreground);">0</div>
       </div>
 
-      <div class="glass-card" style="padding: 14px 16px; border-radius: 16px;">
-        <div style="font-size: 0.75rem; font-weight: 700; color: #2563eb; text-transform: uppercase;">Passwords</div>
-        <div id="metric-passwords" style="font-size: 1.5rem; font-weight: 800; color: #2563eb; margin-top: 2px;">0</div>
+      <div class="card" style="padding: 0.875rem 1rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; color: var(--muted-foreground); margin-bottom: 0.25rem;">
+          <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">Passwords</span>
+          <i data-lucide="key-round" class="icon-sm"></i>
+        </div>
+        <div id="metric-passwords" style="font-size: 1.5rem; font-weight: 700; color: var(--foreground);">0</div>
       </div>
 
-      <div class="glass-card" style="padding: 14px 16px; border-radius: 16px;">
-        <div style="font-size: 0.75rem; font-weight: 700; color: #16a34a; text-transform: uppercase;">Guides / Steps</div>
-        <div id="metric-steps" style="font-size: 1.5rem; font-weight: 800; color: #16a34a; margin-top: 2px;">0</div>
+      <div class="card" style="padding: 0.875rem 1rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; color: var(--muted-foreground); margin-bottom: 0.25rem;">
+          <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">Guides / Steps</span>
+          <i data-lucide="book-open" class="icon-sm"></i>
+        </div>
+        <div id="metric-steps" style="font-size: 1.5rem; font-weight: 700; color: var(--foreground);">0</div>
       </div>
     </div>
 
     <!-- Search Bar with Shortcut Hint -->
-    <div class="form-group" style="margin-bottom: 14px;">
+    <div class="form-group" style="margin-bottom: 0.875rem;">
       <div class="input-wrapper">
-        <input type="text" id="search-input" class="form-input" placeholder="🔍 Search passwords, connection strings, hosts, guides, tags..." style="padding-left: 16px; padding-right: 44px; border-radius: 16px;">
-        <span style="position: absolute; right: 14px; font-size: 0.75rem; font-weight: 700; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 6px; color: #64748b;">/</span>
+        <i data-lucide="search" class="icon-sm" style="position: absolute; left: 0.75rem; color: var(--muted-foreground); pointer-events: none;"></i>
+        <input type="text" id="search-input" class="form-input" placeholder="Search passwords, connection strings, hosts, guides, tags..." style="padding-left: 2.25rem; padding-right: 2.5rem;">
+        <span style="position: absolute; right: 0.625rem; font-size: 0.6875rem; font-weight: 600; background: var(--secondary); border: 1px solid var(--border); padding: 0.125rem 0.375rem; border-radius: var(--radius-sm); color: var(--muted-foreground); font-family: var(--font-mono);">/</span>
       </div>
     </div>
 
     <!-- Category Filter Pills -->
     <div class="category-pills">
-      <button class="pill active" data-cat="ALL">All Items</button>
-      <button class="pill" data-cat="DB_CONNECTION">🗄️ Connection Strings</button>
-      <button class="pill" data-cat="PASSWORD">🔑 Passwords</button>
-      <button class="pill" data-cat="STEP_BY_STEP">📖 Step-by-Step</button>
-      <button class="pill" data-cat="API_KEY">⚡ API Keys</button>
-      <button class="pill" data-cat="SSH_KEY">💻 SSH Keys</button>
+      <button class="pill active" data-cat="ALL">
+        <i data-lucide="layers" class="icon-xs"></i>
+        <span>All Items</span>
+      </button>
+      <button class="pill" data-cat="DB_CONNECTION">
+        <i data-lucide="database" class="icon-xs"></i>
+        <span>Connection Strings</span>
+      </button>
+      <button class="pill" data-cat="PASSWORD">
+        <i data-lucide="key-round" class="icon-xs"></i>
+        <span>Passwords</span>
+      </button>
+      <button class="pill" data-cat="STEP_BY_STEP">
+        <i data-lucide="book-open" class="icon-xs"></i>
+        <span>Step-by-Step</span>
+      </button>
+      <button class="pill" data-cat="API_KEY">
+        <i data-lucide="zap" class="icon-xs"></i>
+        <span>API Keys</span>
+      </button>
+      <button class="pill" data-cat="SSH_KEY">
+        <i data-lucide="terminal" class="icon-xs"></i>
+        <span>SSH Keys</span>
+      </button>
     </div>
 
     <!-- Secrets List Container -->
@@ -78,46 +113,49 @@
     <!-- Mobile Bottom Navigation Bar -->
     <nav class="bottom-nav">
       <a href="/dashboard" class="nav-item active">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        <i data-lucide="layout-dashboard" class="icon-md"></i>
         <span>Vault</span>
       </a>
 
       <button id="mobile-add-btn" class="nav-item" style="background:none; border:none; cursor:pointer;" onclick="openAddModal()">
-        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        <span>+ Add</span>
+        <i data-lucide="plus-circle" class="icon-md"></i>
+        <span>Add</span>
       </button>
 
       <a href="/settings" class="nav-item">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <i data-lucide="settings" class="icon-md"></i>
         <span>Settings</span>
       </a>
     </nav>
   </div>
 
   <!-- ======================================================
-       ADD / EDIT SECRET DIALOG MODAL OVERLAY
+       ADD / EDIT SECRET DIALOG MODAL OVERLAY (shadcn Dialog)
        ====================================================== -->
   <div id="add-secret-modal" class="modal-overlay">
     <div class="modal-dialog">
       
       <div class="modal-header">
-        <h2 id="modal-header-title" style="font-size: 1.25rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-          <span>➕</span> Add New Entry
+        <h2 id="modal-header-title" style="font-size: 1.125rem; font-weight: 600; color: var(--foreground); display: flex; align-items: center; gap: 0.5rem;">
+          <i data-lucide="plus" class="icon-sm"></i>
+          <span>Add New Entry</span>
         </h2>
-        <button id="close-modal-btn" class="modal-close-btn" aria-label="Close Dialog">✕</button>
+        <button id="close-modal-btn" class="modal-close-btn" aria-label="Close Dialog">
+          <i data-lucide="x" class="icon-sm"></i>
+        </button>
       </div>
 
       <form id="modal-add-form">
         
         <div class="form-group">
           <label class="form-label" for="modal-category">Secret Type</label>
-          <select id="modal-category" class="form-select" style="background: #ffffff; color: #0f172a; border: 1.5px solid #cbd5e1;">
-            <option value="PASSWORD">🔑 Password Credential</option>
-            <option value="DB_CONNECTION">🗄️ Database Connection String</option>
-            <option value="STEP_BY_STEP">📖 Step-by-Step Explanation</option>
-            <option value="API_KEY">⚡ API Key / Token</option>
-            <option value="SSH_KEY">💻 SSH Key / Private Certificate</option>
-            <option value="OTHER">📦 General Note / Other</option>
+          <select id="modal-category" class="form-select">
+            <option value="PASSWORD">Password Credential</option>
+            <option value="DB_CONNECTION">Database Connection String</option>
+            <option value="STEP_BY_STEP">Step-by-Step Explanation</option>
+            <option value="API_KEY">API Key / Token</option>
+            <option value="SSH_KEY">SSH Key / Private Certificate</option>
+            <option value="OTHER">General Note / Other</option>
           </select>
         </div>
 
@@ -134,15 +172,18 @@
           </div>
 
           <div class="form-group">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
               <label class="form-label" for="modal-secret-password" style="margin-bottom:0;">Password</label>
-              <button type="button" id="modal-gen-pass-btn" class="btn-secondary" style="padding: 4px 10px; min-height: 28px; font-size: 0.75rem;">
-                ⚡ Auto Generate
+              <button type="button" id="modal-gen-pass-btn" class="btn btn-secondary" style="padding: 0 0.5rem; height: 1.625rem; font-size: 0.75rem;">
+                <i data-lucide="sparkles" class="icon-xs"></i>
+                <span>Auto Generate</span>
               </button>
             </div>
             <div class="input-wrapper">
               <input type="password" id="modal-secret-password" class="form-input code-font" placeholder="SuperStrongSecret123!">
-              <button type="button" class="input-icon-btn toggle-password-btn">👁️</button>
+              <button type="button" class="input-icon-btn toggle-password-btn">
+                <i data-lucide="eye" class="icon-sm"></i>
+              </button>
             </div>
           </div>
 
@@ -155,16 +196,17 @@
         <!-- DB Connection String Specific Fields -->
         <div id="modal-cat-db-fields" style="display:none;">
           <div class="form-group">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
               <label class="form-label" for="modal-db-conn-string" style="margin-bottom:0;">Full Connection URI</label>
-              <button type="button" id="modal-parse-conn-btn" class="btn-secondary" style="padding: 4px 10px; min-height: 28px; font-size: 0.75rem;">
-                🧩 Auto Parse URI
+              <button type="button" id="modal-parse-conn-btn" class="btn btn-secondary" style="padding: 0 0.5rem; height: 1.625rem; font-size: 0.75rem;">
+                <i data-lucide="cpu" class="icon-xs"></i>
+                <span>Auto Parse URI</span>
               </button>
             </div>
             <input type="text" id="modal-db-conn-string" class="form-input code-font" placeholder="postgresql://postgres:pass@db.example.com:5432/my_database">
           </div>
 
-          <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 8px;">
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 0.5rem;">
             <div class="form-group">
               <label class="form-label" for="modal-db-host">Host</label>
               <input type="text" id="modal-db-host" class="form-input code-font" placeholder="db.example.com">
@@ -175,7 +217,7 @@
             </div>
           </div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
             <div class="form-group">
               <label class="form-label" for="modal-db-user">DB User</label>
               <input type="text" id="modal-db-user" class="form-input code-font" placeholder="postgres">
@@ -194,13 +236,14 @@
 
         <!-- Dynamic Step-by-Step Builder Fields -->
         <div id="modal-cat-steps-fields" style="display:none;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
             <label class="form-label" style="margin-bottom:0;">Procedure Steps</label>
-            <button type="button" id="modal-add-step-btn" class="btn-secondary" style="padding:4px 12px; min-height:30px; font-size:0.78rem;">
-              ➕ Add Another Step
+            <button type="button" id="modal-add-step-btn" class="btn btn-secondary" style="padding: 0 0.625rem; height: 1.75rem; font-size: 0.75rem;">
+              <i data-lucide="plus" class="icon-xs"></i>
+              <span>Add Another Step</span>
             </button>
           </div>
-          <div id="modal-steps-container" style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
+          <div id="modal-steps-container" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1rem;">
             <!-- Dynamic step rows inserted here -->
           </div>
         </div>
@@ -224,14 +267,17 @@
           <input type="text" id="modal-tags" class="form-input" placeholder="proxmox, deployment, guide">
         </div>
 
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom: 20px;">
-          <input type="checkbox" id="modal-favorite" style="width: 20px; height: 20px; accent-color: var(--accent-primary);">
-          <label for="modal-favorite" style="font-size: 0.9rem; font-weight: 700; color: #0f172a; cursor: pointer;">Add to Favorites ⭐</label>
+        <div style="display:flex; align-items:center; gap:0.625rem; margin-bottom: 1.25rem;">
+          <input type="checkbox" id="modal-favorite" style="width: 1rem; height: 1rem; accent-color: var(--primary); border-radius: var(--radius-sm);">
+          <label for="modal-favorite" style="font-size: 0.875rem; font-weight: 500; color: var(--foreground); cursor: pointer; display: flex; align-items: center; gap: 0.375rem;">
+            <i data-lucide="star" class="icon-xs"></i>
+            <span>Add to Favorites</span>
+          </label>
         </div>
 
-        <div style="display:flex; justify-content:flex-end; gap: 10px;">
-          <button type="button" id="cancel-modal-btn" class="btn btn-secondary" style="min-height: 44px;">Cancel</button>
-          <button type="submit" id="modal-submit-btn" class="btn btn-primary" style="min-height: 44px;">Encrypt & Save 🔒</button>
+        <div style="display:flex; justify-content:flex-end; gap: 0.5rem;">
+          <button type="button" id="cancel-modal-btn" class="btn btn-outline">Cancel</button>
+          <button type="submit" id="modal-submit-btn" class="btn btn-primary">Encrypt & Save</button>
         </div>
 
       </form>
@@ -240,33 +286,41 @@
   </div>
 
   <!-- ======================================================
-       RIGHT SLIDE-OVER DRAWER PANEL (Step-by-Step Viewer)
+       RIGHT SLIDE-OVER DRAWER PANEL (shadcn Sheet)
        ====================================================== -->
   <div id="step-drawer-overlay" class="drawer-overlay">
     <div class="drawer-panel">
       
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid #e2e8f0; padding-bottom:16px;">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.25rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">
         <div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1.6rem;">📖</span>
-            <h2 id="drawer-title" style="font-size:1.3rem; font-weight:800; color:#0f172a;">Guide Title</h2>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <i data-lucide="book-open" class="icon-md"></i>
+            <h2 id="drawer-title" style="font-size:1.125rem; font-weight:700; color:var(--foreground);">Guide Title</h2>
           </div>
-          <div id="drawer-subtitle" style="font-size:0.85rem; color:#64748b; margin-top:4px;">Procedure Steps</div>
+          <div id="drawer-subtitle" style="font-size:0.8125rem; color:var(--muted-foreground); margin-top:0.25rem;">Procedure Steps</div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button id="drawer-edit-btn" class="btn btn-secondary" style="padding:6px 12px; min-height:36px; font-size:0.8rem;">✏️ Edit</button>
-          <button id="close-drawer-btn" class="modal-close-btn" aria-label="Close Drawer">✕</button>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <button id="drawer-edit-btn" class="btn btn-outline" style="height:2rem; font-size:0.75rem;">
+            <i data-lucide="pencil" class="icon-xs"></i>
+            <span>Edit</span>
+          </button>
+          <button id="close-drawer-btn" class="modal-close-btn" aria-label="Close Drawer">
+            <i data-lucide="x" class="icon-sm"></i>
+          </button>
         </div>
       </div>
 
       <!-- Steps Timeline Container -->
-      <div id="drawer-steps-list" style="display:flex; flex-direction:column; gap:16px; flex:1;">
+      <div id="drawer-steps-list" style="display:flex; flex-direction:column; gap:1rem; flex:1;">
         <!-- Rendered dynamically by dashboard.js -->
       </div>
 
-      <div style="margin-top:24px; border-top:1px solid #e2e8f0; padding-top:16px; display:flex; justify-content:space-between; align-items:center;">
-        <button id="drawer-edit-footer-btn" class="btn btn-secondary" style="min-height:40px; font-size:0.88rem;">✏️ Edit Guide</button>
-        <button id="close-drawer-footer-btn" class="btn btn-secondary" style="min-height:40px;">Close Panel</button>
+      <div style="margin-top:1.5rem; border-top:1px solid var(--border); padding-top:1rem; display:flex; justify-content:space-between; align-items:center;">
+        <button id="drawer-edit-footer-btn" class="btn btn-outline">
+          <i data-lucide="pencil" class="icon-xs"></i>
+          <span>Edit Guide</span>
+        </button>
+        <button id="close-drawer-footer-btn" class="btn btn-secondary">Close</button>
       </div>
 
     </div>

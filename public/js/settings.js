@@ -45,6 +45,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+
   // Export Vault Backup
   if (exportBtn) {
     exportBtn.addEventListener('click', async () => {

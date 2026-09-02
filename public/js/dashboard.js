@@ -88,14 +88,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (metricSteps) metricSteps.textContent = items.filter(i => i.category === 'STEP_BY_STEP').length;
   }
 
-  function getCategoryIcon(cat) {
+  function getCategoryLucideIcon(cat) {
     switch (cat) {
-      case 'PASSWORD': return '🔑';
-      case 'DB_CONNECTION': return '🗄️';
-      case 'STEP_BY_STEP': return '📖';
-      case 'API_KEY': return '⚡';
-      case 'SSH_KEY': return '💻';
-      default: return '🔐';
+      case 'PASSWORD': return 'key-round';
+      case 'DB_CONNECTION': return 'database';
+      case 'STEP_BY_STEP': return 'book-open';
+      case 'API_KEY': return 'zap';
+      case 'SSH_KEY': return 'terminal';
+      default: return 'shield';
     }
   }
 
@@ -104,22 +104,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (items.length === 0) {
       secretListContainer.innerHTML = `
-        <div class="glass-card" style="padding: 44px 20px; text-align: center; grid-column: 1 / -1;">
-          <div style="font-size: 3rem; margin-bottom: 12px;">🛡️</div>
-          <h3 style="margin-bottom: 6px; font-weight: 800; color: #0f172a;">No Vault Entries Found</h3>
-          <p style="color: #64748b; margin-bottom: 16px;">Click '+ Add New Entry' above to store your passwords, connection strings, or procedures.</p>
-          <button class="btn btn-primary" onclick="openAddModal()" style="margin: 0 auto;">+ Add First Entry</button>
+        <div class="card" style="padding: 3.5rem 1.5rem; text-align: center; grid-column: 1 / -1;">
+          <div style="width: 3rem; height: 3rem; border-radius: 50%; background: var(--secondary); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; color: var(--muted-foreground);">
+            <i data-lucide="shield" class="icon-lg"></i>
+          </div>
+          <h3 style="margin-bottom: 0.375rem; font-weight: 600; color: var(--foreground);">No Vault Entries Found</h3>
+          <p style="color: var(--muted-foreground); margin-bottom: 1.25rem;">Add your first password, database connection string, or step-by-step procedure.</p>
+          <button class="btn btn-primary" onclick="openAddModal()" style="margin: 0 auto;">
+            <i data-lucide="plus" class="icon-xs"></i>
+            <span>Add First Entry</span>
+          </button>
         </div>
       `;
+      if (window.lucide) lucide.createIcons();
       return;
     }
 
     // ======================================================
-    // 1. DESKTOP ENTERPRISE DATA TABLE VIEW (>= 768px)
+    // 1. DESKTOP SHADCN DATA TABLE VIEW (>= 768px)
     // ======================================================
     const desktopTableRows = items.map(item => {
-      const icon = getCategoryIcon(item.category);
-      const isFav = item.favorite ? '⭐' : '☆';
+      const iconName = getCategoryLucideIcon(item.category);
+      const isFav = item.favorite;
       const payload = item.payload || {};
 
       let targetInfo = item.username || item.websiteUrl || '-';
@@ -127,72 +133,101 @@ document.addEventListener('DOMContentLoaded', async () => {
         targetInfo = payload.host ? `${payload.host}:${payload.port || '5432'} (${payload.dbName || 'db'})` : (payload.connectionString ? 'Connection String' : '-');
       } else if (item.category === 'STEP_BY_STEP') {
         const stepCount = (payload.steps && Array.isArray(payload.steps)) ? payload.steps.length : 0;
-        targetInfo = `📖 ${stepCount} Procedure Step${stepCount === 1 ? '' : 's'}`;
+        targetInfo = `${stepCount} Procedure Step${stepCount === 1 ? '' : 's'}`;
       }
 
       let copyActionsHtml = '';
       if (item.category === 'DB_CONNECTION') {
         const connStr = payload.connectionString || `postgresql://${item.username || 'user'}:${payload.password || ''}@${payload.host || 'localhost'}:${payload.port || '5432'}/${payload.dbName || 'db'}`;
         copyActionsHtml = `
-          <button class="btn-copy" onclick="copyToClipboard('${escapeJs(connStr)}', 'Connection String')">🔗 URI</button>
-          ${payload.password ? `<button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'DB Password')">🔑 Pass</button>` : ''}
+          <button class="btn-copy" onclick="copyToClipboard('${escapeJs(connStr)}', 'Connection String')">
+            <i data-lucide="link" class="icon-xs"></i> URI
+          </button>
+          ${payload.password ? `
+            <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'DB Password')">
+              <i data-lucide="key-round" class="icon-xs"></i> Pass
+            </button>
+          ` : ''}
         `;
       } else if (item.category === 'PASSWORD') {
         copyActionsHtml = `
-          ${item.username ? `<button class="btn-copy" onclick="copyToClipboard('${escapeJs(item.username)}', 'Username')">👤 User</button>` : ''}
-          ${payload.password ? `<button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Password')">🔑 Pass</button>` : ''}
+          ${item.username ? `
+            <button class="btn-copy" onclick="copyToClipboard('${escapeJs(item.username)}', 'Username')">
+              <i data-lucide="user" class="icon-xs"></i> User
+            </button>
+          ` : ''}
+          ${payload.password ? `
+            <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Password')">
+              <i data-lucide="key-round" class="icon-xs"></i> Pass
+            </button>
+          ` : ''}
         `;
       } else if (item.category === 'STEP_BY_STEP') {
         copyActionsHtml = `
-          <button class="btn-copy" style="background:#eff6ff; color:#4f46e5; border-color:#c7d2fe;" onclick="openStepDrawer('${item.id}')">
-            📖 Open Steps Panel
+          <button class="btn-copy" style="background:#f0fdf4; color:#15803d; border-color:#bbf7d0;" onclick="openStepDrawer('${item.id}')">
+            <i data-lucide="book-open" class="icon-xs"></i> View Steps
           </button>
         `;
       } else if (item.category === 'API_KEY') {
         copyActionsHtml = `
-          <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.apiKey || payload.password)}', 'API Key')">⚡ Key</button>
+          <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.apiKey || payload.password)}', 'API Key')">
+            <i data-lucide="zap" class="icon-xs"></i> Key
+          </button>
         `;
       } else {
         copyActionsHtml = `
-          ${payload.password ? `<button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Secret Payload')">📋 Copy</button>` : ''}
+          ${payload.password ? `
+            <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Secret Payload')">
+              <i data-lucide="copy" class="icon-xs"></i> Copy
+            </button>
+          ` : ''}
         `;
       }
 
       const tagsHtml = (item.tags && item.tags.length > 0)
-        ? item.tags.map(t => `<span class="badge badge-USER" style="font-size:0.68rem;">${escapeHtml(t)}</span>`).join(' ')
-        : '<span style="color:#94a3b8; font-size:0.8rem;">-</span>';
+        ? item.tags.map(t => `<span class="badge badge-USER" style="font-size:0.6875rem;">${escapeHtml(t)}</span>`).join(' ')
+        : '<span style="color:var(--muted-foreground); font-size:0.75rem;">-</span>';
 
       return `
         <tr style="cursor: ${item.category === 'STEP_BY_STEP' ? 'pointer' : 'default'};" onclick="${item.category === 'STEP_BY_STEP' ? `openStepDrawer('${item.id}')` : ''}">
           <td>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <span style="font-size:1.4rem;">${icon}</span>
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <div style="width:2rem; height:2rem; border-radius:var(--radius-md); background:var(--secondary); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--foreground);">
+                <i data-lucide="${iconName}" class="icon-sm"></i>
+              </div>
               <div>
-                <strong style="font-size:0.98rem; color:#0f172a; display:block;">${escapeHtml(item.title)}</strong>
-                <span class="badge badge-${item.category}" style="margin-top:2px;">${item.category.replace('_', ' ')}</span>
+                <strong style="font-size:0.875rem; color:var(--foreground); display:block; font-weight:600;">${escapeHtml(item.title)}</strong>
+                <span class="badge badge-${item.category}" style="margin-top:0.25rem;">${item.category.replace('_', ' ')}</span>
               </div>
             </div>
           </td>
 
           <td>
-            <span style="font-size:0.88rem; color:#334155; font-weight:600;">${escapeHtml(targetInfo)}</span>
+            <span style="font-size:0.8125rem; color:var(--foreground); font-weight:500;">${escapeHtml(targetInfo)}</span>
           </td>
 
           <td onclick="event.stopPropagation();">
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">${copyActionsHtml}</div>
+            <div style="display:flex; gap:0.375rem; flex-wrap:wrap;">${copyActionsHtml}</div>
           </td>
 
           <td>${tagsHtml}</td>
 
-          <td style="font-size:0.8rem; color:#64748b; font-weight:600; white-space:nowrap;">
+          <td style="font-size:0.8125rem; color:var(--muted-foreground); white-space:nowrap;">
             ${new Date(item.updatedAt).toLocaleDateString()}
           </td>
 
           <td style="text-align:right; white-space:nowrap;" onclick="event.stopPropagation();">
-            <div style="display:inline-flex; align-items:center; gap:6px;">
-              <button class="btn-secondary" style="padding:4px 10px; min-height:34px; font-size:0.75rem;" onclick="openEditModal('${item.id}')" title="Edit Entry">✏️ Edit</button>
-              <button class="btn-icon" style="width:34px; height:34px; font-size:1rem;" onclick="toggleFav('${item.id}')" title="Favorite">${isFav}</button>
-              <button class="btn-secondary" style="padding:4px 10px; min-height:34px; font-size:0.75rem;" onclick="deleteSecretItem('${item.id}')" title="Delete Entry">🗑️</button>
+            <div style="display:inline-flex; align-items:center; gap:0.375rem;">
+              <button class="btn btn-outline" style="height:1.75rem; font-size:0.75rem; padding:0 0.5rem;" onclick="openEditModal('${item.id}')" title="Edit Entry">
+                <i data-lucide="pencil" class="icon-xs"></i>
+                <span>Edit</span>
+              </button>
+              <button class="btn-icon" style="width:1.75rem; height:1.75rem;" onclick="toggleFav('${item.id}')" title="Favorite">
+                <i data-lucide="star" class="icon-xs" style="${isFav ? 'fill: #f59e0b; stroke: #f59e0b;' : ''}"></i>
+              </button>
+              <button class="btn btn-danger" style="height:1.75rem; width:1.75rem; padding:0;" onclick="deleteSecretItem('${item.id}')" title="Delete Entry">
+                <i data-lucide="trash-2" class="icon-xs"></i>
+              </button>
             </div>
           </td>
         </tr>
@@ -220,13 +255,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
 
     // ======================================================
-    // 2. MOBILE GLASS CARDS VIEW (< 768px)
+    // 2. MOBILE CARDS VIEW (< 768px)
     // ======================================================
     const mobileCardsHtml = `
       <div class="mobile-card-view">
         ${items.map(item => {
-          const icon = getCategoryIcon(item.category);
-          const isFav = item.favorite ? '⭐' : '☆';
+          const iconName = getCategoryLucideIcon(item.category);
+          const isFav = item.favorite;
           const payload = item.payload || {};
 
           let copyButtonsHtml = '';
@@ -235,11 +270,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const connStr = payload.connectionString || `postgresql://${item.username || 'user'}:${payload.password || ''}@${payload.host || 'localhost'}:${payload.port || '5432'}/${payload.dbName || 'db'}`;
             copyButtonsHtml = `
               <button class="btn-copy" onclick="copyToClipboard('${escapeJs(connStr)}', 'Connection String')">
-                🔗 Copy Connection URI
+                <i data-lucide="link" class="icon-xs"></i> URI
               </button>
               ${payload.password ? `
                 <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'DB Password')">
-                  🔑 Password
+                  <i data-lucide="key-round" class="icon-xs"></i> Pass
                 </button>
               ` : ''}
             `;
@@ -247,49 +282,53 @@ document.addEventListener('DOMContentLoaded', async () => {
             copyButtonsHtml = `
               ${item.username ? `
                 <button class="btn-copy" onclick="copyToClipboard('${escapeJs(item.username)}', 'Username')">
-                  👤 Username
+                  <i data-lucide="user" class="icon-xs"></i> User
                 </button>
               ` : ''}
               ${payload.password ? `
                 <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Password')">
-                  🔑 Password
+                  <i data-lucide="key-round" class="icon-xs"></i> Pass
                 </button>
               ` : ''}
             `;
           } else if (item.category === 'STEP_BY_STEP') {
             copyButtonsHtml = `
-              <button class="btn-copy" style="background:#eff6ff; color:#4f46e5; border-color:#c7d2fe;" onclick="openStepDrawer('${item.id}')">
-                📖 View Step-by-Step Instructions Panel
+              <button class="btn-copy" style="background:#f0fdf4; color:#15803d; border-color:#bbf7d0;" onclick="openStepDrawer('${item.id}')">
+                <i data-lucide="book-open" class="icon-xs"></i> View Steps
               </button>
             `;
           } else if (item.category === 'API_KEY') {
             copyButtonsHtml = `
               <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.apiKey || payload.password)}', 'API Key')">
-                ⚡ Copy API Key
+                <i data-lucide="zap" class="icon-xs"></i> Key
               </button>
             `;
           } else {
             copyButtonsHtml = `
               ${payload.password ? `
                 <button class="btn-copy" onclick="copyToClipboard('${escapeJs(payload.password)}', 'Secret Payload')">
-                  📋 Copy Secret
+                  <i data-lucide="copy" class="icon-xs"></i> Copy
                 </button>
               ` : ''}
             `;
           }
 
           return `
-            <div class="glass-card secret-card" id="card-${item.id}">
+            <div class="card secret-card" id="card-${item.id}">
               <div class="card-header">
                 <div class="card-title-group">
-                  <div class="card-icon">${icon}</div>
+                  <div class="card-icon">
+                    <i data-lucide="${iconName}" class="icon-sm"></i>
+                  </div>
                   <div>
                     <div class="card-title-text">${escapeHtml(item.title)}</div>
                     <div class="card-subtext">${escapeHtml(item.username || item.websiteUrl || item.category)}</div>
                   </div>
                 </div>
-                <div style="display:flex; align-items:center; gap: 8px;">
-                  <button class="btn-icon" style="font-size:1.1rem; width:36px; height:36px;" onclick="toggleFav('${item.id}')">${isFav}</button>
+                <div style="display:flex; align-items:center; gap: 0.375rem;">
+                  <button class="btn-icon" style="width:1.75rem; height:1.75rem;" onclick="toggleFav('${item.id}')">
+                    <i data-lucide="star" class="icon-xs" style="${isFav ? 'fill: #f59e0b; stroke: #f59e0b;' : ''}"></i>
+                  </button>
                   <span class="badge badge-${item.category}">${item.category.replace('_', ' ')}</span>
                 </div>
               </div>
@@ -302,14 +341,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ${copyButtonsHtml}
               </div>
 
-              <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e2e8f0; padding-top:10px; margin-top:4px;">
-                <span style="font-size:0.75rem; color:#64748b; font-weight:600;">Updated ${new Date(item.updatedAt).toLocaleDateString()}</span>
-                <div style="display:flex; gap:6px;">
-                  <button class="btn-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem;" onclick="openEditModal('${item.id}')">
-                    ✏️ Edit
+              <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:0.625rem; margin-top:0.25rem;">
+                <span style="font-size:0.75rem; color:var(--muted-foreground); font-weight:500;">Updated ${new Date(item.updatedAt).toLocaleDateString()}</span>
+                <div style="display:flex; gap:0.375rem;">
+                  <button class="btn btn-outline" style="height:1.75rem; font-size:0.75rem; padding:0 0.5rem;" onclick="openEditModal('${item.id}')">
+                    <i data-lucide="pencil" class="icon-xs"></i>
+                    <span>Edit</span>
                   </button>
-                  <button class="btn-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem;" onclick="deleteSecretItem('${item.id}')">
-                    🗑️ Delete
+                  <button class="btn btn-danger" style="height:1.75rem; font-size:0.75rem; padding:0 0.5rem;" onclick="deleteSecretItem('${item.id}')">
+                    <i data-lucide="trash-2" class="icon-xs"></i>
                   </button>
                 </div>
               </div>
@@ -320,6 +360,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
 
     secretListContainer.innerHTML = desktopTableViewHtml + mobileCardsHtml;
+    if (window.lucide) {
+      lucide.createIcons();
+    }
   }
 
   function escapeHtml(str) {
@@ -401,27 +444,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (drawerStepsList) {
       if (steps.length === 0) {
         drawerStepsList.innerHTML = `
-          <div style="text-align:center; padding:32px 16px; color:#64748b;">
-            <div style="font-size:2rem; margin-bottom:8px;">📝</div>
+          <div style="text-align:center; padding:2rem 1rem; color:var(--muted-foreground);">
+            <div style="margin-bottom:0.5rem;"><i data-lucide="book-open" class="icon-lg"></i></div>
             No procedure steps recorded for this guide.
           </div>
         `;
       } else {
         drawerStepsList.innerHTML = steps.map((step, idx) => `
           <div class="step-card">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-              <div style="display:flex; align-items:center; gap:10px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.625rem;">
+              <div style="display:flex; align-items:center; gap:0.625rem;">
                 <div class="step-badge-num">${idx + 1}</div>
-                <h4 style="font-size:1.05rem; font-weight:800; color:#0f172a;">${escapeHtml(step.title || `Step ${idx + 1}`)}</h4>
+                <h4 style="font-size:0.9375rem; font-weight:600; color:var(--foreground);">${escapeHtml(step.title || `Step ${idx + 1}`)}</h4>
               </div>
               ${step.description ? `
-                <button class="btn-copy" style="padding:4px 8px; font-size:0.75rem;" onclick="copyToClipboard('${escapeJs(step.description)}', 'Step ${idx + 1} Instructions')">
-                  📋 Copy Text
+                <button class="btn-copy" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="copyToClipboard('${escapeJs(step.description)}', 'Step ${idx + 1} Instructions')">
+                  <i data-lucide="copy" class="icon-xs"></i>
+                  <span>Copy</span>
                 </button>
               ` : ''}
             </div>
             ${step.description ? `
-              <div style="font-size:0.9rem; color:#334155; white-space:pre-wrap; line-height:1.6; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; font-family:${step.description.includes('\n') || step.description.includes('sudo') || step.description.includes('docker') ? 'var(--font-mono)' : 'var(--font-sans)'}; font-size:${step.description.includes('sudo') ? '0.85rem' : '0.9rem'}">
+              <div style="font-size:0.8125rem; color:var(--foreground); white-space:pre-wrap; line-height:1.6; background:#ffffff; border:1px solid var(--border); border-radius:var(--radius-md); padding:0.75rem; font-family:${step.description.includes('\n') || step.description.includes('sudo') || step.description.includes('docker') ? 'var(--font-mono)' : 'var(--font-sans)'}; font-size:${step.description.includes('sudo') ? '0.75rem' : '0.8125rem'}">
 ${escapeHtml(step.description)}
               </div>
             ` : ''}
@@ -431,6 +475,7 @@ ${escapeHtml(step.description)}
     }
 
     if (drawerOverlay) drawerOverlay.classList.add('open');
+    if (window.lucide) lucide.createIcons();
   };
 
   function closeStepDrawer() {
@@ -469,15 +514,16 @@ ${escapeHtml(step.description)}
     const stepIndex = modalStepsContainer.children.length + 1;
     const row = document.createElement('div');
     row.className = 'modal-step-row';
-    row.style.cssText = 'background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:8px; position:relative;';
+    row.style.cssText = 'background:#fafafa; border:1px solid var(--border); border-radius:var(--radius-md); padding:0.75rem; display:flex; flex-direction:column; gap:0.5rem; position:relative;';
 
     row.innerHTML = `
       <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:0.8rem; font-weight:800; color:#4f46e5; text-transform:uppercase; letter-spacing:0.04em;">
+        <span style="font-size:0.75rem; font-weight:700; color:var(--foreground); text-transform:uppercase;">
           Step #${stepIndex}
         </span>
-        <button type="button" class="btn-danger remove-step-btn" style="padding:2px 8px; min-height:24px; font-size:0.75rem; border-radius:6px;">
-          ✕ Remove
+        <button type="button" class="btn btn-danger remove-step-btn" style="padding:0 0.375rem; height:1.375rem; font-size:0.6875rem;">
+          <i data-lucide="trash-2" class="icon-xs"></i>
+          <span>Remove</span>
         </button>
       </div>
       <input type="text" class="form-input step-title-input" placeholder="Step Title (e.g. Run docker-compose up)" value="${escapeHtml(stepTitle)}">
@@ -486,14 +532,15 @@ ${escapeHtml(step.description)}
 
     row.querySelector('.remove-step-btn').addEventListener('click', () => {
       row.remove();
-      // Renumber step titles
       const remainingRows = modalStepsContainer.querySelectorAll('.modal-step-row');
       remainingRows.forEach((r, i) => {
         r.querySelector('span').textContent = `Step #${i + 1}`;
       });
+      if (window.lucide) lucide.createIcons();
     });
 
     modalStepsContainer.appendChild(row);
+    if (window.lucide) lucide.createIcons();
   }
 
   if (modalAddStepBtn) {
@@ -507,8 +554,8 @@ ${escapeHtml(step.description)}
   // ======================================================
   function openAddModal() {
     editingItemId = null;
-    if (modalHeaderTitle) modalHeaderTitle.innerHTML = '<span>➕</span> Add New Entry';
-    if (modalSubmitBtn) modalSubmitBtn.textContent = 'Encrypt & Save 🔒';
+    if (modalHeaderTitle) modalHeaderTitle.innerHTML = '<i data-lucide="plus" class="icon-sm"></i> <span>Add New Entry</span>';
+    if (modalSubmitBtn) modalSubmitBtn.textContent = 'Encrypt & Save';
 
     if (modalForm) modalForm.reset();
     if (modalStepsContainer) modalStepsContainer.innerHTML = '';
@@ -520,6 +567,7 @@ ${escapeHtml(step.description)}
       const titleInput = document.getElementById('modal-title');
       if (titleInput) titleInput.focus();
     }
+    if (window.lucide) lucide.createIcons();
   }
 
   window.openEditModal = function(id) {
@@ -529,8 +577,8 @@ ${escapeHtml(step.description)}
     editingItemId = id;
     const payload = item.payload || {};
 
-    if (modalHeaderTitle) modalHeaderTitle.innerHTML = '<span>✏️</span> Edit Vault Entry';
-    if (modalSubmitBtn) modalSubmitBtn.textContent = 'Update Entry 🔒';
+    if (modalHeaderTitle) modalHeaderTitle.innerHTML = '<i data-lucide="pencil" class="icon-sm"></i> <span>Edit Vault Entry</span>';
+    if (modalSubmitBtn) modalSubmitBtn.textContent = 'Update Entry';
 
     document.getElementById('modal-title').value = item.title || '';
     if (modalCategorySelect) modalCategorySelect.value = item.category || 'PASSWORD';
@@ -568,6 +616,7 @@ ${escapeHtml(step.description)}
       const titleInput = document.getElementById('modal-title');
       if (titleInput) titleInput.focus();
     }
+    if (window.lucide) lucide.createIcons();
   };
 
   function closeAddModal() {
@@ -586,11 +635,12 @@ ${escapeHtml(step.description)}
     if (modalStepsFields) {
       modalStepsFields.style.display = catVal === 'STEP_BY_STEP' ? 'block' : 'none';
       if (catVal === 'STEP_BY_STEP' && modalStepsContainer && modalStepsContainer.children.length === 0) {
-        addStepRow('Prerequisites & Credentials', 'Overview or required software...');
+        addStepRow('Prerequisites', 'Overview or required tools...');
         addStepRow('Execution Commands', 'docker-compose up -d');
       }
     }
     if (modalApiFields) modalApiFields.style.display = (catVal === 'API_KEY' || catVal === 'SSH_KEY' || catVal === 'OTHER') ? 'block' : 'none';
+    if (window.lucide) lucide.createIcons();
   }
 
   if (openModalBtn) openModalBtn.addEventListener('click', openAddModal);
@@ -668,6 +718,21 @@ ${escapeHtml(step.description)}
     });
   }
 
+  // Password visibility toggle in modal
+  document.querySelectorAll('.toggle-password-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = btn.previousElementSibling;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = '<i data-lucide="eye-off" class="icon-sm"></i>';
+      } else {
+        input.type = 'password';
+        btn.innerHTML = '<i data-lucide="eye" class="icon-sm"></i>';
+      }
+      if (window.lucide) lucide.createIcons();
+    });
+  });
+
   // Modal Form Submit (ADD or EDIT)
   if (modalForm) {
     modalForm.addEventListener('submit', async (e) => {
@@ -733,10 +798,10 @@ ${escapeHtml(step.description)}
         loadSecrets();
       } catch (err) {
         submitBtn.disabled = false;
-        submitBtn.textContent = editingItemId ? 'Update Entry 🔒' : 'Encrypt & Save 🔒';
+        submitBtn.textContent = editingItemId ? 'Update Entry' : 'Encrypt & Save';
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = editingItemId ? 'Update Entry 🔒' : 'Encrypt & Save 🔒';
+        submitBtn.textContent = editingItemId ? 'Update Entry' : 'Encrypt & Save';
       }
     });
   }
@@ -746,4 +811,7 @@ ${escapeHtml(step.description)}
 
   // Initial fetch
   await loadSecrets();
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 });
