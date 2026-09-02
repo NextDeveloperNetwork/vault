@@ -3,7 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Vault Dashboard - PassKeeper</title>
+  <title>PassKeeper — Secure Password & Vault Manager</title>
+  <meta name="description" content="PassKeeper is a private, self-hosted secret vault for storing passwords, database connection strings, SSH keys, API tokens and step-by-step procedures securely.">
+  <meta name="keywords" content="password manager, vault, secrets, database credentials, SSH keys, API keys, self-hosted, secure">
+  <meta name="author" content="PassKeeper Vault">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="PassKeeper — Secure Vault">
+  <meta property="og:description" content="Your private, encrypted secret vault.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/favicon.jpg">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/jpeg" href="/favicon.jpg">
+  <link rel="apple-touch-icon" href="/favicon.jpg">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="PassKeeper">
+
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/mobile.css">
@@ -450,51 +469,53 @@
        MOBILE NAVIGATION SLIDE-OVER DRAWER (LEFT SHEET)
        ====================================================== -->
   <div id="mobile-menu-drawer" class="drawer-overlay" style="justify-content:flex-start;">
-    <div class="drawer-panel mobile-nav-panel" style="max-width:18.5rem; transform:translateX(-100%); border-right:1px solid var(--border); border-left:none; box-shadow:10px 0 30px rgba(0,0,0,0.15); padding:1.25rem;">
+    <div class="drawer-panel mobile-nav-panel">
       
-      <!-- Drawer Header -->
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border);">
-        <div style="display:flex; align-items:center; gap:0.625rem;">
-          <div class="brand-logo" style="width:2rem; height:2rem;">
-            <i data-lucide="shield-check" class="icon-sm"></i>
+      <!-- Brand Header -->
+      <div class="mobile-nav-brand">
+        <div class="mobile-nav-brand-inner">
+          <div class="mobile-nav-brand-logo">
+            <i data-lucide="shield-check" class="icon-md"></i>
           </div>
           <div>
-            <div style="font-weight:700; font-size:1rem; color:var(--foreground);">PassKeeper</div>
-            <div style="font-size:0.6875rem; color:var(--muted-foreground);">Secret Vault</div>
+            <div class="mobile-nav-title">PassKeeper</div>
+            <div class="mobile-nav-subtitle">Secure Vault</div>
           </div>
         </div>
-        <button id="close-mobile-menu-btn" class="modal-close-btn" aria-label="Close Navigation Menu">
+        <button id="close-mobile-menu-btn" class="modal-close-btn" aria-label="Close menu">
           <i data-lucide="x" class="icon-sm"></i>
         </button>
       </div>
 
-      <!-- Main Navigation Links -->
-      <div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:1.25rem;">
+      <!-- Main Nav Links -->
+      <nav class="mobile-nav-links">
         <a href="/dashboard" class="sidebar-link active">
           <i data-lucide="layout-dashboard" class="icon-sm"></i>
-          <span>Vault Dashboard</span>
+          <span>Vault</span>
         </a>
         <a href="/users" id="mobile-menu-users-link" class="sidebar-link" style="display:none;">
           <i data-lucide="users" class="icon-sm"></i>
-          <span>User Approvals</span>
+          <span>Users</span>
         </a>
         <a href="/settings" class="sidebar-link">
           <i data-lucide="settings" class="icon-sm"></i>
-          <span>Settings & Backup</span>
+          <span>Settings</span>
         </a>
-      </div>
+      </nav>
 
-      <!-- Mobile Folders & Groups Container -->
-      <div id="mobile-menu-groups-container" style="flex:1; overflow-y:auto; margin-bottom:1rem;">
-        <!-- Injected dynamically by dashboard.js -->
-      </div>
-
-      <!-- User Profile & Log Out Footer -->
-      <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.625rem;">
-        <div id="mobile-menu-user-info" style="display:flex; align-items:center; justify-content:space-between;">
-          <!-- Injected dynamically -->
+      <!-- Folders & Groups -->
+      <div class="mobile-nav-groups">
+        <div id="mobile-menu-groups-container">
+          <!-- Injected by dashboard.js -->
         </div>
-        <button onclick="handleSidebarLogout()" class="btn btn-secondary" style="width:100%; font-size:0.8125rem; height:2.25rem;">
+      </div>
+
+      <!-- User & Logout Footer -->
+      <div class="mobile-nav-footer">
+        <div id="mobile-menu-user-info" class="mobile-nav-user-row">
+          <!-- Injected by dashboard.js -->
+        </div>
+        <button onclick="handleSidebarLogout()" class="btn btn-secondary" style="width:100%; height:2.25rem; font-size:0.8125rem;">
           <i data-lucide="log-out" class="icon-xs"></i>
           <span>Log Out</span>
         </button>
