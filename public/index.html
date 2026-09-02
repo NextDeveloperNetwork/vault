@@ -95,13 +95,13 @@
   </div>
 
   <!-- ======================================================
-       ADD NEW SECRET / ENTRY MODAL DIALOG OVERLAY
+       ADD / EDIT SECRET DIALOG MODAL OVERLAY
        ====================================================== -->
   <div id="add-secret-modal" class="modal-overlay">
     <div class="modal-dialog">
       
       <div class="modal-header">
-        <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+        <h2 id="modal-header-title" style="font-size: 1.25rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
           <span>➕</span> Add New Entry
         </h2>
         <button id="close-modal-btn" class="modal-close-btn" aria-label="Close Dialog">✕</button>
@@ -231,7 +231,7 @@
 
         <div style="display:flex; justify-content:flex-end; gap: 10px;">
           <button type="button" id="cancel-modal-btn" class="btn btn-secondary" style="min-height: 44px;">Cancel</button>
-          <button type="submit" class="btn btn-primary" style="min-height: 44px;">Encrypt & Save 🔒</button>
+          <button type="submit" id="modal-submit-btn" class="btn btn-primary" style="min-height: 44px;">Encrypt & Save 🔒</button>
         </div>
 
       </form>
@@ -253,7 +253,10 @@
           </div>
           <div id="drawer-subtitle" style="font-size:0.85rem; color:#64748b; margin-top:4px;">Procedure Steps</div>
         </div>
-        <button id="close-drawer-btn" class="modal-close-btn" aria-label="Close Drawer">✕</button>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button id="drawer-edit-btn" class="btn btn-secondary" style="padding:6px 12px; min-height:36px; font-size:0.8rem;">✏️ Edit</button>
+          <button id="close-drawer-btn" class="modal-close-btn" aria-label="Close Drawer">✕</button>
+        </div>
       </div>
 
       <!-- Steps Timeline Container -->
@@ -261,7 +264,8 @@
         <!-- Rendered dynamically by dashboard.js -->
       </div>
 
-      <div style="margin-top:24px; border-top:1px solid #e2e8f0; padding-top:16px; display:flex; justify-content:flex-end;">
+      <div style="margin-top:24px; border-top:1px solid #e2e8f0; padding-top:16px; display:flex; justify-content:space-between; align-items:center;">
+        <button id="drawer-edit-footer-btn" class="btn btn-secondary" style="min-height:40px; font-size:0.88rem;">✏️ Edit Guide</button>
         <button id="close-drawer-footer-btn" class="btn btn-secondary" style="min-height:40px;">Close Panel</button>
       </div>
 

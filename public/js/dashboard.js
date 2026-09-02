@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   let activeCategory = 'ALL';
   let searchQuery = '';
   let secretsData = [];
+  let editingItemId = null;
+  let activeDrawerItemId = null;
 
   const secretListContainer = document.getElementById('secret-list');
   const searchInput = document.getElementById('search-input');
@@ -15,6 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Modal elements
   const addModal = document.getElementById('add-secret-modal');
+  const modalHeaderTitle = document.getElementById('modal-header-title');
+  const modalSubmitBtn = document.getElementById('modal-submit-btn');
   const openModalBtn = document.getElementById('open-add-modal-btn');
   const closeModalBtn = document.getElementById('close-modal-btn');
   const cancelModalBtn = document.getElementById('cancel-modal-btn');
@@ -35,6 +39,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const drawerOverlay = document.getElementById('step-drawer-overlay');
   const closeDrawerBtn = document.getElementById('close-drawer-btn');
   const closeDrawerFooterBtn = document.getElementById('close-drawer-footer-btn');
+  const drawerEditBtn = document.getElementById('drawer-edit-btn');
+  const drawerEditFooterBtn = document.getElementById('drawer-edit-footer-btn');
   const drawerTitle = document.getElementById('drawer-title');
   const drawerSubtitle = document.getElementById('drawer-subtitle');
   const drawerStepsList = document.getElementById('drawer-steps-list');
@@ -184,6 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <td style="text-align:right; white-space:nowrap;" onclick="event.stopPropagation();">
             <div style="display:inline-flex; align-items:center; gap:6px;">
+              <button class="btn-secondary" style="padding:4px 10px; min-height:34px; font-size:0.75rem;" onclick="openEditModal('${item.id}')" title="Edit Entry">✏️ Edit</button>
               <button class="btn-icon" style="width:34px; height:34px; font-size:1rem;" onclick="toggleFav('${item.id}')" title="Favorite">${isFav}</button>
               <button class="btn-secondary" style="padding:4px 10px; min-height:34px; font-size:0.75rem;" onclick="deleteSecretItem('${item.id}')" title="Delete Entry">🗑️</button>
             </div>
@@ -297,9 +304,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
               <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e2e8f0; padding-top:10px; margin-top:4px;">
                 <span style="font-size:0.75rem; color:#64748b; font-weight:600;">Updated ${new Date(item.updatedAt).toLocaleDateString()}</span>
-                <button class="btn-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem;" onclick="deleteSecretItem('${item.id}')">
-                  🗑️ Delete
-                </button>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem;" onclick="openEditModal('${item.id}')">
+                    ✏️ Edit
+                  </button>
+                  <button class="btn-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem;" onclick="deleteSecretItem('${item.id}')">
+                    🗑️ Delete
+                  </button>
+                </div>
               </div>
             </div>
           `;
@@ -379,6 +391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const item = secretsData.find(s => s.id === id);
     if (!item) return;
 
+    activeDrawerItemId = id;
     const payload = item.payload || {};
     const steps = payload.steps || [];
 
@@ -426,6 +439,21 @@ ${escapeHtml(step.description)}
 
   if (closeDrawerBtn) closeDrawerBtn.addEventListener('click', closeStepDrawer);
   if (closeDrawerFooterBtn) closeDrawerFooterBtn.addEventListener('click', closeStepDrawer);
+  if (drawerEditBtn) {
+    drawerEditBtn.addEventListener('click', () => {
+      const id = activeDrawerItemId;
+      closeStepDrawer();
+      if (id) openEditModal(id);
+    });
+  }
+  if (drawerEditFooterBtn) {
+    drawerEditFooterBtn.addEventListener('click', () => {
+      const id = activeDrawerItemId;
+      closeStepDrawer();
+      if (id) openEditModal(id);
+    });
+  }
+
   if (drawerOverlay) {
     drawerOverlay.addEventListener('click', (e) => {
       if (e.target === drawerOverlay) closeStepDrawer();
@@ -433,7 +461,7 @@ ${escapeHtml(step.description)}
   }
 
   // ======================================================
-  // DYNAMIC STEP BUILDER FOR ADD ENTRY MODAL
+  // DYNAMIC STEP BUILDER FOR ADD/EDIT ENTRY MODAL
   // ======================================================
   function addStepRow(stepTitle = '', stepDesc = '') {
     if (!modalStepsContainer) return;
@@ -475,9 +503,18 @@ ${escapeHtml(step.description)}
   }
 
   // ======================================================
-  // MODAL DIALOG CONTROLS & SUBMISSION
+  // MODAL DIALOG CONTROLS & SUBMISSION (ADD & EDIT)
   // ======================================================
   function openAddModal() {
+    editingItemId = null;
+    if (modalHeaderTitle) modalHeaderTitle.innerHTML = '<span>➕</span> Add New Entry';
+    if (modalSubmitBtn) modalSubmitBtn.textContent = 'Encrypt & Save 🔒';
+
+    if (modalForm) modalForm.reset();
+    if (modalStepsContainer) modalStepsContainer.innerHTML = '';
+    if (modalCategorySelect) modalCategorySelect.value = 'PASSWORD';
+    triggerCategoryVisibility('PASSWORD');
+
     if (addModal) {
       addModal.classList.add('open');
       const titleInput = document.getElementById('modal-title');
@@ -485,16 +522,75 @@ ${escapeHtml(step.description)}
     }
   }
 
+  window.openEditModal = function(id) {
+    const item = secretsData.find(s => s.id === id);
+    if (!item) return;
+
+    editingItemId = id;
+    const payload = item.payload || {};
+
+    if (modalHeaderTitle) modalHeaderTitle.innerHTML = '<span>✏️</span> Edit Vault Entry';
+    if (modalSubmitBtn) modalSubmitBtn.textContent = 'Update Entry 🔒';
+
+    document.getElementById('modal-title').value = item.title || '';
+    if (modalCategorySelect) modalCategorySelect.value = item.category || 'PASSWORD';
+    triggerCategoryVisibility(item.category || 'PASSWORD');
+
+    document.getElementById('modal-username').value = item.username || '';
+    document.getElementById('modal-websiteUrl').value = item.websiteUrl || '';
+    document.getElementById('modal-tags').value = (item.tags || []).join(', ');
+    document.getElementById('modal-favorite').checked = Boolean(item.favorite);
+    document.getElementById('modal-notes').value = payload.notes || '';
+
+    if (item.category === 'PASSWORD') {
+      document.getElementById('modal-secret-password').value = payload.password || '';
+    } else if (item.category === 'DB_CONNECTION') {
+      document.getElementById('modal-db-conn-string').value = payload.connectionString || '';
+      document.getElementById('modal-db-host').value = payload.host || '';
+      document.getElementById('modal-db-port').value = payload.port || '';
+      document.getElementById('modal-db-user').value = payload.username || '';
+      document.getElementById('modal-db-pass').value = payload.password || '';
+      document.getElementById('modal-db-name').value = payload.dbName || '';
+    } else if (item.category === 'STEP_BY_STEP') {
+      if (modalStepsContainer) modalStepsContainer.innerHTML = '';
+      const steps = payload.steps || [];
+      if (steps.length === 0) {
+        addStepRow('Step 1', '');
+      } else {
+        steps.forEach(st => addStepRow(st.title, st.description));
+      }
+    } else {
+      document.getElementById('modal-api-key-val').value = payload.apiKey || payload.password || '';
+    }
+
+    if (addModal) {
+      addModal.classList.add('open');
+      const titleInput = document.getElementById('modal-title');
+      if (titleInput) titleInput.focus();
+    }
+  };
+
   function closeAddModal() {
     if (addModal) {
       addModal.classList.remove('open');
+      editingItemId = null;
       if (modalForm) modalForm.reset();
       if (modalStepsContainer) modalStepsContainer.innerHTML = '';
-      if (modalPassFields) modalPassFields.style.display = 'block';
-      if (modalDbFields) modalDbFields.style.display = 'none';
-      if (modalStepsFields) modalStepsFields.style.display = 'none';
-      if (modalApiFields) modalApiFields.style.display = 'none';
+      triggerCategoryVisibility('PASSWORD');
     }
+  }
+
+  function triggerCategoryVisibility(catVal) {
+    if (modalPassFields) modalPassFields.style.display = catVal === 'PASSWORD' ? 'block' : 'none';
+    if (modalDbFields) modalDbFields.style.display = catVal === 'DB_CONNECTION' ? 'block' : 'none';
+    if (modalStepsFields) {
+      modalStepsFields.style.display = catVal === 'STEP_BY_STEP' ? 'block' : 'none';
+      if (catVal === 'STEP_BY_STEP' && modalStepsContainer && modalStepsContainer.children.length === 0) {
+        addStepRow('Prerequisites & Credentials', 'Overview or required software...');
+        addStepRow('Execution Commands', 'docker-compose up -d');
+      }
+    }
+    if (modalApiFields) modalApiFields.style.display = (catVal === 'API_KEY' || catVal === 'SSH_KEY' || catVal === 'OTHER') ? 'block' : 'none';
   }
 
   if (openModalBtn) openModalBtn.addEventListener('click', openAddModal);
@@ -515,17 +611,7 @@ ${escapeHtml(step.description)}
   // Modal Category Switch
   if (modalCategorySelect) {
     modalCategorySelect.addEventListener('change', () => {
-      const val = modalCategorySelect.value;
-      if (modalPassFields) modalPassFields.style.display = val === 'PASSWORD' ? 'block' : 'none';
-      if (modalDbFields) modalDbFields.style.display = val === 'DB_CONNECTION' ? 'block' : 'none';
-      if (modalStepsFields) {
-        modalStepsFields.style.display = val === 'STEP_BY_STEP' ? 'block' : 'none';
-        if (val === 'STEP_BY_STEP' && modalStepsContainer && modalStepsContainer.children.length === 0) {
-          addStepRow('Prerequisites & Credentials', 'Overview or required software...');
-          addStepRow('Execution Commands', 'docker-compose up -d');
-        }
-      }
-      if (modalApiFields) modalApiFields.style.display = (val === 'API_KEY' || val === 'SSH_KEY' || val === 'OTHER') ? 'block' : 'none';
+      triggerCategoryVisibility(modalCategorySelect.value);
     });
   }
 
@@ -582,13 +668,13 @@ ${escapeHtml(step.description)}
     });
   }
 
-  // Modal Form Submit
+  // Modal Form Submit (ADD or EDIT)
   if (modalForm) {
     modalForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const submitBtn = modalForm.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Encrypting & Saving...';
+      submitBtn.textContent = editingItemId ? 'Updating Entry...' : 'Encrypting & Saving...';
 
       const title = document.getElementById('modal-title').value.trim();
       const category = modalCategorySelect.value;
@@ -626,8 +712,11 @@ ${escapeHtml(step.description)}
       }
 
       try {
-        await apiRequest('/api/secrets', {
-          method: 'POST',
+        const endpoint = editingItemId ? `/api/secrets/${editingItemId}` : '/api/secrets';
+        const method = editingItemId ? 'PUT' : 'POST';
+
+        await apiRequest(endpoint, {
+          method,
           body: {
             title,
             category,
@@ -639,15 +728,15 @@ ${escapeHtml(step.description)}
           }
         });
 
-        showToast('Secret encrypted and stored in vault!', 'success');
+        showToast(editingItemId ? 'Vault entry updated successfully!' : 'Secret encrypted and stored in vault!', 'success');
         closeAddModal();
         loadSecrets();
       } catch (err) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Encrypt & Save 🔒';
+        submitBtn.textContent = editingItemId ? 'Update Entry 🔒' : 'Encrypt & Save 🔒';
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Encrypt & Save 🔒';
+        submitBtn.textContent = editingItemId ? 'Update Entry 🔒' : 'Encrypt & Save 🔒';
       }
     });
   }
