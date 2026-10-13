@@ -24,10 +24,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="PassKeeper">
 
-  <link rel="stylesheet" href="/css/variables.css?v=5">
-  <link rel="stylesheet" href="/css/global.css?v=5">
-  <link rel="stylesheet" href="/css/mobile.css?v=5">
-  <script src="/js/lucide.min.js?v=5"></script>
+  <link rel="stylesheet" href="/css/variables.css?v=9">
+  <link rel="stylesheet" href="/css/global.css?v=9">
+  <link rel="stylesheet" href="/css/mobile.css?v=9">
+  <script src="/js/lucide.min.js?v=9"></script>
 </head>
 <body>
   <div class="app-container">
@@ -106,17 +106,21 @@
       </button>
     </div>
 
-    <!-- Search Bar -->
-    <div class="form-group" style="margin-bottom:0.625rem;">
-      <div class="input-wrapper">
+    <!-- Search + Category Filter Row -->
+    <div class="search-filter-row">
+      <div class="input-wrapper" style="flex:1;">
         <i data-lucide="search" class="icon-sm" style="position:absolute; left:0.75rem; color:var(--muted-foreground); pointer-events:none;"></i>
-        <input type="text" id="search-input" class="form-input" placeholder="Search secrets..." style="padding-left:2.25rem; padding-right:2.25rem; height:2.25rem;">
+        <input type="text" id="search-input" class="form-input" placeholder="Search secrets..." style="padding-left:2.25rem; padding-right:2.25rem; height:2.125rem;">
         <span style="position:absolute; right:0.625rem; font-size:0.625rem; font-weight:600; background:var(--secondary); border:1px solid var(--border); padding:0.1rem 0.35rem; border-radius:var(--radius-sm); color:var(--muted-foreground); font-family:var(--font-mono);">/</span>
       </div>
+      <button id="cat-filter-btn" class="cat-filter-trigger" onclick="openCategoryDrawer()">
+        <i data-lucide="sliders-horizontal" class="icon-xs"></i>
+        <span id="cat-filter-label">All</span>
+      </button>
     </div>
 
-    <!-- Category Filter Pills -->
-    <div class="category-pills">
+    <!-- Category Filter Pills (desktop only) -->
+    <div class="category-pills cat-pills-desktop-only">
       <button class="pill active" data-cat="ALL">
         <i data-lucide="layers" class="icon-xs"></i>
         <span>All Types</span>
@@ -168,6 +172,49 @@
   </div>
 
   <!-- ======================================================
+       MOBILE CATEGORY FILTER DRAWER (LEFT SLIDE-OVER)
+       ====================================================== -->
+  <div id="category-filter-drawer" class="drawer-overlay cat-filter-overlay">
+    <div class="cat-drawer-panel">
+      <div class="cat-drawer-header">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="sliders-horizontal" class="icon-sm"></i>
+          <span style="font-weight:700;font-size:0.9375rem;color:var(--foreground);">Filter by Type</span>
+        </div>
+        <button id="close-cat-drawer-btn" class="modal-close-btn" aria-label="Close filter">
+          <i data-lucide="x" class="icon-sm"></i>
+        </button>
+      </div>
+      <div class="cat-drawer-list">
+        <button class="cat-drawer-item cat-item-ALL active" data-cat="ALL" onclick="selectCatFromDrawer('ALL')">
+          <div class="cat-drawer-icon-wrap cat-icon-ALL"><i data-lucide="layers" class="icon-sm"></i></div>
+          <span class="cat-drawer-label">All Types</span>
+        </button>
+        <button class="cat-drawer-item cat-item-DB_CONNECTION" data-cat="DB_CONNECTION" onclick="selectCatFromDrawer('DB_CONNECTION')">
+          <div class="cat-drawer-icon-wrap cat-icon-DB_CONNECTION"><i data-lucide="database" class="icon-sm"></i></div>
+          <span class="cat-drawer-label">Connection Strings</span>
+        </button>
+        <button class="cat-drawer-item cat-item-PASSWORD" data-cat="PASSWORD" onclick="selectCatFromDrawer('PASSWORD')">
+          <div class="cat-drawer-icon-wrap cat-icon-PASSWORD"><i data-lucide="key-round" class="icon-sm"></i></div>
+          <span class="cat-drawer-label">Passwords</span>
+        </button>
+        <button class="cat-drawer-item cat-item-STEP_BY_STEP" data-cat="STEP_BY_STEP" onclick="selectCatFromDrawer('STEP_BY_STEP')">
+          <div class="cat-drawer-icon-wrap cat-icon-STEP_BY_STEP"><i data-lucide="book-open" class="icon-sm"></i></div>
+          <span class="cat-drawer-label">Step-by-Step</span>
+        </button>
+        <button class="cat-drawer-item cat-item-API_KEY" data-cat="API_KEY" onclick="selectCatFromDrawer('API_KEY')">
+          <div class="cat-drawer-icon-wrap cat-icon-API_KEY"><i data-lucide="zap" class="icon-sm"></i></div>
+          <span class="cat-drawer-label">API Keys</span>
+        </button>
+        <button class="cat-drawer-item cat-item-SSH_KEY" data-cat="SSH_KEY" onclick="selectCatFromDrawer('SSH_KEY')">
+          <div class="cat-drawer-icon-wrap cat-icon-SSH_KEY"><i data-lucide="terminal" class="icon-sm"></i></div>
+          <span class="cat-drawer-label">SSH Keys</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
        ADD / EDIT SECRET DIALOG MODAL OVERLAY (shadcn Dialog)
        ====================================================== -->
   <div id="add-secret-modal" class="modal-overlay">
@@ -212,9 +259,16 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="modal-title">Title / Name</label>
-          <input type="text" id="modal-title" class="form-input" placeholder="e.g. Proxmox Server Setup Procedure" required>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label" for="modal-title">Title / Name</label>
+            <input type="text" id="modal-title" class="form-input" placeholder="e.g. Production PostgreSQL" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modal-subcategory">Subcategory / Scope</label>
+            <input type="text" id="modal-subcategory" list="modal-subcat-suggestions" class="form-input" placeholder="e.g. Work, PostgreSQL, Cloud...">
+            <datalist id="modal-subcat-suggestions"></datalist>
+          </div>
         </div>
 
         <!-- Password Specific Fields -->
@@ -424,6 +478,7 @@
         <div style="flex:1; padding-right:1rem;">
           <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.25rem;">
             <span id="drawer-cat-badge" class="badge">CATEGORY</span>
+            <span id="drawer-subcat-badge" class="badge badge-subcat" style="display:none;">SUBCATEGORY</span>
             <span id="drawer-group-badge" class="badge badge-USER" style="display:none;">GROUP</span>
           </div>
           <h2 id="drawer-title" style="font-size:1.25rem; font-weight:700; color:var(--foreground); word-break:break-word;">Secret Title</h2>
@@ -525,8 +580,8 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=5"></script>
-  <script src="/js/dashboard.js?v=5"></script>
+  <script src="/js/api.js?v=9"></script>
+  <script src="/js/dashboard.js?v=9"></script>
 </body>
 </html>
 

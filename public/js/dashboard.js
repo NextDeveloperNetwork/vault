@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       groupsData = res;
 
       // Populate sidebar
-      renderDesktopSidebar('dashboard', currentUser, groupsData, activeGroupId);
+      renderDesktopSidebar('dashboard', currentUser, groupsData, activeGroupId, activeCategory);
 
       // Populate modal dropdown
       populateGroupSelect();
@@ -164,35 +164,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateFilterIndicator();
     loadSecrets();
     if (groupsData) {
-      renderDesktopSidebar('dashboard', currentUser, groupsData, activeGroupId);
+      renderDesktopSidebar('dashboard', currentUser, groupsData, activeGroupId, activeCategory);
+    }
+  };
+
+  window.filterByCategory = function(cat) {
+    activeCategory = cat;
+    syncCatUI(cat);
+    updateFilterIndicator();
+    loadSecrets();
+    if (groupsData) {
+      renderDesktopSidebar('dashboard', currentUser, groupsData, activeGroupId, activeCategory);
     }
   };
 
   function updateFilterIndicator() {
     if (!activeFilterIndicator || !activeFilterText) return;
 
-    if (activeGroupId === 'ALL' && !searchQuery) {
+    if (activeGroupId === 'ALL' && activeCategory === 'ALL' && !searchQuery) {
       activeFilterIndicator.style.display = 'none';
       return;
     }
 
     activeFilterIndicator.style.display = 'flex';
-    let label = 'All Items';
+    const parts = [];
 
     if (activeGroupId === 'FAV') {
-      label = '⭐ Favorites';
+      parts.push('⭐ Favorites');
     } else if (activeGroupId === 'NONE') {
-      label = '📂 Ungrouped';
-    } else if (groupsData && groupsData.groups) {
+      parts.push('📂 Ungrouped');
+    } else if (groupsData && groupsData.groups && activeGroupId !== 'ALL') {
       const found = groupsData.groups.find(g => g.id === activeGroupId);
-      if (found) label = `📁 Group: ${found.name}`;
+      if (found) parts.push(`📁 Group: ${found.name}`);
+    }
+
+    if (activeCategory && activeCategory !== 'ALL') {
+      parts.push(`🏷️ ${CAT_LABELS[activeCategory] || activeCategory}`);
     }
 
     if (searchQuery) {
-      label += ` • Search: "${searchQuery}"`;
+      parts.push(`🔍 "${searchQuery}"`);
     }
 
-    activeFilterText.innerHTML = `Viewing: <strong>${escapeHtml(label)}</strong>`;
+    activeFilterText.innerHTML = `Filtered: <strong>${escapeHtml(parts.join(' • ') || 'All Items')}</strong>`;
   }
 
   window.deleteGroupConfirm = async function(id, name) {
@@ -236,39 +250,85 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (mobileMenuGroupsContainer && groupsData) {
-      const { groups = [], ungroupedCount = 0, totalCount = 0 } = groupsData;
+      const { groups = [], ungroupedCount = 0, totalCount = 0, favCount = 0, categoryCounts = {} } = groupsData;
       mobileMenuGroupsContainer.innerHTML = `
-        <div class="mobile-nav-groups-header">
-          <span class="mobile-nav-section-label">Folders &amp; Groups</span>
-          <button onclick="window.closeMobileMenu(); window.openCreateGroupModal()" class="btn-icon" style="width:1.625rem; height:1.625rem;" title="New Group">
+        <!-- ── Vault Overview ── -->
+        <div class="sidebar-section-header">Vault Overview</div>
+        <div style="display:flex; flex-direction:column; gap:0.125rem;">
+          <a href="javascript:void(0)" onclick="window.filterByGroup('ALL'); if(window.filterByCategory) window.filterByCategory('ALL'); window.closeMobileMenu();" class="sidebar-link ${activeGroupId === 'ALL' && activeCategory === 'ALL' ? 'active' : ''}">
+            <i data-lucide="layout-dashboard" class="icon-sm"></i>
+            <span style="flex:1;">All Items</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem;">${totalCount}</span>
+          </a>
+          <a href="javascript:void(0)" onclick="window.filterByGroup('FAV'); window.closeMobileMenu();" class="sidebar-link ${activeGroupId === 'FAV' ? 'active' : ''}">
+            <i data-lucide="star" class="icon-sm" style="color:#f59e0b; fill:#f59e0b;"></i>
+            <span style="flex:1;">Favorites</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem;">${favCount}</span>
+          </a>
+        </div>
+
+        <!-- ── Categories ── -->
+        <div class="sidebar-section-header" style="margin-top:0.875rem;">Categories</div>
+        <div style="display:flex; flex-direction:column; gap:0.125rem;">
+          <a href="javascript:void(0)" onclick="window.filterByCategory('DB_CONNECTION'); window.closeMobileMenu();" class="sidebar-link sidebar-cat-link ${activeCategory === 'DB_CONNECTION' ? 'active' : ''}">
+            <div class="sidebar-cat-bullet" style="background:#10b981;"></div>
+            <i data-lucide="database" class="icon-sm" style="color:#10b981;"></i>
+            <span style="flex:1;">Connection Strings</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem;">${categoryCounts['DB_CONNECTION'] || 0}</span>
+          </a>
+          <a href="javascript:void(0)" onclick="window.filterByCategory('PASSWORD'); window.closeMobileMenu();" class="sidebar-link sidebar-cat-link ${activeCategory === 'PASSWORD' ? 'active' : ''}">
+            <div class="sidebar-cat-bullet" style="background:#6366f1;"></div>
+            <i data-lucide="key-round" class="icon-sm" style="color:#6366f1;"></i>
+            <span style="flex:1;">Passwords</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem;">${categoryCounts['PASSWORD'] || 0}</span>
+          </a>
+          <a href="javascript:void(0)" onclick="window.filterByCategory('STEP_BY_STEP'); window.closeMobileMenu();" class="sidebar-link sidebar-cat-link ${activeCategory === 'STEP_BY_STEP' ? 'active' : ''}">
+            <div class="sidebar-cat-bullet" style="background:#16a34a;"></div>
+            <i data-lucide="book-open" class="icon-sm" style="color:#16a34a;"></i>
+            <span style="flex:1;">Step-by-Step</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem;">${categoryCounts['STEP_BY_STEP'] || 0}</span>
+          </a>
+          <a href="javascript:void(0)" onclick="window.filterByCategory('API_KEY'); window.closeMobileMenu();" class="sidebar-link sidebar-cat-link ${activeCategory === 'API_KEY' ? 'active' : ''}">
+            <div class="sidebar-cat-bullet" style="background:#f59e0b;"></div>
+            <i data-lucide="zap" class="icon-sm" style="color:#f59e0b;"></i>
+            <span style="flex:1;">API Keys</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem;">${categoryCounts['API_KEY'] || 0}</span>
+          </a>
+          <a href="javascript:void(0)" onclick="window.filterByCategory('SSH_KEY'); window.closeMobileMenu();" class="sidebar-link sidebar-cat-link ${activeCategory === 'SSH_KEY' ? 'active' : ''}">
+            <div class="sidebar-cat-bullet" style="background:#ec4899;"></div>
+            <i data-lucide="terminal" class="icon-sm" style="color:#ec4899;"></i>
+            <span style="flex:1;">SSH Keys</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem;">${categoryCounts['SSH_KEY'] || 0}</span>
+          </a>
+          <a href="javascript:void(0)" onclick="window.filterByCategory('OTHER'); window.closeMobileMenu();" class="sidebar-link sidebar-cat-link ${activeCategory === 'OTHER' ? 'active' : ''}">
+            <div class="sidebar-cat-bullet" style="background:#8b5cf6;"></div>
+            <i data-lucide="shield" class="icon-sm" style="color:#8b5cf6;"></i>
+            <span style="flex:1;">Notes &amp; Other</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem;">${categoryCounts['OTHER'] || 0}</span>
+          </a>
+        </div>
+
+        <!-- ── Folders & Groups ── -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.875rem; margin-bottom:0.125rem; padding: 0 0.5rem;">
+          <span class="sidebar-section-header" style="margin:0; padding:0;">Folders &amp; Groups</span>
+          <button onclick="window.closeMobileMenu(); window.openCreateGroupModal()" class="btn-icon" style="width:1.5rem; height:1.5rem;" title="New Group">
             <i data-lucide="plus" class="icon-xs"></i>
           </button>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:0.125rem;">
-          <a href="javascript:void(0)" onclick="window.filterByGroup('ALL'); window.closeMobileMenu();" class="sidebar-link ${activeGroupId === 'ALL' ? 'active' : ''}">
-            <i data-lucide="folder-open" class="icon-sm"></i>
-            <span style="flex:1;">All Items</span>
-            <span class="badge badge-USER" style="min-width:1.5rem; justify-content:center;">${totalCount}</span>
-          </a>
-
-          <a href="javascript:void(0)" onclick="window.filterByGroup('FAV'); window.closeMobileMenu();" class="sidebar-link ${activeGroupId === 'FAV' ? 'active' : ''}">
-            <i data-lucide="star" class="icon-sm" style="color:#f59e0b;"></i>
-            <span style="flex:1;">Favorites</span>
-          </a>
-
           ${groups.map(g => `
             <a href="javascript:void(0)" onclick="window.filterByGroup('${g.id}'); window.closeMobileMenu();" class="sidebar-link ${activeGroupId === g.id ? 'active' : ''}">
               <i data-lucide="${g.icon || 'folder'}" class="icon-sm" ${g.color ? `style="color:${g.color};"` : ''}></i>
               <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g.name)}</span>
-              <span class="badge badge-USER" style="min-width:1.5rem; justify-content:center;">${g.count}</span>
+              <span class="badge badge-USER" style="font-size:0.6875rem;">${g.count}</span>
             </a>
           `).join('')}
 
           <a href="javascript:void(0)" onclick="window.filterByGroup('NONE'); window.closeMobileMenu();" class="sidebar-link ${activeGroupId === 'NONE' ? 'active' : ''}">
             <i data-lucide="folder" class="icon-sm" style="color:#94a3b8;"></i>
             <span style="flex:1;">Ungrouped</span>
-            <span class="badge badge-USER" style="min-width:1.5rem; justify-content:center;">${ungroupedCount}</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem;">${ungroupedCount}</span>
           </a>
         </div>
       `;
@@ -438,16 +498,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? item.tags.map(t => `<span class="badge badge-USER" style="font-size:0.6875rem;">${escapeHtml(t)}</span>`).join(' ')
         : '';
 
+      const subCatBadge = item.subCategory ? `
+        <span class="badge-subcat" title="Subcategory: ${escapeHtml(item.subCategory)}">
+          <i data-lucide="tag" class="icon-xs" style="width:10px; height:10px;"></i>
+          <span>${escapeHtml(item.subCategory)}</span>
+        </span>
+      ` : '';
+
       return `
-        <tr style="cursor: pointer;" onclick="openDetailDrawer('${item.id}')" title="Click to open detail panel">
+        <tr class="vault-row row-cat-${item.category}" style="cursor: pointer;" onclick="openDetailDrawer('${item.id}')" title="Click to open detail panel">
           <td>
             <div style="display:flex; align-items:center; gap:0.75rem;">
-              <div style="width:2rem; height:2rem; border-radius:var(--radius-md); background:var(--secondary); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--foreground);">
+              <div class="vault-row-icon-box" style="width:2rem; height:2rem; border-radius:var(--radius-md); background:var(--secondary); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--foreground); flex-shrink:0;">
                 <i data-lucide="${iconName}" class="icon-sm"></i>
               </div>
               <div>
                 <strong style="font-size:0.875rem; color:var(--foreground); display:block; font-weight:600;">${escapeHtml(item.title)}</strong>
-                <span class="badge badge-${item.category}" style="margin-top:0.25rem;">${item.category.replace('_', ' ')}</span>
+                <div style="display:flex; align-items:center; gap:0.35rem; margin-top:0.25rem; flex-wrap:wrap;">
+                  <span class="badge badge-${item.category}">
+                    ${item.category === 'DB_CONNECTION' ? 'DB' : item.category === 'STEP_BY_STEP' ? 'Guide' : item.category.replace('_', ' ')}
+                  </span>
+                  ${subCatBadge}
+                </div>
               </div>
             </div>
           </td>
@@ -567,8 +639,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
           }
 
+          const cardSubCatBadge = item.subCategory ? `
+            <span class="badge-subcat" style="font-size:0.625rem; padding:0.05rem 0.35rem;">${escapeHtml(item.subCategory)}</span>
+          ` : '';
+
           return `
-            <div class="card secret-card" id="card-${item.id}" style="cursor:pointer;" onclick="openDetailDrawer('${item.id}')">
+            <div class="card secret-card card-cat-${item.category}" id="card-${item.id}" style="cursor:pointer;" onclick="openDetailDrawer('${item.id}')">
               <div class="card-header">
                 <div class="card-title-group">
                   <div class="card-icon">
@@ -576,7 +652,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                   </div>
                   <div>
                     <div class="card-title-text">${escapeHtml(item.title)}</div>
-                    <div class="card-subtext">${escapeHtml(item.username || item.websiteUrl || item.category)}</div>
+                    <div class="card-subtext" style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap; margin-top:0.15rem;">
+                      <span>${escapeHtml(item.username || item.websiteUrl || '')}</span>
+                      ${cardSubCatBadge}
+                    </div>
                   </div>
                 </div>
                 <div class="card-header-right" onclick="event.stopPropagation();">
@@ -602,20 +681,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="conn-string-box" onclick="event.stopPropagation();">${escapeHtml(payload.connectionString)}</div>
               ` : ''}
 
-              <div class="copy-actions" onclick="event.stopPropagation();">
-                ${copyButtonsHtml}
-              </div>
-
-              <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:0.625rem; margin-top:0.25rem;">
-                <span style="font-size:0.75rem; color:var(--muted-foreground); font-weight:500;">Updated ${new Date(item.updatedAt).toLocaleDateString()}</span>
-                <div style="display:flex; gap:0.375rem;" onclick="event.stopPropagation();">
-                  <button class="btn btn-outline" style="height:1.75rem; font-size:0.75rem; padding:0 0.5rem;" onclick="openEditModal('${item.id}')">
-                    <i data-lucide="pencil" class="icon-xs"></i>
-                    <span>Edit</span>
+              <div class="card-footer-row" onclick="event.stopPropagation();">
+                <span class="card-footer-date">Updated ${new Date(item.updatedAt).toLocaleDateString()}</span>
+                <div class="card-dropdown-wrap">
+                  <button class="btn-icon card-menu-trigger" onclick="toggleCardMenu('${item.id}', event)" title="Actions">
+                    <i data-lucide="more-horizontal" class="icon-xs"></i>
                   </button>
-                  <button class="btn btn-danger" style="height:1.75rem; font-size:0.75rem; padding:0 0.5rem;" onclick="deleteSecretItem('${item.id}')">
-                    <i data-lucide="trash-2" class="icon-xs"></i>
-                  </button>
+                  <div id="card-menu-${item.id}" class="card-dropdown" style="display:none;">
+                    ${copyButtonsHtml ? `
+                      <div class="card-dropdown-label">Quick Copy</div>
+                      ${copyButtonsHtml.replace(/class="btn-copy"/g, 'class="card-dropdown-item"').replace(/onclick="event\.stopPropagation\(\);\s*/g, 'onclick="')}
+                      <div class="card-dropdown-divider"></div>
+                    ` : ''}
+                    <button class="card-dropdown-item" onclick="closeAllCardMenus(); openDetailDrawer('${item.id}')">
+                      <i data-lucide="eye" class="icon-xs"></i> View
+                    </button>
+                    <button class="card-dropdown-item" onclick="closeAllCardMenus(); openEditModal('${item.id}')">
+                      <i data-lucide="pencil" class="icon-xs"></i> Edit
+                    </button>
+                    <div class="card-dropdown-divider"></div>
+                    <button class="card-dropdown-item card-dropdown-item--danger" onclick="closeAllCardMenus(); deleteSecretItem('${item.id}')">
+                      <i data-lucide="trash-2" class="icon-xs"></i> Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -644,15 +732,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
-  // Filter Pills logic (Categories)
+  // Filter Pills logic (Categories — desktop pills + mobile drawer sync)
+  const CAT_LABELS = {
+    'ALL': 'All', 'PASSWORD': 'Passwords', 'DB_CONNECTION': 'DB',
+    'STEP_BY_STEP': 'Guides', 'API_KEY': 'API Keys', 'SSH_KEY': 'SSH'
+  };
+
+  function syncCatUI(cat) {
+    // Sync desktop pills
+    pillBtns.forEach(p => p.classList.remove('active'));
+    const matchPill = document.querySelector(`.pill[data-cat="${cat}"]`);
+    if (matchPill) matchPill.classList.add('active');
+    // Sync drawer items
+    document.querySelectorAll('.cat-drawer-item').forEach(item => {
+      item.classList.toggle('active', item.getAttribute('data-cat') === cat);
+    });
+    // Sync filter button label & style
+    const catLabel = document.getElementById('cat-filter-label');
+    const catBtn   = document.getElementById('cat-filter-btn');
+    if (catLabel) catLabel.textContent = CAT_LABELS[cat] || cat;
+    if (catBtn) catBtn.classList.toggle('has-filter', cat !== 'ALL');
+  }
+
   pillBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      pillBtns.forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
       activeCategory = btn.getAttribute('data-cat');
+      syncCatUI(activeCategory);
       loadSecrets();
     });
   });
+
+  // ============================================================
+  // MOBILE CATEGORY FILTER DRAWER
+  // ============================================================
+  const catFilterDrawer = document.getElementById('category-filter-drawer');
+  const closeCatDrawerBtn = document.getElementById('close-cat-drawer-btn');
+
+  window.openCategoryDrawer = function() {
+    if (catFilterDrawer) {
+      catFilterDrawer.classList.add('open');
+      if (window.lucide) lucide.createIcons();
+    }
+  };
+
+  window.closeCategoryDrawer = function() {
+    if (catFilterDrawer) catFilterDrawer.classList.remove('open');
+  };
+
+  window.selectCatFromDrawer = function(cat) {
+    activeCategory = cat;
+    syncCatUI(cat);
+    window.closeCategoryDrawer();
+    loadSecrets();
+  };
+
+  if (closeCatDrawerBtn) closeCatDrawerBtn.addEventListener('click', window.closeCategoryDrawer);
+  if (catFilterDrawer) {
+    catFilterDrawer.addEventListener('click', (e) => {
+      if (e.target === catFilterDrawer) window.closeCategoryDrawer();
+    });
+  }
 
   // Live search with debounce
   if (searchInput) {
@@ -706,6 +845,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // ======================================================
+  // CARD DROPDOWN MENU (3-dot) — mobile card actions
+  // ======================================================
+  window.closeAllCardMenus = function() {
+    document.querySelectorAll('.card-dropdown').forEach(d => {
+      d.style.display = 'none';
+    });
+  };
+
+  window.toggleCardMenu = function(id, event) {
+    event.stopPropagation();
+    const menu = document.getElementById('card-menu-' + id);
+    if (!menu) return;
+    const isOpen = menu.style.display !== 'none';
+    window.closeAllCardMenus();
+    if (!isOpen) {
+      menu.style.display = 'block';
+      // Refresh lucide icons inside the newly opened dropdown
+      if (window.lucide) lucide.createIcons();
+    }
+  };
+
+  // Close card menus when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.card-dropdown-wrap')) {
+      window.closeAllCardMenus();
+    }
+  });
+
+  // ======================================================
   // UNIVERSAL RIGHT SLIDE-OVER DETAIL PANEL LOGIC
   // Opens for EVERY type: PASSWORD, DB_CONNECTION,
   // STEP_BY_STEP, API_KEY, SSH_KEY, OTHER!
@@ -724,6 +892,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (drawerCatBadge) {
       drawerCatBadge.className = `badge badge-${item.category}`;
       drawerCatBadge.textContent = item.category.replace('_', ' ');
+    }
+
+    const drawerSubcatBadge = document.getElementById('drawer-subcat-badge');
+    if (drawerSubcatBadge) {
+      if (item.subCategory) {
+        drawerSubcatBadge.innerHTML = `<i data-lucide="tag" class="icon-xs" style="width:10px;height:10px;"></i> <span>${escapeHtml(item.subCategory)}</span>`;
+        drawerSubcatBadge.style.display = 'inline-flex';
+      } else {
+        drawerSubcatBadge.style.display = 'none';
+      }
     }
 
     if (drawerGroupBadge) {
@@ -1082,6 +1260,9 @@ ${escapeHtml(step.description)}
       addModal.classList.add('open');
       const titleInput = document.getElementById('modal-title');
       if (titleInput) titleInput.focus();
+      const subcatInput = document.getElementById('modal-subcategory');
+      if (subcatInput) subcatInput.value = '';
+      updateSubcatSuggestions('PASSWORD');
     }
     if (window.lucide) lucide.createIcons();
   }
@@ -1097,6 +1278,9 @@ ${escapeHtml(step.description)}
     if (modalSubmitBtn) modalSubmitBtn.textContent = 'Update Entry';
 
     document.getElementById('modal-title').value = item.title || '';
+    const subcatInput = document.getElementById('modal-subcategory');
+    if (subcatInput) subcatInput.value = item.subCategory || '';
+    updateSubcatSuggestions(item.category || 'PASSWORD');
     if (modalCategorySelect) modalCategorySelect.value = item.category || 'PASSWORD';
     triggerCategoryVisibility(item.category || 'PASSWORD');
 
@@ -1147,7 +1331,28 @@ ${escapeHtml(step.description)}
     }
   }
 
+  
+  // Subcategory contextual presets
+  const SUBCAT_PRESETS = {
+    'PASSWORD': ['Email & Personal', 'Work & Enterprise', 'Banking & Finance', 'Social Media', 'Streaming & Entertainment', 'Hardware & Router', 'Shopping'],
+    'DB_CONNECTION': ['PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'SQLite', 'MariaDB', 'Oracle', 'MS SQL Server'],
+    'STEP_BY_STEP': ['Server Setup', 'Deployment', 'Disaster Recovery', 'Incident Response', 'Onboarding & Guides', 'Troubleshooting', 'Maintenance'],
+    'API_KEY': ['Cloud Provider (AWS/GCP)', 'AI & LLM (OpenAI/Anthropic)', 'Payment Gateway (Stripe)', 'Authentication & OAuth', 'Messaging & SMS', 'Webhooks'],
+    'SSH_KEY': ['Production Server', 'Staging & Dev', 'Bastion Host', 'Git / GitHub / GitLab', 'Networking Device'],
+    'OTHER': ['Software License', 'Crypto Wallet', 'Recovery Codes', 'Secure Note']
+  };
+
+  function updateSubcatSuggestions(catVal) {
+    const datalist = document.getElementById('modal-subcat-suggestions');
+    if (!datalist) return;
+    const list = SUBCAT_PRESETS[catVal] || [];
+    const userSubs = (groupsData && groupsData.subCategories) ? groupsData.subCategories : [];
+    const combined = Array.from(new Set([...list, ...userSubs]));
+    datalist.innerHTML = combined.map(s => `<option value="${escapeHtml(s)}">`).join('');
+  }
+
   function triggerCategoryVisibility(catVal) {
+    updateSubcatSuggestions(catVal);
     if (modalPassFields) modalPassFields.style.display = catVal === 'PASSWORD' ? 'block' : 'none';
     if (modalDbFields) modalDbFields.style.display = catVal === 'DB_CONNECTION' ? 'block' : 'none';
     if (modalStepsFields) {
@@ -1261,6 +1466,7 @@ ${escapeHtml(step.description)}
       submitBtn.textContent = editingItemId ? 'Updating Entry...' : 'Encrypting & Saving...';
 
       const title = document.getElementById('modal-title').value.trim();
+      const subCategory = document.getElementById('modal-subcategory') ? document.getElementById('modal-subcategory').value.trim() : null;
       const category = modalCategorySelect.value;
       const groupId = modalGroupSelect ? modalGroupSelect.value : null;
       const username = document.getElementById('modal-username').value.trim();
@@ -1305,6 +1511,7 @@ ${escapeHtml(step.description)}
           body: {
             title,
             category,
+            subCategory: subCategory || null,
             groupId: groupId || null,
             username,
             websiteUrl,

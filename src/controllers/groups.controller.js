@@ -5,7 +5,7 @@ async function getGroups(req, res, next) {
   try {
     const userId = req.user.id;
 
-    const [groups, ungroupedCount, totalCount] = await Promise.all([
+    const [groups, ungroupedCount, totalCount, favCount, catCounts, subCats] = await Promise.all([
       prisma.group.findMany({
         where: { userId },
         include: {
@@ -20,6 +20,19 @@ async function getGroups(req, res, next) {
       }),
       prisma.secretItem.count({
         where: { userId }
+      }),
+      prisma.secretItem.count({
+        where: { userId, favorite: true }
+      }),
+      prisma.secretItem.groupBy({
+        by: ['category'],
+        where: { userId },
+        _count: { id: true }
+      }),
+      prisma.secretItem.findMany({
+        where: { userId, subCategory: { not: null } },
+        select: { category: true, subCategory: true },
+        distinct: ['category', 'subCategory']
       })
     ]);
 
@@ -32,10 +45,23 @@ async function getGroups(req, res, next) {
       createdAt: g.createdAt
     }));
 
+    const categoryCounts = {};
+    catCounts.forEach(c => {
+      categoryCounts[c.category] = c._count.id;
+    });
+
+    const subCategories = subCats
+      .map(s => s.subCategory)
+      .filter(Boolean)
+      .filter((v, i, a) => a.indexOf(v) === i);
+
     return res.json({
       groups: formattedGroups,
       ungroupedCount,
-      totalCount
+      totalCount,
+      favCount,
+      categoryCounts,
+      subCategories
     });
   } catch (err) {
     next(err);

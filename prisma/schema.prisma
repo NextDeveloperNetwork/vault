@@ -56,27 +56,28 @@ model Group {
 }
 
 model SecretItem {
-  id               String   @id @default(uuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  groupId          String?
-  group            Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId  String?
+  group    Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
   title            String
   category         Category @default(PASSWORD)
-  
+  subCategory      String?
+
   // Encrypted Payload (JSON string containing sensitive password/connection details encrypted with AES-256-GCM)
   encryptedPayload String
   iv               String
   authTag          String
 
   // Searchable non-sensitive metadata
-  username         String?
-  websiteUrl       String?
-  favorite         Boolean  @default(false)
-  tags             String?  // Comma-separated tags
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  username   String?
+  websiteUrl String?
+  favorite   Boolean @default(false)
+  tags       String? // Comma-separated tags
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([category])

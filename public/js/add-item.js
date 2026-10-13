@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     submitBtn.textContent = 'Encrypting & Saving...';
 
     const title = document.getElementById('title').value.trim();
+    const subCategory = document.getElementById('subcategory') ? document.getElementById('subcategory').value.trim() : null;
     const category = categorySelect.value;
     const username = document.getElementById('username').value.trim();
     const websiteUrl = document.getElementById('websiteUrl').value.trim();
@@ -119,6 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         body: {
           title,
           category,
+          subCategory: subCategory || null,
           username,
           websiteUrl,
           favorite,

@@ -82,7 +82,7 @@ async function copyToClipboard(text, label = 'Content') {
 }
 
 // Render Desktop Sidebar Navigation across all pages
-function renderDesktopSidebar(activePage = 'dashboard', currentUser = null, groupsData = null, activeGroupId = 'ALL') {
+function renderDesktopSidebar(activePage = 'dashboard', currentUser = null, groupsData = null, activeGroupId = 'ALL', activeCategory = 'ALL') {
   const existingSidebar = document.querySelector('.desktop-sidebar');
   if (existingSidebar) existingSidebar.remove();
 
@@ -91,51 +91,13 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null, grou
 
   const isAdmin = currentUser && currentUser.role === 'ADMIN';
 
-  let groupsHtml = '';
-  if (activePage === 'dashboard' && groupsData) {
-    const { groups = [], ungroupedCount = 0, totalCount = 0 } = groupsData;
+  const totalCount = groupsData ? (groupsData.totalCount || 0) : 0;
+  const favCount = groupsData ? (groupsData.favCount || 0) : 0;
+  const ungroupedCount = groupsData ? (groupsData.ungroupedCount || 0) : 0;
+  const groups = groupsData ? (groupsData.groups || []) : [];
+  const catCounts = (groupsData && groupsData.categoryCounts) ? groupsData.categoryCounts : {};
 
-    groupsHtml = `
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:1.5rem; margin-bottom:0.375rem; padding: 0 0.5rem;">
-        <span style="font-size:0.6875rem; font-weight:700; color:var(--muted-foreground); text-transform:uppercase; letter-spacing:0.05em;">Folders & Groups</span>
-        <button onclick="window.openCreateGroupModal()" class="btn-icon" style="width:1.5rem; height:1.5rem;" title="Create Group">
-          <i data-lucide="plus" class="icon-xs"></i>
-        </button>
-      </div>
-
-      <div class="sidebar-groups-list" style="display:flex; flex-direction:column; gap:0.2rem; margin-bottom:1rem; overflow-y:auto; max-height: 40vh;">
-        <a href="javascript:void(0)" onclick="window.filterByGroup('ALL')" class="sidebar-link ${activeGroupId === 'ALL' ? 'active' : ''}">
-          <i data-lucide="folder-open" class="icon-sm"></i>
-          <span style="flex:1;">All Items</span>
-          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${totalCount}</span>
-        </a>
-
-        <a href="javascript:void(0)" onclick="window.filterByGroup('FAV')" class="sidebar-link ${activeGroupId === 'FAV' ? 'active' : ''}">
-          <i data-lucide="star" class="icon-sm" style="color:#f59e0b;"></i>
-          <span style="flex:1;">Favorites</span>
-        </a>
-
-        ${groups.map(g => `
-          <div style="display:flex; align-items:center; position:relative;" class="group-row">
-            <a href="javascript:void(0)" onclick="window.filterByGroup('${g.id}')" class="sidebar-link ${activeGroupId === g.id ? 'active' : ''}" style="flex:1; padding-right:1.75rem;">
-              <i data-lucide="${g.icon || 'folder'}" class="icon-sm" style="${g.color ? `color:${g.color};` : ''}"></i>
-              <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlSidebar(g.name)}</span>
-              <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${g.count}</span>
-            </a>
-            <button onclick="event.stopPropagation(); window.deleteGroupConfirm('${g.id}', '${escapeHtmlSidebar(g.name)}')" class="btn-icon delete-group-btn" style="position:absolute; right:4px; width:1.25rem; height:1.25rem; border:none; opacity:0.4; cursor:pointer;" title="Delete Group">
-              <i data-lucide="x" class="icon-xs"></i>
-            </button>
-          </div>
-        `).join('')}
-
-        <a href="javascript:void(0)" onclick="window.filterByGroup('NONE')" class="sidebar-link ${activeGroupId === 'NONE' ? 'active' : ''}">
-          <i data-lucide="folder" class="icon-sm" style="color:#94a3b8;"></i>
-          <span style="flex:1;">Ungrouped</span>
-          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${ungroupedCount}</span>
-        </a>
-      </div>
-    `;
-  }
+  const userInitial = currentUser && currentUser.name ? currentUser.name.charAt(0).toUpperCase() : (currentUser && currentUser.email ? currentUser.email.charAt(0).toUpperCase() : 'U');
 
   sidebar.innerHTML = `
     <div class="sidebar-brand">
@@ -148,36 +110,129 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null, grou
       </div>
     </div>
 
-    <nav class="sidebar-menu">
-      <a href="/dashboard" class="sidebar-link ${activePage === 'dashboard' ? 'active' : ''}">
+    <div class="sidebar-scrollable-content" style="flex:1; overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column; gap:0.2rem; padding-right:0.25rem;">
+      
+      <!-- ── SECTION: VAULT OVERVIEW ── -->
+      <div class="sidebar-section-header">Vault Overview</div>
+
+      <a href="javascript:void(0)" onclick="if(window.filterByGroup){window.filterByGroup('ALL'); if(window.filterByCategory) window.filterByCategory('ALL');} else {window.location.href='/dashboard';}" class="sidebar-link ${activePage === 'dashboard' && activeGroupId === 'ALL' && activeCategory === 'ALL' ? 'active' : ''}">
         <i data-lucide="layout-dashboard" class="icon-sm"></i>
-        <span>Vault Dashboard</span>
+        <span style="flex:1;">All Items</span>
+        <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${totalCount}</span>
       </a>
+
+      <a href="javascript:void(0)" onclick="if(window.filterByGroup){window.filterByGroup('FAV');} else {window.location.href='/dashboard';}" class="sidebar-link ${activePage === 'dashboard' && activeGroupId === 'FAV' ? 'active' : ''}">
+        <i data-lucide="star" class="icon-sm" style="color:#f59e0b; fill:#f59e0b;"></i>
+        <span style="flex:1;">Favorites</span>
+        <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${favCount}</span>
+      </a>
+
+      <!-- ── SECTION: CATEGORIES ── -->
+      <div class="sidebar-section-header" style="margin-top:0.875rem;">Categories</div>
+
+      <a href="javascript:void(0)" onclick="if(window.filterByCategory){window.filterByCategory('DB_CONNECTION');} else {window.location.href='/dashboard';}" class="sidebar-link sidebar-cat-link ${activePage === 'dashboard' && activeCategory === 'DB_CONNECTION' ? 'active' : ''}">
+        <div class="sidebar-cat-bullet" style="background:#10b981;"></div>
+        <i data-lucide="database" class="icon-sm" style="color:#10b981;"></i>
+        <span style="flex:1;">Connection Strings</span>
+        <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${catCounts['DB_CONNECTION'] || 0}</span>
+      </a>
+
+      <a href="javascript:void(0)" onclick="if(window.filterByCategory){window.filterByCategory('PASSWORD');} else {window.location.href='/dashboard';}" class="sidebar-link sidebar-cat-link ${activePage === 'dashboard' && activeCategory === 'PASSWORD' ? 'active' : ''}">
+        <div class="sidebar-cat-bullet" style="background:#6366f1;"></div>
+        <i data-lucide="key-round" class="icon-sm" style="color:#6366f1;"></i>
+        <span style="flex:1;">Passwords</span>
+        <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${catCounts['PASSWORD'] || 0}</span>
+      </a>
+
+      <a href="javascript:void(0)" onclick="if(window.filterByCategory){window.filterByCategory('STEP_BY_STEP');} else {window.location.href='/dashboard';}" class="sidebar-link sidebar-cat-link ${activePage === 'dashboard' && activeCategory === 'STEP_BY_STEP' ? 'active' : ''}">
+        <div class="sidebar-cat-bullet" style="background:#16a34a;"></div>
+        <i data-lucide="book-open" class="icon-sm" style="color:#16a34a;"></i>
+        <span style="flex:1;">Step-by-Step</span>
+        <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${catCounts['STEP_BY_STEP'] || 0}</span>
+      </a>
+
+      <a href="javascript:void(0)" onclick="if(window.filterByCategory){window.filterByCategory('API_KEY');} else {window.location.href='/dashboard';}" class="sidebar-link sidebar-cat-link ${activePage === 'dashboard' && activeCategory === 'API_KEY' ? 'active' : ''}">
+        <div class="sidebar-cat-bullet" style="background:#f59e0b;"></div>
+        <i data-lucide="zap" class="icon-sm" style="color:#f59e0b;"></i>
+        <span style="flex:1;">API Keys</span>
+        <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${catCounts['API_KEY'] || 0}</span>
+      </a>
+
+      <a href="javascript:void(0)" onclick="if(window.filterByCategory){window.filterByCategory('SSH_KEY');} else {window.location.href='/dashboard';}" class="sidebar-link sidebar-cat-link ${activePage === 'dashboard' && activeCategory === 'SSH_KEY' ? 'active' : ''}">
+        <div class="sidebar-cat-bullet" style="background:#ec4899;"></div>
+        <i data-lucide="terminal" class="icon-sm" style="color:#ec4899;"></i>
+        <span style="flex:1;">SSH Keys</span>
+        <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${catCounts['SSH_KEY'] || 0}</span>
+      </a>
+
+      <a href="javascript:void(0)" onclick="if(window.filterByCategory){window.filterByCategory('OTHER');} else {window.location.href='/dashboard';}" class="sidebar-link sidebar-cat-link ${activePage === 'dashboard' && activeCategory === 'OTHER' ? 'active' : ''}">
+        <div class="sidebar-cat-bullet" style="background:#8b5cf6;"></div>
+        <i data-lucide="shield" class="icon-sm" style="color:#8b5cf6;"></i>
+        <span style="flex:1;">Notes & Other</span>
+        <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${catCounts['OTHER'] || 0}</span>
+      </a>
+
+      <!-- ── SECTION: FOLDERS & GROUPS ── -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.875rem; margin-bottom:0.125rem; padding: 0 0.5rem;">
+        <span class="sidebar-section-header" style="margin:0; padding:0;">Folders &amp; Groups</span>
+        <button onclick="window.openCreateGroupModal ? window.openCreateGroupModal() : (window.location.href='/dashboard')" class="btn-icon" style="width:1.5rem; height:1.5rem;" title="Create Group">
+          <i data-lucide="plus" class="icon-xs"></i>
+        </button>
+      </div>
+
+      <div class="sidebar-groups-list" style="display:flex; flex-direction:column; gap:0.125rem;">
+        ${groups.map(g => `
+          <div style="display:flex; align-items:center; position:relative;" class="group-row">
+            <a href="javascript:void(0)" onclick="if(window.filterByGroup){window.filterByGroup('${g.id}');} else {window.location.href='/dashboard';}" class="sidebar-link ${activePage === 'dashboard' && activeGroupId === g.id ? 'active' : ''}" style="flex:1; padding-right:1.75rem;">
+              <i data-lucide="${g.icon || 'folder'}" class="icon-sm" style="${g.color ? `color:${g.color};` : ''}"></i>
+              <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlSidebar(g.name)}</span>
+              <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${g.count}</span>
+            </a>
+            <button onclick="event.stopPropagation(); if(window.deleteGroupConfirm) window.deleteGroupConfirm('${g.id}', '${escapeHtmlSidebar(g.name)}');" class="btn-icon delete-group-btn" style="position:absolute; right:4px; width:1.25rem; height:1.25rem; border:none; opacity:0.35; cursor:pointer;" title="Delete Group">
+              <i data-lucide="x" class="icon-xs"></i>
+            </button>
+          </div>
+        `).join('')}
+
+        <a href="javascript:void(0)" onclick="if(window.filterByGroup){window.filterByGroup('NONE');} else {window.location.href='/dashboard';}" class="sidebar-link ${activePage === 'dashboard' && activeGroupId === 'NONE' ? 'active' : ''}">
+          <i data-lucide="folder" class="icon-sm" style="color:#94a3b8;"></i>
+          <span style="flex:1;">Ungrouped</span>
+          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${ungroupedCount}</span>
+        </a>
+      </div>
+
+      <!-- ── SECTION: MANAGEMENT ── -->
+      <div class="sidebar-section-header" style="margin-top:0.875rem;">Management</div>
+
       ${isAdmin ? `
         <a href="/users" class="sidebar-link ${activePage === 'users' ? 'active' : ''}">
           <i data-lucide="users" class="icon-sm"></i>
           <span>User Approvals</span>
         </a>
       ` : ''}
+
       <a href="/settings" class="sidebar-link ${activePage === 'settings' ? 'active' : ''}">
         <i data-lucide="settings" class="icon-sm"></i>
-        <span>Settings & Backup</span>
+        <span>Settings &amp; Backup</span>
       </a>
 
-      ${groupsHtml}
-    </nav>
+    </div>
 
+    <!-- ── SIDEBAR FOOTER: USER PROFILE ── -->
     <div class="sidebar-footer">
       ${currentUser ? `
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-          <div style="overflow:hidden; text-overflow:ellipsis;">
-            <div style="font-weight:600; font-size:0.875rem; color:var(--foreground);">${currentUser.name || currentUser.email.split('@')[0]}</div>
-            <div style="font-size:0.75rem; color:var(--muted-foreground); text-overflow:ellipsis; overflow:hidden;">${currentUser.email}</div>
+        <div style="display:flex; align-items:center; gap:0.625rem; margin-bottom:0.75rem; padding:0.375rem 0.25rem;">
+          <div style="width:2rem; height:2rem; border-radius:50%; background:linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8125rem; flex-shrink:0;">
+            ${userInitial}
           </div>
-          <span class="badge badge-${currentUser.role}">${currentUser.role}</span>
+          <div style="overflow:hidden; flex:1;">
+            <div style="font-weight:600; font-size:0.8125rem; color:var(--foreground); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlSidebar(currentUser.name || currentUser.email.split('@')[0])}</div>
+            <div style="font-size:0.6875rem; color:var(--muted-foreground); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHtmlSidebar(currentUser.email)}</div>
+          </div>
+          <span class="badge badge-${currentUser.role}" style="font-size:0.625rem; padding:0.1rem 0.35rem;">${currentUser.role}</span>
         </div>
       ` : ''}
-      <button onclick="handleSidebarLogout()" class="btn btn-secondary" style="width:100%; font-size:0.8125rem; height:2rem;">
+      <button onclick="handleSidebarLogout()" class="btn btn-secondary" style="width:100%; font-size:0.8125rem; height:2.125rem;">
         <i data-lucide="log-out" class="icon-xs"></i>
         <span>Log Out</span>
       </button>

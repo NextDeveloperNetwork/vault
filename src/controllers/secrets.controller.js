@@ -5,12 +5,16 @@ const { encrypt, decrypt } = require('../utils/crypto');
 async function getAllSecrets(req, res, next) {
   try {
     const userId = req.user.id;
-    const { category, favorite, search, groupId } = req.query;
+    const { category, subCategory, favorite, search, groupId } = req.query;
 
     const where = { userId };
 
     if (category && category !== 'ALL') {
       where.category = category;
+    }
+
+    if (subCategory && subCategory !== 'ALL') {
+      where.subCategory = subCategory;
     }
 
     if (favorite === 'true') {
@@ -28,7 +32,8 @@ async function getAllSecrets(req, res, next) {
         { title: { contains: search, mode: 'insensitive' } },
         { username: { contains: search, mode: 'insensitive' } },
         { websiteUrl: { contains: search, mode: 'insensitive' } },
-        { tags: { contains: search, mode: 'insensitive' } }
+        { tags: { contains: search, mode: 'insensitive' } },
+        { subCategory: { contains: search, mode: 'insensitive' } }
       ];
     }
 
@@ -56,6 +61,7 @@ async function getAllSecrets(req, res, next) {
         id: item.id,
         title: item.title,
         category: item.category,
+        subCategory: item.subCategory || (payload && payload.subCategory) || null,
         groupId: item.groupId,
         group: item.group || null,
         username: item.username,
@@ -99,6 +105,7 @@ async function getSecretById(req, res, next) {
         id: secret.id,
         title: secret.title,
         category: secret.category,
+        subCategory: secret.subCategory || (payload && payload.subCategory) || null,
         groupId: secret.groupId,
         group: secret.group || null,
         username: secret.username,
@@ -118,7 +125,7 @@ async function getSecretById(req, res, next) {
 async function createSecret(req, res, next) {
   try {
     const userId = req.user.id;
-    const { title, category, username, websiteUrl, favorite, tags, payload, groupId } = req.body;
+    const { title, category, subCategory, username, websiteUrl, favorite, tags, payload, groupId } = req.body;
 
     if (!title || !payload) {
       return res.status(400).json({ error: 'Title and secret payload are required.' });
@@ -133,6 +140,7 @@ async function createSecret(req, res, next) {
         groupId: groupId || null,
         title,
         category: category || 'PASSWORD',
+        subCategory: subCategory ? subCategory.trim() : null,
         username: username || null,
         websiteUrl: websiteUrl || null,
         favorite: Boolean(favorite),
@@ -156,7 +164,7 @@ async function updateSecret(req, res, next) {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { title, category, username, websiteUrl, favorite, tags, payload, groupId } = req.body;
+    const { title, category, subCategory, username, websiteUrl, favorite, tags, payload, groupId } = req.body;
 
     const existing = await prisma.secretItem.findFirst({
       where: { id, userId }
@@ -169,6 +177,7 @@ async function updateSecret(req, res, next) {
     const updateData = {};
     if (title !== undefined) updateData.title = title;
     if (category !== undefined) updateData.category = category;
+    if (subCategory !== undefined) updateData.subCategory = subCategory ? subCategory.trim() : null;
     if (groupId !== undefined) updateData.groupId = groupId ? groupId : null;
     if (username !== undefined) updateData.username = username;
     if (websiteUrl !== undefined) updateData.websiteUrl = websiteUrl;
