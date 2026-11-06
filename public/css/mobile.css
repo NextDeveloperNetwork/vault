@@ -141,6 +141,7 @@
   margin-bottom: 0.5rem;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  flex-shrink: 0;
 }
 
 .category-pills::-webkit-scrollbar { display: none; }

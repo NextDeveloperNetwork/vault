@@ -28,16 +28,58 @@ enum Category {
 }
 
 model User {
-  id           String       @id @default(uuid())
-  email        String       @unique
-  passwordHash String
-  name         String?
-  role         Role         @default(USER)
-  status       Status       @default(PENDING)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  secrets      SecretItem[]
-  groups       Group[]
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  name          String?
+  role          Role           @default(USER)
+  status        Status         @default(PENDING)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  secrets       SecretItem[]
+  groups        Group[]
+  studySubjects StudySubject[]
+  studyNotes    StudyNote[]
+}
+
+model StudySubject {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  icon        String?     @default("book-open")
+  color       String?     @default("#4f46e5")
+  status      String      @default("ACTIVE") // ACTIVE, COMPLETED, PAUSED
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  notes       StudyNote[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model StudyNote {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId    String?
+  subject      StudySubject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  chapter      String?       // Chapter / Module grouping (e.g. "Module 1: Fundamentals")
+  title        String
+  summary      String?
+  content      String        @default("")
+  takeaways    String?       // JSON array of { question, answer } flashcards / key takeaways
+  resources    String?       // JSON array of { title, url } reference links
+  tags         String?       // Comma-separated tags
+  mastery      String        @default("LEARNING") // NEW, LEARNING, REVIEW, MASTERED
+  pinned       Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([mastery])
 }
 
 model Group {

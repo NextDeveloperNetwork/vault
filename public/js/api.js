@@ -99,19 +99,120 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null, grou
 
   const userInitial = currentUser && currentUser.name ? currentUser.name.charAt(0).toUpperCase() : (currentUser && currentUser.email ? currentUser.email.charAt(0).toUpperCase() : 'U');
 
+  const isStudyPage = activePage === 'study';
+  const studySubjects = (isStudyPage && groupsData && groupsData.subjects) ? groupsData.subjects : [];
+  const studyTotalNotes = (isStudyPage && groupsData) ? (groupsData.totalNotes || 0) : 0;
+  const studyPinnedCount = (isStudyPage && groupsData) ? (groupsData.pinnedCount || 0) : 0;
+  const studyUnassignedCount = (isStudyPage && groupsData) ? (groupsData.unassignedCount || 0) : 0;
+  const studyMasteryCounts = (isStudyPage && groupsData && groupsData.masteryCounts) ? groupsData.masteryCounts : {};
+
   sidebar.innerHTML = `
     <div class="sidebar-brand">
       <div class="brand-logo">
-        <i data-lucide="shield-check" class="icon-md"></i>
+        <i data-lucide="${isStudyPage ? 'graduation-cap' : 'shield-check'}" class="icon-md"></i>
       </div>
       <div>
         <div class="brand-title">PassKeeper</div>
-        <div style="font-size:0.75rem; color:var(--muted-foreground)">Encrypted Secret Vault</div>
+        <div style="font-size:0.75rem; color:var(--muted-foreground)">${isStudyPage ? 'Study & Notes Hub' : 'Encrypted Secret Vault'}</div>
       </div>
+    </div>
+
+    <!-- ── WORKSPACE SWITCHER ── -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.25rem; background:var(--secondary); padding:0.25rem; border-radius:var(--radius-md); margin-bottom:0.875rem; border:1px solid var(--border);">
+      <a href="/dashboard" style="display:flex; align-items:center; justify-content:center; gap:0.35rem; padding:0.375rem 0.5rem; border-radius:var(--radius-sm); font-size:0.75rem; font-weight:700; text-decoration:none; transition:all 0.15s ease; ${!isStudyPage ? 'background:#ffffff; color:var(--primary); box-shadow:var(--shadow-xs);' : 'color:var(--muted-foreground);'}">
+        <i data-lucide="shield" class="icon-xs"></i>
+        <span>Vault</span>
+      </a>
+      <a href="/study" style="display:flex; align-items:center; justify-content:center; gap:0.35rem; padding:0.375rem 0.5rem; border-radius:var(--radius-sm); font-size:0.75rem; font-weight:700; text-decoration:none; transition:all 0.15s ease; ${isStudyPage ? 'background:#ffffff; color:var(--primary); box-shadow:var(--shadow-xs);' : 'color:var(--muted-foreground);'}">
+        <i data-lucide="graduation-cap" class="icon-xs"></i>
+        <span>Study Hub</span>
+      </a>
     </div>
 
     <div class="sidebar-scrollable-content" style="flex:1; overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column; gap:0.2rem; padding-right:0.25rem;">
       
+      ${isStudyPage ? `
+        <!-- ── SECTION: STUDY OVERVIEW ── -->
+        <div class="sidebar-section-header">Study Overview</div>
+
+        <a href="javascript:void(0)" onclick="if(window.filterStudySubject){window.filterStudySubject('ALL'); if(window.filterStudyMastery) window.filterStudyMastery('ALL');}" class="sidebar-link ${activeGroupId === 'ALL' && activeCategory === 'ALL' ? 'active' : ''}">
+          <i data-lucide="book-open" class="icon-sm"></i>
+          <span style="flex:1;">All Study Notes</span>
+          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${studyTotalNotes}</span>
+        </a>
+
+        <a href="javascript:void(0)" onclick="if(window.filterStudySubject){window.filterStudySubject('PINNED');}" class="sidebar-link ${activeGroupId === 'PINNED' ? 'active' : ''}">
+          <i data-lucide="pin" class="icon-sm" style="color:#f59e0b;"></i>
+          <span style="flex:1;">Pinned Notes</span>
+          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${studyPinnedCount}</span>
+        </a>
+
+        <a href="javascript:void(0)" onclick="if(window.openFlashcardDeck){window.openFlashcardDeck();}" class="sidebar-link">
+          <i data-lucide="sparkles" class="icon-sm" style="color:#8b5cf6;"></i>
+          <span style="flex:1;">Flashcard Practice</span>
+          <span class="badge badge-OTHER" style="font-size:0.625rem; padding: 0.1rem 0.4rem;">${(groupsData && groupsData.totalFlashcards) || 0}</span>
+        </a>
+
+        <!-- ── SECTION: MASTERY STATUS ── -->
+        <div class="sidebar-section-header" style="margin-top:0.875rem;">Mastery Level</div>
+
+        <a href="javascript:void(0)" onclick="if(window.filterStudyMastery){window.filterStudyMastery('NEW');}" class="sidebar-link sidebar-cat-link ${activeCategory === 'NEW' ? 'active' : ''}">
+          <div class="sidebar-cat-bullet" style="background:#6366f1;"></div>
+          <i data-lucide="circle-dot" class="icon-sm" style="color:#6366f1;"></i>
+          <span style="flex:1;">New Topics</span>
+          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${studyMasteryCounts['NEW'] || 0}</span>
+        </a>
+
+        <a href="javascript:void(0)" onclick="if(window.filterStudyMastery){window.filterStudyMastery('LEARNING');}" class="sidebar-link sidebar-cat-link ${activeCategory === 'LEARNING' ? 'active' : ''}">
+          <div class="sidebar-cat-bullet" style="background:#3b82f6;"></div>
+          <i data-lucide="flame" class="icon-sm" style="color:#3b82f6;"></i>
+          <span style="flex:1;">In Progress</span>
+          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${studyMasteryCounts['LEARNING'] || 0}</span>
+        </a>
+
+        <a href="javascript:void(0)" onclick="if(window.filterStudyMastery){window.filterStudyMastery('REVIEW');}" class="sidebar-link sidebar-cat-link ${activeCategory === 'REVIEW' ? 'active' : ''}">
+          <div class="sidebar-cat-bullet" style="background:#f59e0b;"></div>
+          <i data-lucide="refresh-cw" class="icon-sm" style="color:#f59e0b;"></i>
+          <span style="flex:1;">Needs Review</span>
+          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${studyMasteryCounts['REVIEW'] || 0}</span>
+        </a>
+
+        <a href="javascript:void(0)" onclick="if(window.filterStudyMastery){window.filterStudyMastery('MASTERED');}" class="sidebar-link sidebar-cat-link ${activeCategory === 'MASTERED' ? 'active' : ''}">
+          <div class="sidebar-cat-bullet" style="background:#10b981;"></div>
+          <i data-lucide="check-circle-2" class="icon-sm" style="color:#10b981;"></i>
+          <span style="flex:1;">Mastered</span>
+          <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${studyMasteryCounts['MASTERED'] || 0}</span>
+        </a>
+
+        <!-- ── SECTION: MY STUDIES & COURSES ── -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.875rem; margin-bottom:0.125rem; padding: 0 0.5rem;">
+          <span class="sidebar-section-header" style="margin:0; padding:0;">Studies &amp; Subjects</span>
+          <button onclick="if(window.openStudySubjectModal) window.openStudySubjectModal();" class="btn-icon" style="width:1.5rem; height:1.5rem;" title="New Study Subject">
+            <i data-lucide="plus" class="icon-xs"></i>
+          </button>
+        </div>
+
+        <div class="sidebar-groups-list" style="display:flex; flex-direction:column; gap:0.125rem;">
+          ${studySubjects.map(s => `
+            <div style="display:flex; align-items:center; position:relative;" class="group-row">
+              <a href="javascript:void(0)" onclick="if(window.filterStudySubject) window.filterStudySubject('${s.id}');" class="sidebar-link ${activeGroupId === s.id ? 'active' : ''}" style="flex:1; padding-right:1.75rem;">
+                <i data-lucide="${s.icon || 'book-open'}" class="icon-sm" style="color:${s.color || '#4f46e5'};"></i>
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtmlSidebar(s.name)}</span>
+                <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${s.noteCount || 0}</span>
+              </a>
+              <button onclick="event.stopPropagation(); if(window.deleteStudySubjectConfirm) window.deleteStudySubjectConfirm('${s.id}', '${escapeHtmlSidebar(s.name)}');" class="btn-icon delete-group-btn" style="position:absolute; right:4px; width:1.25rem; height:1.25rem; border:none; opacity:0.35; cursor:pointer;" title="Delete Study">
+                <i data-lucide="x" class="icon-xs"></i>
+              </button>
+            </div>
+          `).join('')}
+
+          <a href="javascript:void(0)" onclick="if(window.filterStudySubject) window.filterStudySubject('NONE');" class="sidebar-link ${activeGroupId === 'NONE' ? 'active' : ''}">
+            <i data-lucide="file-text" class="icon-sm" style="color:#94a3b8;"></i>
+            <span style="flex:1;">General Notes</span>
+            <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${studyUnassignedCount}</span>
+          </a>
+        </div>
+      ` : `
       <!-- ── SECTION: VAULT OVERVIEW ── -->
       <div class="sidebar-section-header">Vault Overview</div>
 
@@ -125,6 +226,12 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null, grou
         <i data-lucide="star" class="icon-sm" style="color:#f59e0b; fill:#f59e0b;"></i>
         <span style="flex:1;">Favorites</span>
         <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.4rem;">${favCount}</span>
+      </a>
+
+      <a href="/study" class="sidebar-link">
+        <i data-lucide="graduation-cap" class="icon-sm" style="color:#7c3aed;"></i>
+        <span style="flex:1;">Study &amp; Notes Hub</span>
+        <span class="badge badge-OTHER" style="font-size:0.6rem; padding: 0.1rem 0.35rem;">NEW</span>
       </a>
 
       <!-- ── SECTION: CATEGORIES ── -->
@@ -200,6 +307,7 @@ function renderDesktopSidebar(activePage = 'dashboard', currentUser = null, grou
           <span class="badge badge-USER" style="font-size:0.6875rem; padding: 0.1rem 0.35rem;">${ungroupedCount}</span>
         </a>
       </div>
+      `}
 
       <!-- ── SECTION: MANAGEMENT ── -->
       <div class="sidebar-section-header" style="margin-top:0.875rem;">Management</div>

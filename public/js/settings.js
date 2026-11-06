@@ -53,15 +53,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (exportBtn) {
     exportBtn.addEventListener('click', async () => {
       try {
-        const res = await apiRequest('/api/secrets?category=ALL');
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.secrets, null, 2));
+        const [secretsRes, subjectsRes, notesRes] = await Promise.all([
+          apiRequest('/api/secrets?category=ALL'),
+          apiRequest('/api/study/subjects'),
+          apiRequest('/api/study/notes')
+        ]);
+        const backupPayload = {
+          exportedAt: new Date().toISOString(),
+          secrets: secretsRes.secrets || [],
+          studySubjects: subjectsRes.subjects || [],
+          studyNotes: notesRes.notes || []
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPayload, null, 2));
         const downloadAnchor = document.createElement('a');
         downloadAnchor.setAttribute("href", dataStr);
         downloadAnchor.setAttribute("download", `passkeeper-backup-${new Date().toISOString().slice(0,10)}.json`);
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
-        showToast('Vault backup downloaded!', 'success');
+        showToast('Vault & Study backup downloaded!', 'success');
       } catch (err) {
         showToast('Failed to export vault backup.', 'error');
       }
