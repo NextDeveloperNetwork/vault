@@ -1080,16 +1080,33 @@ mark.study-hl-pink {
   color: var(--primary);
 }
 
-/* Top Pinned Sections & Outline Navigation Strip inside Reader */
+/* Top Pinned Sections & Outline Navigation Strip inside Reader (Single-Line Compact Scroll) */
 .reader-pins-strip {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  flex-wrap: wrap;
-  padding: 0.45rem 1.25rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 0.35rem 1.25rem;
   background: #faf9ff;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  scrollbar-width: thin;
+}
+
+.reader-pins-strip::-webkit-scrollbar {
+  height: 3px;
+}
+
+.reader-pins-strip::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.reader-pin-chip,
+.toc-jump-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .reader-pin-chip {
@@ -1934,6 +1951,516 @@ mark.study-hl-pink {
   max-width: 100%;
   display: block;
 }
+
+/* ============================================================
+   8. DISTRACTION-FREE PRACTICAL READ MODE (PC & MOBILE)
+   ============================================================ */
+
+body.study-read-mode-active .study-command-bar,
+body.study-read-mode-active .study-tabs-bar,
+body.study-read-mode-active .desktop-sidebar,
+body.study-read-mode-active .notes-list-column,
+body.study-read-mode-active .bottom-nav,
+body.study-read-mode-active .insert-element-bar,
+body.study-read-mode-active .reader-quick-append,
+body.study-read-mode-active .viewer-block-tools,
+body.study-read-mode-active .pinned-section-header .viewer-block-btn {
+  display: none !important;
+}
+
+body.study-read-mode-active .study-app-container {
+  padding-left: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+body.study-read-mode-active .study-workspace {
+  display: block !important;
+  height: 100vh !important;
+}
+
+body.study-read-mode-active .note-reader-pane {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2000 !important;
+  width: 100% !important;
+  height: 100vh !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* Read Mode Top Progress Line */
+.read-progress-track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(124, 58, 237, 0.12);
+  z-index: 2100;
+}
+
+.read-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4f46e5 0%, #ec4899 100%);
+  transition: width 0.1s ease-out;
+}
+
+/* Read Mode Compact Floating / Sticky Control Bar */
+.read-mode-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.22);
+  background: inherit;
+  flex-shrink: 0;
+}
+
+.read-mode-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.read-mode-drawer-backdrop {
+  display: none;
+}
+
+.read-drawer-settings-box {
+  padding: 0.55rem;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  background: rgba(128, 128, 128, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.read-ctrl-pill {
+  height: 1.7rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  background: transparent;
+  color: inherit;
+  font-size: 0.71rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.read-ctrl-pill:hover,
+.read-ctrl-pill.active {
+  background: var(--primary);
+  color: #ffffff !important;
+  border-color: var(--primary);
+}
+
+/* Read Mode 2-Column Split: Left Sticky Outline Sidebar + Right Book Reader */
+.read-mode-body-split {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.read-mode-toc-sidebar {
+  width: 18.5rem;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(128, 128, 128, 0.2);
+  overflow-y: auto;
+  padding: 0.85rem 0.75rem 2rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: rgba(128, 128, 128, 0.03);
+}
+
+.read-mode-body-split.toc-collapsed .read-mode-toc-sidebar {
+  display: none;
+}
+
+.read-toc-group-title {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.65;
+  padding: 0 0.35rem;
+  margin-bottom: 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.read-toc-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  padding: 0.32rem 0.5rem;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.35;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: all 0.12s ease;
+}
+
+.read-toc-item:hover {
+  opacity: 1;
+  background: rgba(79, 70, 229, 0.1);
+  color: var(--primary);
+}
+
+.read-toc-item.active {
+  opacity: 1;
+  background: var(--primary);
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+.read-toc-item.level-3 {
+  padding-left: 1.25rem;
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+/* Centered Book-Like Reading Container */
+.read-mode-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.75rem 2rem 5rem 2rem;
+  scroll-behavior: smooth;
+}
+
+.read-mode-book-column {
+  max-width: 54rem;
+  margin: 0 auto;
+}
+
+.read-mode-meta-kicker {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  margin-bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.read-mode-book-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: -0.025em;
+  margin-bottom: 0.5rem;
+  color: inherit;
+}
+
+.read-mode-book-summary {
+  font-size: 1rem;
+  line-height: 1.6;
+  opacity: 0.82;
+  padding-bottom: 1.15rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.22);
+}
+
+/* Font Size Scales in Read Mode */
+.read-size-sm .markdown-content { font-size: 0.9rem !important; line-height: 1.7 !important; }
+.read-size-md .markdown-content { font-size: 1.04rem !important; line-height: 1.8 !important; }
+.read-size-lg .markdown-content { font-size: 1.18rem !important; line-height: 1.88 !important; }
+.read-size-xl .markdown-content { font-size: 1.32rem !important; line-height: 1.95 !important; }
+
+.read-size-sm .markdown-content p,
+.read-size-md .markdown-content p,
+.read-size-lg .markdown-content p,
+.read-size-xl .markdown-content p,
+.read-size-sm .markdown-content li,
+.read-size-md .markdown-content li,
+.read-size-lg .markdown-content li,
+.read-size-xl .markdown-content li {
+  font-size: inherit !important;
+  line-height: inherit !important;
+  color: inherit !important;
+}
+
+/* Theme 1: Paper Light */
+.note-reader-pane.read-theme-light {
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+
+/* Theme 2: Warm Sepia (Book / Kindle Style) */
+.note-reader-pane.read-theme-sepia {
+  background: #fbf6ec !important;
+  color: #2c221e !important;
+}
+
+.note-reader-pane.read-theme-sepia .read-mode-topbar,
+.note-reader-pane.read-theme-sepia .reader-pins-strip {
+  background: #f5ebd8 !important;
+  border-color: #e4d5b7 !important;
+}
+
+.note-reader-pane.read-theme-sepia .markdown-content h1,
+.note-reader-pane.read-theme-sepia .markdown-content h2,
+.note-reader-pane.read-theme-sepia .markdown-content h3 {
+  color: #1f1610 !important;
+  border-color: #e4d5b7 !important;
+}
+
+.note-reader-pane.read-theme-sepia .pinned-section-block,
+.note-reader-pane.read-theme-sepia .study-section-box,
+.note-reader-pane.read-theme-sepia .takeaway-item,
+.note-reader-pane.read-theme-sepia .study-chart-card {
+  background: #fdfaf3 !important;
+  border-color: #dfd0b2 !important;
+  color: #2c221e !important;
+}
+
+/* Theme 3: Night Dark (Phone / OLED Friendly) */
+.note-reader-pane.read-theme-dark {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+.note-reader-pane.read-theme-dark .read-mode-topbar,
+.note-reader-pane.read-theme-dark .reader-pins-strip {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.note-reader-pane.read-theme-dark .markdown-content h1,
+.note-reader-pane.read-theme-dark .markdown-content h2,
+.note-reader-pane.read-theme-dark .markdown-content h3,
+.note-reader-pane.read-theme-dark .takeaway-q {
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.note-reader-pane.read-theme-dark .takeaway-a {
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+.note-reader-pane.read-theme-dark .pinned-section-block,
+.note-reader-pane.read-theme-dark .study-section-box,
+.note-reader-pane.read-theme-dark .takeaway-item,
+.note-reader-pane.read-theme-dark .md-callout,
+.note-reader-pane.read-theme-dark .study-chart-card,
+.note-reader-pane.read-theme-dark .math-block {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.note-reader-pane.read-theme-dark .pinned-section-body {
+  color: #f1f5f9 !important;
+}
+
+.note-reader-pane.read-theme-dark .inline-code {
+  background: #334155 !important;
+  color: #c7d2fe !important;
+  border-color: #475569 !important;
+}
+
+/* Book-Style Prev / Next Note Navigation Footer in Read Mode */
+.read-mode-nav-footer {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(128, 128, 128, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .read-desktop-only {
+    display: none !important;
+  }
+
+  .read-mode-toc-sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    width: 18rem;
+    max-width: 84vw;
+    background: inherit;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.28);
+  }
+  .note-reader-pane.read-theme-light .read-mode-toc-sidebar { background: #ffffff; }
+  .note-reader-pane.read-theme-sepia .read-mode-toc-sidebar { background: #f8f1e0; }
+  .note-reader-pane.read-theme-dark .read-mode-toc-sidebar  { background: #1e293b; }
+
+  .read-mode-body-split:not(.toc-collapsed) .read-mode-drawer-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 35;
+    background: rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(1px);
+  }
+
+  .read-mode-topbar {
+    padding: 0 0.5rem;
+    height: 2.35rem;
+  }
+  .read-mode-canvas {
+    padding: 1rem 0.9rem 4.5rem 0.9rem;
+  }
+  .read-mode-book-title {
+    font-size: 1.4rem;
+  }
+}
+
+/* ============================================================
+   9. SMALL-SCREEN HAMBURGER MENUS FOR MAXIMUM READING SPACE
+   ============================================================ */
+.mobile-reader-compact-bar,
+.mobile-only-reader-title,
+.mobile-cmd-hamburger-btn {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  /* Top Study Command Bar: collapse secondary buttons & filters behind Hamburger button */
+  .mobile-cmd-hamburger-btn {
+    display: inline-flex !important;
+  }
+  .study-command-bar:not(.mobile-cmd-expanded) .study-cmd-center,
+  .study-command-bar:not(.mobile-cmd-expanded) .cmd-collapsible-item {
+    display: none !important;
+  }
+  .study-command-bar.mobile-cmd-expanded .study-cmd-right {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  /* Note Reader Pane on Small Screens: 1-line compact top bar + Hamburger Tools toggle */
+  .mobile-reader-compact-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.65rem;
+    border-bottom: 1px solid var(--border);
+    background: #ffffff;
+    flex-shrink: 0;
+  }
+
+  .mobile-reader-compact-bar .btn-tiny.active {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+  }
+
+  .reader-collapsible-tools {
+    display: none;
+  }
+  .reader-collapsible-tools.mobile-tools-open {
+    display: block;
+    max-height: 52vh;
+    overflow-y: auto;
+    border-bottom: 2px solid var(--primary);
+    box-shadow: 0 8px 20px rgba(15, 15, 26, 0.1);
+  }
+
+  .mobile-only-reader-title {
+    display: block;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.35rem;
+  }
+}
+
+/* Note Up/Down Reorder Buttons & Read Mode Quick Selectors */
+.note-order-btn {
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.58rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+  transition: all 0.12s ease;
+}
+
+.note-list-card:hover .note-order-btn {
+  opacity: 1;
+  border-color: var(--border);
+  background: #ffffff;
+}
+
+.note-order-btn:hover {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+}
+
+.read-mode-select {
+  height: 1.75rem;
+  max-width: 11.5rem;
+  padding: 0 0.45rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(128, 128, 128, 0.32);
+  background: rgba(255, 255, 255, 0.85);
+  color: #111827;
+  font-size: 0.72rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.note-reader-pane.read-theme-sepia .read-mode-select {
+  background: #fdfaf3;
+  color: #2c221e;
+  border-color: #d6c5a3;
+}
+
+.note-reader-pane.read-theme-dark .read-mode-select {
+  background: #0f172a;
+  color: #f8fafc;
+  border-color: #475569;
+}
+
+
 
 
 

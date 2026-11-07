@@ -13,11 +13,11 @@
   <link rel="shortcut icon" href="/favicon.jpg">
   <link rel="apple-touch-icon" href="/favicon.jpg">
 
-  <link rel="stylesheet" href="/css/variables.css?v=18">
-  <link rel="stylesheet" href="/css/global.css?v=18">
-  <link rel="stylesheet" href="/css/mobile.css?v=18">
-  <link rel="stylesheet" href="/css/study.css?v=18">
-  <script src="/js/lucide.min.js?v=18"></script>
+  <link rel="stylesheet" href="/css/variables.css?v=23">
+  <link rel="stylesheet" href="/css/global.css?v=23">
+  <link rel="stylesheet" href="/css/mobile.css?v=23">
+  <link rel="stylesheet" href="/css/study.css?v=23">
+  <script src="/js/lucide.min.js?v=23"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
 </head>
 <body class="study-page-body">
@@ -79,25 +79,36 @@
 
       <!-- Compact Primary Actions -->
       <div class="study-cmd-right">
-        <button id="pomodoro-timer-btn" type="button" class="pomodoro-chip" onclick="togglePomodoroTimer()" oncontextmenu="event.preventDefault(); resetPomodoroTimer();" title="Click to Start/Pause 25m Study Timer • Right-click to Reset">
+        <button id="pomodoro-timer-btn" type="button" class="pomodoro-chip cmd-collapsible-item" onclick="togglePomodoroTimer()" oncontextmenu="event.preventDefault(); resetPomodoroTimer();" title="Click to Start/Pause 25m Study Timer • Right-click to Reset">
           <i data-lucide="timer" class="icon-xs"></i>
           <span id="pomodoro-time-display">25:00</span>
         </button>
-        <button onclick="openStudyDigestView()" class="btn btn-secondary btn-compact" title="Master Digest: View all Pinned Sections & Highlights across notes">
+        <button onclick="toggleReadMode()" class="btn btn-secondary btn-compact" title="Enter Distraction-Free Read Mode (Phone & PC)">
+          <i data-lucide="book-open-check" class="icon-xs" style="color:var(--primary);"></i>
+          <span>📖 Read</span>
+        </button>
+        <button onclick="exportAiStudyInstructionsMd()" class="btn btn-secondary btn-compact cmd-collapsible-item" title="Download & Copy AI Markdown Formatting Instructions (.md) so any AI can generate rich study notes for you">
+          <i data-lucide="bot" class="icon-xs" style="color:var(--primary);"></i>
+          <span>🤖 AI Prompt .md</span>
+        </button>
+        <button onclick="openStudyDigestView()" class="btn btn-secondary btn-compact cmd-collapsible-item" title="Master Digest: View all Pinned Sections & Highlights across notes">
           <i data-lucide="Scan-text" class="icon-xs"></i>
           <span>📑 Digest</span>
         </button>
-        <button onclick="openFlashcardDeck()" class="btn btn-secondary btn-compact" title="Practice Flashcards">
+        <button onclick="openFlashcardDeck()" class="btn btn-secondary btn-compact cmd-collapsible-item" title="Practice Flashcards">
           <i data-lucide="sparkles" class="icon-xs"></i>
           <span>Cards (<span id="metric-flashcards">0</span>)</span>
         </button>
-        <button onclick="openStudySubjectModal()" class="btn btn-secondary btn-compact" title="Create New Study Subject">
+        <button onclick="openStudySubjectModal()" class="btn btn-secondary btn-compact cmd-collapsible-item" title="Create New Study Subject">
           <i data-lucide="folder-plus" class="icon-xs"></i>
           <span>+ Study</span>
         </button>
         <button onclick="openStudyNoteModal()" class="btn btn-primary btn-compact">
           <i data-lucide="plus" class="icon-xs"></i>
-          <span>New Note</span>
+          <span>Note</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-compact mobile-cmd-hamburger-btn" onclick="this.closest('.study-command-bar').classList.toggle('mobile-cmd-expanded')" title="Toggle Search, Filters & Tools">
+          <i data-lucide="sliders-horizontal" class="icon-xs"></i>
         </button>
       </div>
     </header>
@@ -126,11 +137,19 @@
     <div id="study-workspace" class="study-workspace">
       <!-- Left Column: Compact Notes List -->
       <aside id="study-notes-sidebar" class="notes-list-column">
-        <div class="notes-list-header">
-          <span id="notes-list-heading">Notes</span>
-          <button onclick="openStudyNoteModal()" class="btn-tiny" style="color:var(--primary);">
-            <i data-lucide="plus" class="icon-xs"></i> Add
-          </button>
+        <div class="notes-list-header" style="gap:0.3rem;">
+          <span id="notes-list-heading" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Notes</span>
+          <div style="display:flex; align-items:center; gap:0.25rem; flex-shrink:0;">
+            <select id="notes-sort-select" class="inline-meta-input" style="height:1.45rem; font-size:0.65rem; padding:0 0.3rem; width:auto;" onchange="changeNotesSortOrder(this.value)" title="Sort & Order Notes">
+              <option value="custom_asc">1→N Order</option>
+              <option value="title_asc">A→Z Title</option>
+              <option value="created_desc">Newest</option>
+              <option value="updated_desc">Edited</option>
+            </select>
+            <button onclick="openStudyNoteModal()" class="btn-tiny" style="color:var(--primary); height:1.45rem; padding:0 0.4rem;">
+              <i data-lucide="plus" class="icon-xs"></i> Add
+            </button>
+          </div>
         </div>
         <div id="study-notes-list" class="notes-list-scroll">
           <!-- Rendered dynamically by study.js -->
@@ -154,6 +173,11 @@
         <i data-lucide="graduation-cap" class="icon-md"></i>
         <span>Study</span>
       </a>
+
+      <button class="nav-item" style="background:none; border:none; cursor:pointer;" onclick="toggleReadMode(true)">
+        <i data-lucide="book-open-check" class="icon-md"></i>
+        <span>Read</span>
+      </button>
 
       <button class="nav-item" style="background:none; border:none; cursor:pointer;" onclick="openStudyNoteModal()">
         <i data-lucide="plus-circle" class="icon-md"></i>
@@ -630,7 +654,7 @@
     </button>
   </div>
 
-  <script src="/js/api.js?v=18"></script>
-  <script src="/js/study.js?v=18"></script>
+  <script src="/js/api.js?v=23"></script>
+  <script src="/js/study.js?v=23"></script>
 </body>
 </html>

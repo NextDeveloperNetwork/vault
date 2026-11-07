@@ -276,7 +276,7 @@ async function getNotes(req, res, next) {
       },
       orderBy: [
         { pinned: 'desc' },
-        { updatedAt: 'desc' }
+        { createdAt: 'asc' }
       ]
     });
 

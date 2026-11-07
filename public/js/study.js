@@ -12,6 +12,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isSummaryMode = false;
   let isCornellMode = false;
   let revealAllClozes = false;
+  let isReadMode = false;
+  let isReadTocOpen = window.innerWidth > 900;
+  let isMobileReaderToolsOpen = false;
+  let readTheme = localStorage.getItem('pk_read_theme') || 'sepia'; // 'light' | 'sepia' | 'dark'
+  let readFontSize = localStorage.getItem('pk_read_size') || 'md';  // 'sm' | 'md' | 'lg' | 'xl'
+  let notesSortMode = localStorage.getItem('pk_notes_sort') || 'custom_asc'; // 'custom_asc' | 'title_asc' | 'created_desc' | 'updated_desc'
+  let customNoteOrder = [];
+  try {
+    customNoteOrder = JSON.parse(localStorage.getItem('pk_custom_note_order') || '[]');
+    if (!Array.isArray(customNoteOrder)) customNoteOrder = [];
+  } catch (e) {
+    customNoteOrder = [];
+  }
   let canvasMode = 'study'; // 'study' | 'write' | 'split'
   let activeInlineStudio = null; // null | 'chart' | 'whiteboard' | 'diagram' | 'math' | 'flashcard'
   let editingChartIdx = -1;
@@ -1428,6 +1441,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       url += params.join('&');
       const res = await apiRequest(url);
       notesList = res.notes || [];
+      applyNotesSorting();
+
+      const sortSelectEl = document.getElementById('notes-sort-select');
+      if (sortSelectEl) sortSelectEl.value = notesSortMode;
 
       if (notesListHeading) {
         let headingLabel = `Notes (${notesList.length})`;
@@ -1457,6 +1474,96 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // ======================================================
+  // NOTE SORTING & MANUAL REORDERING (1→N COURSE ORDER & UP/DOWN)
+  // ======================================================
+  function applyNotesSorting() {
+    if (!Array.isArray(notesList) || notesList.length <= 1) return;
+
+    // Ensure every existing note has a stable position in customNoteOrder (oldest created first by default)
+    const byCreatedAsc = [...notesList].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    let orderUpdated = false;
+    byCreatedAsc.forEach(n => {
+      if (!customNoteOrder.includes(n.id)) {
+        customNoteOrder.push(n.id);
+        orderUpdated = true;
+      }
+    });
+    if (orderUpdated) {
+      try { localStorage.setItem('pk_custom_note_order', JSON.stringify(customNoteOrder)); } catch (e) {}
+    }
+
+    notesList.sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+
+      if (notesSortMode === 'title_asc') {
+        return (a.title || '').localeCompare(b.title || '', undefined, { numeric: true, sensitivity: 'base' });
+      }
+      if (notesSortMode === 'created_desc') {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      if (notesSortMode === 'updated_desc') {
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      }
+
+      // Default 'custom_asc' (1→N Course Order: oldest first + manual ▲/▼ order)
+      const idxA = customNoteOrder.indexOf(a.id);
+      const idxB = customNoteOrder.indexOf(b.id);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+  }
+
+  window.changeNotesSortOrder = function(newSortMode) {
+    notesSortMode = newSortMode || 'custom_asc';
+    try { localStorage.setItem('pk_notes_sort', notesSortMode); } catch (e) {}
+    applyNotesSorting();
+    renderNotesList();
+    const note = notesList.find(n => n.id === selectedNoteId);
+    if (note && isReadMode) renderReaderPane(note);
+  };
+
+  window.moveNotePosition = function(event, noteId, direction) {
+    if (event) event.stopPropagation();
+    if (notesSortMode !== 'custom_asc') {
+      notesSortMode = 'custom_asc';
+      try { localStorage.setItem('pk_notes_sort', 'custom_asc'); } catch (e) {}
+      const sortSelectEl = document.getElementById('notes-sort-select');
+      if (sortSelectEl) sortSelectEl.value = 'custom_asc';
+      applyNotesSorting();
+    }
+
+    const curIdx = notesList.findIndex(n => n.id === noteId);
+    if (curIdx === -1) return;
+    const targetIdx = curIdx + direction;
+    if (targetIdx < 0 || targetIdx >= notesList.length) return;
+
+    // Swap in notesList
+    const temp = notesList[curIdx];
+    notesList[curIdx] = notesList[targetIdx];
+    notesList[targetIdx] = temp;
+
+    // Rebuild customNoteOrder preserving global IDs
+    const currentVisibleIds = notesList.map(n => n.id);
+    const otherIds = customNoteOrder.filter(id => !currentVisibleIds.includes(id));
+    customNoteOrder = [...currentVisibleIds, ...otherIds];
+    try { localStorage.setItem('pk_custom_note_order', JSON.stringify(customNoteOrder)); } catch (e) {}
+
+    renderNotesList();
+    const activeNote = notesList.find(n => n.id === selectedNoteId);
+    if (activeNote && isReadMode) renderReaderPane(activeNote);
+  };
+
+  window.switchStudyInReadMode = async function(subjectId) {
+    activeSubjectId = subjectId || 'ALL';
+    syncFilterUI();
+    await loadNotes(false);
+    if (subjectsData) {
+      renderDesktopSidebar('study', currentUser, subjectsData, activeSubjectId, activeMastery);
+      renderSubjectsStrip(subjectsData.subjects || [], subjectsData.totalNotes || 0);
+    }
+  };
+
   window.toggleChapterCollapse = function(chapterKey) {
     if (collapsedChapters.has(chapterKey)) {
       collapsedChapters.delete(chapterKey);
@@ -1473,19 +1580,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     datalist.innerHTML = chapters.map(c => `<option value="${escapeHtml(c)}">`).join('');
   }
 
-  function renderNoteCardHtml(note) {
+  function renderNoteCardHtml(note, idx = 0) {
     const isSelected = note.id === selectedNoteId;
     const mMeta = MASTERY_META[note.mastery] || MASTERY_META.LEARNING;
     const subj = note.subject;
     const cardPreview = note.summary || (note.content ? note.content.replace(/[#*`>=-]/g, '').trim().slice(0, 90) : '');
     const cardCount = (note.takeaways && note.takeaways.length) || 0;
+    const orderNum = notesList.findIndex(n => n.id === note.id) + 1;
 
     return `
       <div class="note-list-card ${isSelected ? 'selected' : ''} ${note.pinned ? 'pinned-card' : ''}" data-note-id="${note.id}" onclick="selectStudyNote('${note.id}', true)">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:0.35rem;">
-          <div class="note-card-title">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:0.3rem;">
+          <div class="note-card-title" style="min-width:0; flex:1;">
+            <span style="font-size:0.62rem; font-weight:800; color:var(--primary); background:#ede9fe; padding:0.05rem 0.32rem; border-radius:4px; flex-shrink:0;">#${orderNum}</span>
             ${note.pinned ? '<i data-lucide="pin" class="icon-xs" style="color:#f59e0b; flex-shrink:0;"></i>' : ''}
             <span style="overflow:hidden; text-overflow:ellipsis;">${escapeHtml(note.title)}</span>
+          </div>
+          <div class="note-reorder-btns" style="display:inline-flex; align-items:center; gap:0.1rem; flex-shrink:0;">
+            <button type="button" class="note-order-btn" onclick="window.moveNotePosition(event, '${note.id}', -1)" title="Move Note Up">▲</button>
+            <button type="button" class="note-order-btn" onclick="window.moveNotePosition(event, '${note.id}', 1)" title="Move Note Down">▼</button>
           </div>
         </div>
 
@@ -1506,7 +1619,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             ` : ''}
           </div>
           <span style="font-size:0.6rem; color:var(--muted-foreground); flex-shrink:0;">
-            ${new Date(note.updatedAt).toLocaleDateString()}
+            ${new Date(note.createdAt || note.updatedAt).toLocaleDateString()}
           </span>
         </div>
       </div>
@@ -1583,6 +1696,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const note = notesList.find(n => n.id === noteId);
     if (!note) return;
     selectedNoteId = noteId;
+    if (isReadMode && window.innerWidth <= 900) {
+      isReadTocOpen = false;
+    }
     highlightSelectedCard();
     renderReaderPane(note);
 
@@ -1597,15 +1713,106 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
+  window.toggleMobileReaderTools = function(forceState) {
+    isMobileReaderToolsOpen = typeof forceState === 'boolean' ? forceState : !isMobileReaderToolsOpen;
+    const panel = document.getElementById('reader-collapsible-tools');
+    const btn = document.getElementById('mobile-reader-hamburger-btn');
+    if (panel) panel.classList.toggle('mobile-tools-open', isMobileReaderToolsOpen);
+    if (btn) btn.classList.toggle('active', isMobileReaderToolsOpen);
+  };
+
   // ======================================================
   // DIRECT IN-STUDY WRITING, ELEMENT MENU, CHART STUDIO, WHITEBOARD & DIAGRAM BUILDER
   // ======================================================
   let liveAutoSaveTimer = null;
 
   window.setCanvasMode = function(mode) {
+    if (isReadMode) {
+      isReadMode = false;
+      document.body.classList.remove('study-read-mode-active');
+      syncReadModeClasses();
+    }
     canvasMode = mode;
     const note = notesList.find(n => n.id === selectedNoteId);
     if (note) renderReaderPane(note);
+  };
+
+  // ======================================================
+  // PRACTICAL DISTRACTION-FREE READ MODE (PC & PHONE)
+  // ======================================================
+  function syncReadModeClasses() {
+    if (!readerPaneEl) return;
+    readerPaneEl.classList.remove('read-theme-light', 'read-theme-sepia', 'read-theme-dark', 'read-size-sm', 'read-size-md', 'read-size-lg', 'read-size-xl');
+    if (isReadMode) {
+      readerPaneEl.classList.add(`read-theme-${readTheme}`, `read-size-${readFontSize}`);
+    }
+  }
+
+  window.toggleReadMode = function(forceState) {
+    if (!selectedNoteId && notesList.length > 0) {
+      selectedNoteId = notesList[0].id;
+    }
+    const note = notesList.find(n => n.id === selectedNoteId);
+    if (!note) {
+      showToast('Select or create a note first to enter Read Mode.', 'info');
+      return;
+    }
+
+    isReadMode = typeof forceState === 'boolean' ? forceState : !isReadMode;
+    if (isReadMode && window.innerWidth <= 900) {
+      isReadTocOpen = false;
+    }
+    document.body.classList.toggle('study-read-mode-active', isReadMode);
+    syncReadModeClasses();
+    renderReaderPane(note);
+  };
+
+  window.setReadTheme = function(theme) {
+    readTheme = theme;
+    try { localStorage.setItem('pk_read_theme', theme); } catch (e) {}
+    syncReadModeClasses();
+    const note = notesList.find(n => n.id === selectedNoteId);
+    if (note && isReadMode) renderReaderPane(note);
+  };
+
+  window.stepReadFontSize = function(dir) {
+    const order = ['sm', 'md', 'lg', 'xl'];
+    const idx = Math.max(0, Math.min(order.length - 1, order.indexOf(readFontSize) + dir));
+    readFontSize = order[idx];
+    try { localStorage.setItem('pk_read_size', readFontSize); } catch (e) {}
+    syncReadModeClasses();
+  };
+
+  window.navigateReadModeNote = function(offset) {
+    if (notesList.length === 0) return;
+    const curIdx = notesList.findIndex(n => n.id === selectedNoteId);
+    const nextIdx = (curIdx + offset + notesList.length) % notesList.length;
+    selectedNoteId = notesList[nextIdx].id;
+    highlightSelectedCard();
+    renderReaderPane(notesList[nextIdx]);
+  };
+
+  window.toggleReadModeToc = function(forceState) {
+    isReadTocOpen = typeof forceState === 'boolean' ? forceState : !isReadTocOpen;
+    const splitEl = document.getElementById('read-mode-body-split');
+    const btn = document.getElementById('read-toc-toggle-btn');
+    if (splitEl) splitEl.classList.toggle('toc-collapsed', !isReadTocOpen);
+    if (btn) btn.classList.toggle('active', isReadTocOpen);
+  };
+
+  window.jumpToReadSection = function(domId) {
+    window.scrollToReaderSection(domId);
+    if (window.innerWidth <= 900 && isReadTocOpen) {
+      window.toggleReadModeToc(false);
+    }
+  };
+
+  window.updateReadModeScrollProgress = function(el) {
+    const bar = document.getElementById('read-progress-fill');
+    if (!bar || !el) return;
+    const maxScroll = el.scrollHeight - el.clientHeight;
+    const pct = maxScroll > 0 ? Math.min(100, Math.round((el.scrollTop / maxScroll) * 100)) : 100;
+    bar.style.width = `${pct}%`;
   };
 
   window.toggleElementPalette = function(forceState) {
@@ -2079,8 +2286,187 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }
 
+    // 6. AI STUDY PROMPT & MARKDOWN INSTRUCTION GENERATOR STUDIO
+    if (activeInlineStudio === 'ai') {
+      const defaultTopic = `${note.subject ? note.subject.name + ' — ' : ''}${note.title || 'My Study Topic'}`;
+      return `
+        <div class="inline-studio-panel">
+          <div class="inline-studio-header">
+            <div style="display:flex; align-items:center; gap:0.45rem; font-weight:800; font-size:0.9rem; color:var(--primary);">
+              <i data-lucide="bot" class="icon-sm"></i>
+              <span>🤖 AI Study Material Generator — Export Instructions (.md)</span>
+            </div>
+            <button type="button" class="btn-tiny" onclick="openInlineStudio(null)">
+              <i data-lucide="x" class="icon-xs"></i> Close
+            </button>
+          </div>
+
+          <div style="font-size:0.78rem; color:var(--muted-foreground); margin-bottom:0.65rem;">
+            Export or copy the official <strong>PassKeeper Study Hub Markdown Specification</strong>. Feed it to ChatGPT, Claude, or Gemini so the AI formats your study material with <strong>Interactive Charts, Mermaid Diagrams, Pinned Sections, Multi-Color Highlights, Cloze Blanks, and Math Formulas</strong> ready to paste directly here!
+          </div>
+
+          <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-bottom:0.65rem;">
+            <input type="text" id="ai-studio-topic-input" class="form-input" style="flex:1; min-width:14rem; height:1.95rem; font-size:0.8rem;" value="${escapeHtml(defaultTopic)}" placeholder="Enter the topic you want the AI to teach you...">
+            <button type="button" class="btn btn-primary btn-compact" style="height:1.95rem !important;" onclick="window.downloadAiInstructionsFile(document.getElementById('ai-studio-topic-input')?.value)">
+              <i data-lucide="download" class="icon-xs"></i> Download AI Instructions (.md)
+            </button>
+            <button type="button" class="btn btn-secondary btn-compact" style="height:1.95rem !important;" onclick="window.copyAiInstructionsPrompt(document.getElementById('ai-studio-topic-input')?.value)">
+              <i data-lucide="copy" class="icon-xs"></i> Copy Prompt for AI
+            </button>
+          </div>
+
+          <div style="border-top:1px dashed var(--border); padding-top:0.65rem; margin-top:0.35rem;">
+            <div style="font-size:0.72rem; font-weight:700; color:var(--foreground); margin-bottom:0.35rem;">📥 Paste AI Generated Content Here to Insert into Note:</div>
+            <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+              <textarea id="ai-paste-response-input" class="form-textarea code-font" rows="3" style="font-size:0.76rem;" placeholder="Paste the Markdown output from ChatGPT / Claude / Gemini here..."></textarea>
+              <button type="button" class="btn btn-primary btn-compact" onclick="const v=document.getElementById('ai-paste-response-input')?.value.trim(); if(v){ window.insertSnippetIntoActiveNote(v, 'AI study material inserted!'); window.openInlineStudio(null); }">
+                Insert into Note
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     return '';
   }
+
+  // ======================================================
+  // AI MARKDOWN SPECIFICATION BUILDER & EXPORTER (.MD)
+  // ======================================================
+  function buildAiStudyPromptMarkdown(customTopic = '') {
+    const activeNote = notesList.find(n => n.id === selectedNoteId);
+    const activeSubj = activeNote?.subject || (subjectsData?.subjects || []).find(s => s.id === activeSubjectId);
+    const topicStr = (customTopic && customTopic.trim())
+      || (activeNote ? `${activeSubj ? activeSubj.name + ': ' : ''}${activeNote.title}` : '')
+      || '[INSERT YOUR STUDY TOPIC HERE]';
+
+    return `# PassKeeper Study Hub — AI Content Generation Specification
+
+You are an expert educator and technical author. Generate comprehensive, high-retention study notes for the topic: **"${topicStr}"**.
+
+Your response **MUST** be formatted in raw Markdown using the custom interactive elements supported by the **PassKeeper Study Hub** parser listed below so I can paste your output directly into my study workspace.
+
+---
+
+## 1. Custom Interactive Elements & Exact Syntax Rules
+
+### A. Section Headings (Auto-Indexed in Study Outline)
+Use \`##\` and \`###\` with clear, descriptive titles:
+\`\`\`markdown
+## 🎯 Core Concepts & Architecture
+### 1. Fundamental Principles
+\`\`\`
+
+### B. Pinned Concept Blocks (Appears in Top Pin Bar, Cornell Cue Column & Master Digest)
+To pin an essential definition, rule, or takeaway, use a single-line \`> [!PIN: Title]\` block:
+\`\`\`markdown
+> [!PIN: Core Definition] A concise 1-2 sentence explanation of the most important rule or definition.
+> [!PIN: Exam Formula] Always verify boundary conditions before applying the rate equation.
+\`\`\`
+*(Important: Keep each \`> [!PIN: Title] text\` on a single line).*
+
+### C. Multi-Color Semantic Highlights (Used by Summary / Cram Mode)
+Wrap key phrases inside paragraphs or bullet points using these exact 4 color tags:
+- \`==yellow:key point or main idea==\` (Yellow — Key Point)
+- \`==green:exact definition, metric, or formula==\` (Green — Definition / Formula)
+- \`==purple:important concept or mechanism==\` (Purple — Deep Concept)
+- \`==pink:critical exam trap or warning==\` (Pink — Critical / Exam Focus)
+
+### D. Active-Recall Cloze Fill-in-the-Blanks (Click-to-Reveal Pills)
+Wrap key terms, numbers, or commands that the student should memorize inside double curly braces \`{{...}}\`:
+\`\`\`markdown
+- The default PostgreSQL port is {{5432}} and uses {{MVCC}} for concurrency control.
+\`\`\`
+
+### E. Interactive SVG Data Charts (\`\`\`chart)
+Whenever comparing numbers, metrics, trends, or proportions, include a \`\`\`chart block.
+- Supported \`type\` values: \`bar\`, \`line\`, \`area\`, \`pie\`, \`doughnut\`, \`hbar\`
+- Format:
+\`\`\`chart
+type: bar
+title: Performance / Metric Comparison
+unit: %
+Category A: 35
+Category B: 68
+Category C: 92
+Category D: 48
+\`\`\`
+
+### F. Visual Mermaid Diagrams (\`\`\`mermaid)
+Include at least one visual diagram (\`graph LR\`, \`graph TD\`, \`sequenceDiagram\`, \`stateDiagram-v2\`, or \`erDiagram\`) to illustrate workflows, relationships, or architecture:
+\`\`\`mermaid
+graph LR
+  A[Input / Trigger] --> B{Condition Check}
+  B -->|Valid| C[Execute Core Process]
+  B -->|Invalid| D[Handle Exception]
+  C --> E[Final Output]
+\`\`\`
+
+### G. Mathematical Formulas & Equations
+- **Block Equations**: Wrap standalone formulas in \`$$ ... $$\`:
+\`\`\`markdown
+$$
+NPV = \\sum_{t=1}^{n} CF_t / (1 + r)^t - C_0
+$$
+\`\`\`
+- **Inline Math**: Wrap inline expressions in single \`$ ... $\` (e.g., $\\Delta x \\approx \\sigma^2$).
+- Supported LaTeX tokens: \`\\sum\`, \`\\int\`, \`\\sqrt\`, \`\\pi\`, \`\\Delta\`, \`\\delta\`, \`\\alpha\`, \`\\beta\`, \`\\gamma\`, \`\\sigma\`, \`\\infty\`, \`\\approx\`, \`\\neq\`, \`\\leq\`, \`\\geq\`, \`\\times\`, \`\\div\`, \`\\pm\`, \`\\rightarrow\`, \`\\Rightarrow\`, \`^2\`, \`^3\`, \`^n\`.
+
+### H. Callout Boxes, Comparison Tables, Code Blocks & Checklists
+- **Callouts**: \`> 💡 **Key Insight:** ...\` or \`> ⚠️ **Common Mistake:** ...\`
+- **Tables**: Standard Markdown tables (\`| Column 1 | Column 2 | Column 3 |\`)
+- **Code Blocks**: Fenced code blocks (\`\`\`bash, \`\`\`sql, \`\`\`javascript, \`\`\`python, etc.)
+- **Interactive Study Checklist**:
+\`\`\`markdown
+- [ ] Understand the difference between {{Concept A}} and {{Concept B}}
+- [ ] Practice solving the core equation
+\`\`\`
+- **Cross-Note Wiki Links**: Link to related topics with \`[[Related Topic Name]]\`.
+
+---
+
+## 2. Required Structure for Your Response
+
+Please output **ONLY** the raw Markdown content (inside a single markdown code block so I can copy-paste it in one click) containing:
+1. **Overview & Pinned Core Concepts** (\`> [!PIN: ...]\` + \`==yellow:...==\` & \`==green:...==\` highlights)
+2. **Visual Architecture / Workflow Diagram** (\`\`\`mermaid block)
+3. **Deep-Dive Sections** with Cloze blanks (\`{{...}}\`), formulas (\`$$...$$\`), and code/examples
+4. **Quantitative Data Chart** (\`\`\`chart block illustrating a key comparison, distribution, or trend)
+5. **Summary Comparison Table** (\`| ... |\`)
+6. **Active Recall Study Checklist** (\`- [ ] ...\`)
+
+**Topic to generate now:** ${topicStr}
+`;
+  }
+
+  window.downloadAiInstructionsFile = function(customTopic = '') {
+    const md = buildAiStudyPromptMarkdown(customTopic);
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'PassKeeper-Study-AI-Instructions.md';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Downloaded PassKeeper-Study-AI-Instructions.md!', 'success');
+  };
+
+  window.copyAiInstructionsPrompt = function(customTopic = '') {
+    const md = buildAiStudyPromptMarkdown(customTopic);
+    copyToClipboard(md, 'AI Study Instructions (.md)');
+  };
+
+  window.exportAiStudyInstructionsMd = function() {
+    window.downloadAiInstructionsFile();
+    window.copyAiInstructionsPrompt();
+    const note = notesList.find(n => n.id === selectedNoteId);
+    if (note && activeInlineStudio !== 'ai') {
+      window.openInlineStudio('ai');
+    }
+  };
 
   // Chart Studio Helpers
   window.addChartStudioRow = function() {
@@ -2443,6 +2829,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderReaderPane(note) {
     if (!readerPaneEl || !note) return;
 
+    syncReadModeClasses();
+
     const subjects = (subjectsData && subjectsData.subjects) || [];
     const takeaways = note.takeaways || [];
     const resources = note.resources || [];
@@ -2478,96 +2866,356 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     ` : '';
 
-    readerPaneEl.innerHTML = `
-      <div class="reader-header">
-        <div class="reader-top-bar">
-          <!-- Direct Inline Metadata Controls (Subject, Mastery, Chapter, Tags) -->
-          <div style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
-            <button type="button" class="btn-tiny mobile-menu-trigger" onclick="closeMobileReader()">
-              <i data-lucide="arrow-left" class="icon-xs"></i> Back
+    // ======================================================
+    // PRACTICAL DISTRACTION-FREE READ MODE VIEW (PHONE & PC)
+    // ======================================================
+    if (isReadMode) {
+      const wordCount = (note.content || '').trim().split(/\s+/).filter(Boolean).length;
+      const readMins = Math.max(1, Math.ceil(wordCount / 190));
+      const curNoteIdx = notesList.findIndex(n => n.id === note.id);
+      const prevNote = notesList.length > 1 ? notesList[(curNoteIdx - 1 + notesList.length) % notesList.length] : null;
+      const nextNote = notesList.length > 1 ? notesList[(curNoteIdx + 1) % notesList.length] : null;
+
+      readerPaneEl.innerHTML = `
+        <div class="read-progress-track">
+          <div id="read-progress-fill" class="read-progress-fill"></div>
+        </div>
+
+        <header class="read-mode-topbar">
+          <div style="display:flex; align-items:center; gap:0.35rem; flex:1; min-width:0; overflow:hidden;">
+            <!-- Hamburger Menu Button for Outline, Studies, Lessons & Settings -->
+            <button type="button" id="read-toc-toggle-btn" class="read-ctrl-pill ${isReadTocOpen ? 'active' : ''}" onclick="window.toggleReadModeToc()" title="Toggle Navigation & Reading Menu">
+              <i data-lucide="menu" class="icon-xs"></i>
+              <span class="read-desktop-only">Outline (${headingsOutlineRegistry.length + pinnedSectionsRegistry.length})</span>
             </button>
 
-            <select class="form-select" style="width:auto; max-width:11rem; height:1.6rem; font-size:0.72rem; padding:0 0.45rem; font-weight:700;" onchange="window.quickUpdateHeaderMeta('${note.id}', 'subjectId', this.value)" title="Assign Study Subject">
-              <option value="">📚 General Notes</option>
+            <button type="button" class="read-ctrl-pill" onclick="window.toggleReadMode(false)" title="Exit Read Mode (Esc)">
+              <i data-lucide="arrow-left" class="icon-xs"></i>
+              <span class="read-desktop-only">Exit</span>
+            </button>
+
+            <!-- Quick Study Subject Switcher (Desktop Topbar; inside Hamburger on Small Screens) -->
+            <select class="read-mode-select read-desktop-only" onchange="window.switchStudyInReadMode(this.value)" title="Switch Study Subject">
+              <option value="ALL" ${activeSubjectId === 'ALL' ? 'selected' : ''}>📚 All Studies (${subjectsData?.totalNotes || notesList.length})</option>
               ${subjects.map(s => `
-                <option value="${s.id}" ${note.subjectId === s.id ? 'selected' : ''}>🎓 ${escapeHtml(s.name)}</option>
+                <option value="${s.id}" ${activeSubjectId === s.id ? 'selected' : ''}>🎓 ${escapeHtml(s.name)} (${s.noteCount || 0})</option>
               `).join('')}
             </select>
 
-            <select class="form-select" style="width:auto; height:1.6rem; font-size:0.72rem; padding:0 0.45rem; font-weight:700;" onchange="quickUpdateMastery('${note.id}', this.value)" title="Mastery Status">
-              <option value="NEW" ${note.mastery === 'NEW' ? 'selected' : ''}>🟣 New Topic</option>
-              <option value="LEARNING" ${note.mastery === 'LEARNING' ? 'selected' : ''}>🔵 In Progress</option>
-              <option value="REVIEW" ${note.mastery === 'REVIEW' ? 'selected' : ''}>🟠 Needs Review</option>
-              <option value="MASTERED" ${note.mastery === 'MASTERED' ? 'selected' : ''}>🟢 Mastered</option>
+            <!-- Quick Note / Lesson Switcher in Read Mode -->
+            <select class="read-mode-select" style="flex:1; max-width:16rem; min-width:5rem; font-weight:700;" onchange="window.selectStudyNote(this.value)" title="Jump to Note / Lesson">
+              ${notesList.map((n, i) => `
+                <option value="${n.id}" ${n.id === note.id ? 'selected' : ''}>
+                  #${i + 1} ${escapeHtml(n.title)}${n.chapter ? ` (${escapeHtml(n.chapter)})` : ''}
+                </option>
+              `).join('')}
             </select>
 
-            <input type="text" id="inline-note-chapter" list="chapter-suggestions" class="inline-meta-input" style="width:8.5rem;" placeholder="📂 Chapter / Module..." value="${escapeHtml(note.chapter || '')}" onblur="window.quickUpdateHeaderMeta('${note.id}', 'chapter', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}" title="Group under a Chapter / Module">
-
-            <input type="text" class="inline-meta-input" style="width:8.5rem;" placeholder="# tags (comma sep)" value="${escapeHtml(tags.join(', '))}" onblur="window.quickUpdateHeaderMeta('${note.id}', 'tags', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}" title="Tags (comma separated)">
+            <span style="font-size:0.7rem; opacity:0.75; font-weight:600; flex-shrink:0;" class="read-desktop-only">
+              ⏱ ~${readMins}m
+            </span>
           </div>
 
-          <!-- Canvas Mode Switcher & Note Actions -->
-          <div class="reader-actions-group">
-            <div class="canvas-mode-switcher" role="tablist">
-              <button type="button" class="canvas-mode-btn ${canvasMode === 'study' ? 'active' : ''}" onclick="window.setCanvasMode('study')" title="Interactive Study & Reader View">
-                <i data-lucide="book-open" class="icon-xs"></i> Study
+          <div class="read-mode-controls">
+            <!-- Font Size Controls (Always accessible) -->
+            <button type="button" class="read-ctrl-pill" onclick="window.stepReadFontSize(-1)" title="Smaller Text">A-</button>
+            <button type="button" class="read-ctrl-pill" onclick="window.stepReadFontSize(1)" title="Larger Text">A+</button>
+
+            <!-- Reading Theme Switcher (Desktop Topbar; inside Hamburger on Small Screens) -->
+            <button type="button" class="read-ctrl-pill read-desktop-only ${readTheme === 'light' ? 'active' : ''}" onclick="window.setReadTheme('light')" title="Paper White Theme">☀️</button>
+            <button type="button" class="read-ctrl-pill read-desktop-only ${readTheme === 'sepia' ? 'active' : ''}" onclick="window.setReadTheme('sepia')" title="Warm Book Sepia Theme">📜 Sepia</button>
+            <button type="button" class="read-ctrl-pill read-desktop-only ${readTheme === 'dark' ? 'active' : ''}" onclick="window.setReadTheme('dark')" title="Night Dark Theme">🌙 Night</button>
+
+            <!-- Active Recall Toggles (Desktop Topbar; inside Hamburger on Small Screens) -->
+            <button type="button" class="read-ctrl-pill read-desktop-only ${isSummaryMode ? 'active' : ''}" onclick="window.toggleSummaryMode()" title="Show Only Highlights & Pinned Concepts">
+              🎯 Summary
+            </button>
+            ${currentNoteClozeCount > 0 ? `
+              <button type="button" id="reveal-clozes-btn" class="read-ctrl-pill read-desktop-only ${revealAllClozes ? 'active' : ''}" onclick="window.toggleRevealAllClozes()">
+                🔒 Clozes
               </button>
-              <button type="button" class="canvas-mode-btn ${canvasMode === 'split' ? 'active' : ''}" onclick="window.setCanvasMode('split')" title="Side-by-Side Live Editor + Study Canvas">
-                <i data-lucide="columns" class="icon-xs"></i> Split Studio
+            ` : ''}
+            ${takeaways.length > 0 ? `
+              <button type="button" class="read-ctrl-pill read-desktop-only" onclick="window.openFlashcardDeck('${note.id}')">
+                ✦ Cards (${takeaways.length})
               </button>
-              <button type="button" class="canvas-mode-btn ${canvasMode === 'write' ? 'active' : ''}" onclick="window.setCanvasMode('write')" title="Full Direct Writing Canvas">
-                <i data-lucide="pen-line" class="icon-xs"></i> Write
+            ` : ''}
+          </div>
+        </header>
+
+        <div id="read-mode-body-split" class="read-mode-body-split ${isReadTocOpen ? '' : 'toc-collapsed'}">
+          <!-- Backdrop for Small Screen Hamburger Drawer -->
+          <div class="read-mode-drawer-backdrop" onclick="window.toggleReadModeToc(false)"></div>
+
+          <!-- Left Hamburger Drawer / Sticky Book Table of Contents & Settings Sidebar -->
+          <aside class="read-mode-toc-sidebar">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:0.5rem; border-bottom:1px solid rgba(128,128,128,0.2);">
+              <span style="font-size:0.75rem; font-weight:800; display:flex; align-items:center; gap:0.35rem;">
+                <i data-lucide="book-open-check" class="icon-xs"></i>
+                <span>Reading Menu &amp; Outline</span>
+              </span>
+              <button type="button" class="read-ctrl-pill" style="height:1.5rem; padding:0 0.4rem;" onclick="window.toggleReadModeToc(false)" title="Close Menu">
+                <i data-lucide="x" class="icon-xs"></i>
               </button>
             </div>
 
-            <button type="button" class="btn-tiny ${isCornellMode ? 'cornell-active' : ''}" onclick="toggleCornellMode()" title="Toggle Cornell Note-Taking Split Layout">
-              <span>${isCornellMode ? '📐 Cornell ON' : '📐 Cornell'}</span>
-            </button>
+            <!-- Compact Reading Settings & Study Switcher (Always in Hamburger Menu for Small Screens) -->
+            <div class="read-drawer-settings-box">
+              <div class="read-toc-group-title" style="padding:0;">
+                <span>⚙️ Study &amp; Display Settings</span>
+              </div>
 
-            <button type="button" class="btn-tiny ${isSummaryMode ? 'summary-active' : ''}" onclick="toggleSummaryMode()" title="Toggle Summary Mode (shows only Pinned Sections & Highlights)">
-              <span>${isSummaryMode ? '🎯 Summary ON' : '🎯 Summary'}</span>
-            </button>
+              <select class="read-mode-select" style="width:100%; max-width:none; margin-bottom:0.35rem;" onchange="window.switchStudyInReadMode(this.value)">
+                <option value="ALL" ${activeSubjectId === 'ALL' ? 'selected' : ''}>📚 All Studies (${subjectsData?.totalNotes || notesList.length})</option>
+                ${subjects.map(s => `
+                  <option value="${s.id}" ${activeSubjectId === s.id ? 'selected' : ''}>🎓 ${escapeHtml(s.name)} (${s.noteCount || 0})</option>
+                `).join('')}
+              </select>
 
-            ${currentNoteClozeCount > 0 ? `
-              <button type="button" id="reveal-clozes-btn" class="btn-tiny" onclick="toggleRevealAllClozes()">
-                <i data-lucide="${revealAllClozes ? 'eye-off' : 'eye'}" class="icon-xs"></i>
-                <span>${revealAllClozes ? 'Hide Clozes' : 'Clozes'}</span>
-              </button>
+              <div style="display:flex; gap:0.25rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                <button type="button" class="read-ctrl-pill ${readTheme === 'light' ? 'active' : ''}" style="flex:1; justify-content:center;" onclick="window.setReadTheme('light')">☀️ Light</button>
+                <button type="button" class="read-ctrl-pill ${readTheme === 'sepia' ? 'active' : ''}" style="flex:1; justify-content:center;" onclick="window.setReadTheme('sepia')">📜 Sepia</button>
+                <button type="button" class="read-ctrl-pill ${readTheme === 'dark' ? 'active' : ''}" style="flex:1; justify-content:center;" onclick="window.setReadTheme('dark')">🌙 Night</button>
+              </div>
+
+              <div style="display:flex; gap:0.25rem; flex-wrap:wrap;">
+                <button type="button" class="read-ctrl-pill" style="flex:1; justify-content:center;" onclick="window.stepReadFontSize(-1)">A- Smaller</button>
+                <button type="button" class="read-ctrl-pill" style="flex:1; justify-content:center;" onclick="window.stepReadFontSize(1)">A+ Larger</button>
+                <button type="button" class="read-ctrl-pill ${isSummaryMode ? 'active' : ''}" style="flex:1; justify-content:center;" onclick="window.toggleSummaryMode()">🎯 Summary</button>
+                ${currentNoteClozeCount > 0 ? `
+                  <button type="button" class="read-ctrl-pill ${revealAllClozes ? 'active' : ''}" style="flex:1; justify-content:center;" onclick="window.toggleRevealAllClozes()">🔒 Clozes</button>
+                ` : ''}
+                ${takeaways.length > 0 ? `
+                  <button type="button" class="read-ctrl-pill" style="flex:1; justify-content:center;" onclick="window.openFlashcardDeck('${note.id}')">✦ Cards (${takeaways.length})</button>
+                ` : ''}
+              </div>
+            </div>
+
+            ${notesList.length > 1 ? `
+              <div>
+                <div class="read-toc-group-title">
+                  <span>📖 Lessons (${notesList.length})</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.15rem;">
+                  ${notesList.map((n, i) => `
+                    <button type="button" class="read-toc-item ${n.id === note.id ? 'active' : ''}" onclick="window.selectStudyNote('${n.id}')">
+                      <span style="font-size:0.65rem; opacity:0.75; flex-shrink:0;">#${i + 1}</span>
+                      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(n.title)}</span>
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
             ` : ''}
 
-            <button type="button" class="btn-tiny" style="${note.pinned ? 'color:#b45309; border-color:#fde68a; background:#fffbeb;' : ''}" onclick="togglePinNote('${note.id}')" title="Pin Note">
-              <i data-lucide="pin" class="icon-xs"></i>
-            </button>
-            <button type="button" class="btn-tiny" onclick="exportNoteMarkdown('${note.id}')" title="Download .md file">
-              <i data-lucide="download" class="icon-xs"></i> .md
-            </button>
-            <button type="button" class="btn btn-danger btn-compact" style="height:1.6rem !important; padding:0 0.45rem !important;" onclick="deleteStudyNoteConfirm('${note.id}')" title="Delete Note">
-              <i data-lucide="trash-2" class="icon-xs"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Direct Editable Title & Subtitle right in the Study Workspace -->
-        <div class="reader-title-row" style="margin-top:0.15rem;">
-          <div style="flex:1; min-width:0;">
-            <input type="text" id="inline-note-title" class="inline-title-input" value="${escapeHtml(note.title)}" placeholder="Note / Lesson Title..." onblur="window.quickUpdateHeaderMeta('${note.id}', 'title', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
-            <input type="text" id="inline-note-summary" class="inline-summary-input" value="${escapeHtml(note.summary || '')}" placeholder="Click to add a brief summary or core takeaway..." onblur="window.quickUpdateHeaderMeta('${note.id}', 'summary', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
-          </div>
-          <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
-            <span id="direct-save-status" style="font-size:0.7rem; font-weight:700; color:#10b981;">✓ Saved</span>
-            ${canvasMode !== 'study' ? `
-              <button type="button" class="btn btn-primary btn-compact" style="height:1.65rem !important;" onclick="window.saveDirectNoteNow('${note.id}')">
-                <i data-lucide="check" class="icon-xs"></i> Done / Save
-              </button>
+            ${pinnedSectionsRegistry.length > 0 ? `
+              <div>
+                <div class="read-toc-group-title">
+                  <span>📌 Pinned Concepts (${pinnedSectionsRegistry.length})</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.15rem;">
+                  ${pinnedSectionsRegistry.map(p => `
+                    <button type="button" class="read-toc-item" onclick="window.jumpToReadSection('${p.id}')">
+                      <span style="color:#f59e0b; flex-shrink:0;">📌</span>
+                      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(p.title)}</span>
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
             ` : ''}
+
+            ${headingsOutlineRegistry.length > 0 ? `
+              <div>
+                <div class="read-toc-group-title">
+                  <span>📑 Sections (${headingsOutlineRegistry.length})</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.12rem;">
+                  ${headingsOutlineRegistry.map(h => `
+                    <button type="button" class="read-toc-item ${h.level === 3 ? 'level-3' : ''}" onclick="window.jumpToReadSection('${h.id}')">
+                      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(h.title)}</span>
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </aside>
+
+          <!-- Right Clean Book Reading Canvas -->
+          <div id="read-mode-scroll-canvas" class="read-mode-canvas" onscroll="window.updateReadModeScrollProgress(this)">
+            <div class="read-mode-book-column">
+              <div class="read-mode-meta-kicker">
+                <span>${escapeHtml(note.subject ? note.subject.name : 'General Study')}</span>
+                ${note.chapter ? `<span>• 📂 ${escapeHtml(note.chapter)}</span>` : ''}
+                <span>• ⏱ ${readMins} min read</span>
+              </div>
+
+              <h1 class="read-mode-book-title">${escapeHtml(note.title)}</h1>
+              ${note.summary ? `<div class="read-mode-book-summary">${escapeHtml(note.summary)}</div>` : '<div style="margin-bottom:1.25rem;"></div>'}
+
+              <article class="markdown-content ${isSummaryMode ? 'summary-mode-active' : ''} ${revealAllClozes ? 'reveal-all-clozes' : ''}">
+                ${renderedArticleHtml}
+              </article>
+
+              ${takeaways.length > 0 ? `
+                <section class="study-section-box" style="margin-top:2rem;">
+                  <div class="study-section-title">
+                    <span>✦ Self-Test Flashcards (${takeaways.length})</span>
+                    <button type="button" class="read-ctrl-pill" onclick="openFlashcardDeck('${note.id}')">Practice Deck</button>
+                  </div>
+                  <div>
+                    ${takeaways.map((card, idx) => `
+                      <div class="takeaway-item">
+                        <div class="takeaway-q" onclick="const ans = this.nextElementSibling; ans.style.display = ans.style.display === 'none' ? 'block' : 'none';">
+                          <span><strong>Q${idx + 1}:</strong> ${escapeHtml(card.question)}</span>
+                          <span class="badge badge-USER" style="font-size:0.6rem;">Tap for Answer</span>
+                        </div>
+                        <div class="takeaway-a" style="display:none;">
+                          ${escapeHtml(card.answer)}
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </section>
+              ` : ''}
+
+              ${notesList.length > 1 ? `
+                <div class="read-mode-nav-footer">
+                  <button type="button" class="read-ctrl-pill" style="height:2.2rem; padding:0 0.85rem;" onclick="window.navigateReadModeNote(-1)">
+                    <i data-lucide="chevron-left" class="icon-xs"></i>
+                    <span>Prev: ${escapeHtml((prevNote?.title || '').slice(0, 26))}</span>
+                  </button>
+                  <span style="font-size:0.72rem; opacity:0.7; font-weight:700;">${curNoteIdx + 1} / ${notesList.length}</span>
+                  <button type="button" class="read-ctrl-pill" style="height:2.2rem; padding:0 0.85rem;" onclick="window.navigateReadModeNote(1)">
+                    <span>Next: ${escapeHtml((nextNote?.title || '').slice(0, 26))}</span>
+                    <i data-lucide="chevron-right" class="icon-xs"></i>
+                  </button>
+                </div>
+              ` : ''}
+            </div>
           </div>
         </div>
+      `;
+
+      if (window.lucide) lucide.createIcons();
+      runMermaidDiagrams();
+      return;
+    }
+
+    readerPaneEl.innerHTML = `
+      <!-- Small-Screen Compact Reader Bar (with Hamburger Menu for Edit/Tools) -->
+      <div class="mobile-reader-compact-bar">
+        <button type="button" class="btn-tiny" onclick="closeMobileReader()">
+          <i data-lucide="arrow-left" class="icon-xs"></i>
+          <span>Notes</span>
+        </button>
+
+        <select class="form-select" style="flex:1; min-width:0; height:1.65rem; font-size:0.74rem; padding:0 0.45rem; font-weight:700;" onchange="window.selectStudyNote(this.value)">
+          ${notesList.map((n, i) => `
+            <option value="${n.id}" ${n.id === note.id ? 'selected' : ''}>#${i + 1} ${escapeHtml(n.title)}</option>
+          `).join('')}
+        </select>
+
+        <button type="button" class="btn-tiny" style="background:#eef2ff; border-color:#a5b4fc; color:var(--primary); font-weight:700;" onclick="window.toggleReadMode(true)">
+          <i data-lucide="book-open-check" class="icon-xs"></i>
+          <span>Read</span>
+        </button>
+
+        <button type="button" id="mobile-reader-hamburger-btn" class="btn-tiny ${isMobileReaderToolsOpen ? 'active' : ''}" onclick="window.toggleMobileReaderTools()" title="Toggle Edit & Study Tools Menu">
+          <i data-lucide="menu" class="icon-xs"></i>
+          <span>Tools</span>
+        </button>
       </div>
 
-      <!-- ======================================================
-           STICKY "+ ADD ELEMENT" MENU RIBBON (CHARTS, DIAGRAMS, WHITEBOARD, BLOCKS)
-           ====================================================== -->
-      <div class="insert-element-bar">
+      <div id="reader-collapsible-tools" class="reader-collapsible-tools ${isMobileReaderToolsOpen ? 'mobile-tools-open' : ''}">
+        <div class="reader-header">
+          <div class="reader-top-bar">
+            <!-- Direct Inline Metadata Controls (Subject, Mastery, Chapter, Tags) -->
+            <div style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
+              <select class="form-select" style="width:auto; max-width:11rem; height:1.6rem; font-size:0.72rem; padding:0 0.45rem; font-weight:700;" onchange="window.quickUpdateHeaderMeta('${note.id}', 'subjectId', this.value)" title="Assign Study Subject">
+                <option value="">📚 General Notes</option>
+                ${subjects.map(s => `
+                  <option value="${s.id}" ${note.subjectId === s.id ? 'selected' : ''}>🎓 ${escapeHtml(s.name)}</option>
+                `).join('')}
+              </select>
+
+              <select class="form-select" style="width:auto; height:1.6rem; font-size:0.72rem; padding:0 0.45rem; font-weight:700;" onchange="quickUpdateMastery('${note.id}', this.value)" title="Mastery Status">
+                <option value="NEW" ${note.mastery === 'NEW' ? 'selected' : ''}>🟣 New Topic</option>
+                <option value="LEARNING" ${note.mastery === 'LEARNING' ? 'selected' : ''}>🔵 In Progress</option>
+                <option value="REVIEW" ${note.mastery === 'REVIEW' ? 'selected' : ''}>🟠 Needs Review</option>
+                <option value="MASTERED" ${note.mastery === 'MASTERED' ? 'selected' : ''}>🟢 Mastered</option>
+              </select>
+
+              <input type="text" id="inline-note-chapter" list="chapter-suggestions" class="inline-meta-input" style="width:8.5rem;" placeholder="📂 Chapter / Module..." value="${escapeHtml(note.chapter || '')}" onblur="window.quickUpdateHeaderMeta('${note.id}', 'chapter', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}" title="Group under a Chapter / Module">
+
+              <input type="text" class="inline-meta-input" style="width:8.5rem;" placeholder="# tags (comma sep)" value="${escapeHtml(tags.join(', '))}" onblur="window.quickUpdateHeaderMeta('${note.id}', 'tags', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}" title="Tags (comma separated)">
+            </div>
+
+            <!-- Canvas Mode Switcher & Note Actions -->
+            <div class="reader-actions-group">
+              <button type="button" class="btn btn-secondary btn-compact" style="height:1.65rem !important; background:#eef2ff; border-color:#a5b4fc; color:var(--primary);" onclick="window.toggleReadMode(true)" title="Open Distraction-Free Practical Read Mode (Phone & PC)">
+                <i data-lucide="book-open-check" class="icon-xs"></i>
+                <span>📖 Read Mode</span>
+              </button>
+
+              <div class="canvas-mode-switcher" role="tablist">
+                <button type="button" class="canvas-mode-btn ${canvasMode === 'study' ? 'active' : ''}" onclick="window.setCanvasMode('study')" title="Interactive Study & Reader View">
+                  <i data-lucide="book-open" class="icon-xs"></i> Study
+                </button>
+                <button type="button" class="canvas-mode-btn ${canvasMode === 'split' ? 'active' : ''}" onclick="window.setCanvasMode('split')" title="Side-by-Side Live Editor + Study Canvas">
+                  <i data-lucide="columns" class="icon-xs"></i> Split Studio
+                </button>
+                <button type="button" class="canvas-mode-btn ${canvasMode === 'write' ? 'active' : ''}" onclick="window.setCanvasMode('write')" title="Full Direct Writing Canvas">
+                  <i data-lucide="pen-line" class="icon-xs"></i> Write
+                </button>
+              </div>
+
+              <button type="button" class="btn-tiny ${isCornellMode ? 'cornell-active' : ''}" onclick="toggleCornellMode()" title="Toggle Cornell Note-Taking Split Layout">
+                <span>${isCornellMode ? '📐 Cornell ON' : '📐 Cornell'}</span>
+              </button>
+
+              <button type="button" class="btn-tiny ${isSummaryMode ? 'summary-active' : ''}" onclick="toggleSummaryMode()" title="Toggle Summary Mode (shows only Pinned Sections & Highlights)">
+                <span>${isSummaryMode ? '🎯 Summary ON' : '🎯 Summary'}</span>
+              </button>
+
+              ${currentNoteClozeCount > 0 ? `
+                <button type="button" id="reveal-clozes-btn" class="btn-tiny" onclick="toggleRevealAllClozes()">
+                  <i data-lucide="${revealAllClozes ? 'eye-off' : 'eye'}" class="icon-xs"></i>
+                  <span>${revealAllClozes ? 'Hide Clozes' : 'Clozes'}</span>
+                </button>
+              ` : ''}
+
+              <button type="button" class="btn-tiny" style="${note.pinned ? 'color:#b45309; border-color:#fde68a; background:#fffbeb;' : ''}" onclick="togglePinNote('${note.id}')" title="Pin Note">
+                <i data-lucide="pin" class="icon-xs"></i>
+              </button>
+              <button type="button" class="btn-tiny" onclick="exportNoteMarkdown('${note.id}')" title="Download .md file">
+                <i data-lucide="download" class="icon-xs"></i> .md
+              </button>
+              <button type="button" class="btn btn-danger btn-compact" style="height:1.6rem !important; padding:0 0.45rem !important;" onclick="deleteStudyNoteConfirm('${note.id}')" title="Delete Note">
+                <i data-lucide="trash-2" class="icon-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Direct Editable Title & Subtitle right in the Study Workspace -->
+          <div class="reader-title-row" style="margin-top:0.15rem;">
+            <div style="flex:1; min-width:0;">
+              <input type="text" id="inline-note-title" class="inline-title-input" value="${escapeHtml(note.title)}" placeholder="Note / Lesson Title..." onblur="window.quickUpdateHeaderMeta('${note.id}', 'title', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
+              <input type="text" id="inline-note-summary" class="inline-summary-input" value="${escapeHtml(note.summary || '')}" placeholder="Click to add a brief summary or core takeaway..." onblur="window.quickUpdateHeaderMeta('${note.id}', 'summary', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
+              <span id="direct-save-status" style="font-size:0.7rem; font-weight:700; color:#10b981;">✓ Saved</span>
+              ${canvasMode !== 'study' ? `
+                <button type="button" class="btn btn-primary btn-compact" style="height:1.65rem !important;" onclick="window.saveDirectNoteNow('${note.id}')">
+                  <i data-lucide="check" class="icon-xs"></i> Done / Save
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================================
+             STICKY "+ ADD ELEMENT" MENU RIBBON (CHARTS, DIAGRAMS, WHITEBOARD, BLOCKS)
+             ====================================================== -->
+        <div class="insert-element-bar">
         <button type="button" id="insert-menu-trigger-btn" class="insert-menu-trigger" onclick="window.toggleElementPalette()">
           <i data-lucide="plus-circle" class="icon-xs"></i>
           <span>Add Element</span>
@@ -2607,6 +3255,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         <button type="button" class="insert-quick-chip" onclick="window.openInlineStudio('flashcard')" title="Add Flashcards & Reference Links">
           <i data-lucide="sparkles" class="icon-xs" style="color:#8b5cf6;"></i>
           <span>✦ +Card / Link</span>
+        </button>
+
+        <button type="button" class="insert-quick-chip" style="border-color:#a5b4fc; background:#eef2ff; color:var(--primary); margin-left:auto;" onclick="window.exportAiStudyInstructionsMd()" title="Download .md AI Prompt Instructions & Open AI Importer">
+          <i data-lucide="bot" class="icon-xs"></i>
+          <span>🤖 AI Prompt (.md)</span>
         </button>
 
         <!-- Categorized Dropdown Element Menu -->
@@ -2713,11 +3366,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           </div>
         </div>
+        </div>
       </div>
 
       ${pinsAndOutlineHtml}
 
       <div class="reader-body">
+        <div class="mobile-only-reader-title">
+          <h1 style="font-size:1.35rem; font-weight:800; line-height:1.25; margin-bottom:0.25rem; color:var(--foreground);">${escapeHtml(note.title)}</h1>
+          ${note.summary ? `<p style="font-size:0.84rem; color:var(--muted-foreground); margin-bottom:0.5rem;">${escapeHtml(note.summary)}</p>` : ''}
+        </div>
         ${inlineStudioHtml}
 
         ${canvasMode !== 'study' ? `
@@ -2942,7 +3600,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.key === 'Escape') {
       hideSelectionToolbar();
       if (hlPopover) hlPopover.style.display = 'none';
-      if (sectionMarkerModal && sectionMarkerModal.classList.contains('open')) closeSectionMarkerModal();
+      if (isReadMode) window.toggleReadMode(false);
+      else if (sectionMarkerModal && sectionMarkerModal.classList.contains('open')) closeSectionMarkerModal();
       else if (flashcardModal && flashcardModal.classList.contains('open')) closeFlashcardDeck();
       else if (noteModal && noteModal.classList.contains('open')) closeStudyNoteModal();
       else if (subjectModal && subjectModal.classList.contains('open')) closeStudySubjectModal();
