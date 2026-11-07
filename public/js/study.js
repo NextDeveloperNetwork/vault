@@ -12,9 +12,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isSummaryMode = false;
   let isCornellMode = false;
   let revealAllClozes = false;
+  let canvasMode = 'study'; // 'study' | 'write' | 'split'
+  let activeInlineStudio = null; // null | 'chart' | 'whiteboard' | 'diagram' | 'math' | 'flashcard'
+  let editingChartIdx = -1;
   let collapsedChapters = new Set();
 
   let codeSnippetsRegistry = [];
+  let chartsRegistry = [];
   let highlightsRegistry = [];
   let pinnedSectionsRegistry = [];
   let headingsOutlineRegistry = [];
@@ -169,7 +173,262 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // ======================================================
-  // RICH MARKDOWN PARSER WITH HIGHLIGHTS, PINS, CLOZES, MATH, MERMAID, IMAGES & WIKI LINKS
+  // INTERACTIVE SVG DATA CHART ENGINE (BAR, LINE, AREA, PIE, DOUGHNUT, HBAR)
+  // ======================================================
+  const CHART_PALETTE = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#ef4444', '#14b8a6'];
+
+  function parseChartConfig(rawText) {
+    const trimmed = (rawText || '').trim();
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return {
+          type: (parsed.type || 'bar').toLowerCase(),
+          title: parsed.title || 'Data Chart',
+          unit: parsed.unit || '',
+          items: Array.isArray(parsed.items) ? parsed.items : []
+        };
+      } catch (e) {}
+    }
+
+    let type = 'bar';
+    let title = 'Study Chart';
+    let unit = '';
+    const items = [];
+
+    trimmed.split('\n').forEach(line => {
+      const l = line.trim();
+      if (!l) return;
+      if (/^type\s*:/i.test(l)) {
+        type = l.replace(/^type\s*:\s*/i, '').trim().toLowerCase();
+      } else if (/^title\s*:/i.test(l)) {
+        title = l.replace(/^title\s*:\s*/i, '').trim();
+      } else if (/^unit\s*:/i.test(l)) {
+        unit = l.replace(/^unit\s*:\s*/i, '').trim();
+      } else if (/^data\s*:/i.test(l)) {
+        const pairs = l.replace(/^data\s*:\s*/i, '').split(',');
+        pairs.forEach((p, idx) => {
+          const [k, v] = p.split(':').map(s => s && s.trim());
+          if (k && v !== undefined && !isNaN(Number(v))) {
+            items.push({ label: k, value: Number(v), color: CHART_PALETTE[items.length % CHART_PALETTE.length] });
+          }
+        });
+      } else if (l.includes(':')) {
+        const parts = l.split(',');
+        if (parts.length > 1 && parts.every(p => p.includes(':'))) {
+          parts.forEach(p => {
+            const [k, v] = p.split(':').map(s => s && s.trim());
+            if (k && v !== undefined && !isNaN(Number(v))) {
+              items.push({ label: k, value: Number(v), color: CHART_PALETTE[items.length % CHART_PALETTE.length] });
+            }
+          });
+        } else {
+          const idx = l.indexOf(':');
+          const k = l.slice(0, idx).trim();
+          const v = parseFloat(l.slice(idx + 1).trim());
+          if (k && !isNaN(v)) {
+            items.push({ label: k, value: v, color: CHART_PALETTE[items.length % CHART_PALETTE.length] });
+          }
+        }
+      }
+    });
+
+    if (items.length === 0) {
+      items.push(
+        { label: 'Q1', value: 45, color: CHART_PALETTE[0] },
+        { label: 'Q2', value: 82, color: CHART_PALETTE[1] },
+        { label: 'Q3', value: 64, color: CHART_PALETTE[2] },
+        { label: 'Q4', value: 110, color: CHART_PALETTE[3] }
+      );
+    }
+
+    return { type, title, unit, items };
+  }
+
+  function renderSvgChartHtml(rawCode, chartIdx, noteId = '') {
+    const cfg = parseChartConfig(rawCode);
+    const items = cfg.items;
+    const maxVal = Math.max(...items.map(i => Math.abs(i.value)), 1);
+    const unitSuffix = cfg.unit ? ` ${escapeHtml(cfg.unit)}` : '';
+    let svgHtml = '';
+
+    if (cfg.type === 'pie' || cfg.type === 'doughnut') {
+      const total = items.reduce((acc, it) => acc + Math.max(0, it.value), 0) || 1;
+      let cumulativeAngle = -Math.PI / 2;
+      const cx = 130;
+      const cy = 115;
+      const r = 82;
+      const innerR = cfg.type === 'doughnut' ? 44 : 0;
+
+      const slices = items.map((it, i) => {
+        const val = Math.max(0, it.value);
+        const sliceAngle = (val / total) * Math.PI * 2;
+        const startX = cx + r * Math.cos(cumulativeAngle);
+        const startY = cy + r * Math.sin(cumulativeAngle);
+        const endAngle = cumulativeAngle + sliceAngle;
+        const endX = cx + r * Math.cos(endAngle);
+        const endY = cy + r * Math.sin(endAngle);
+        const largeArc = sliceAngle > Math.PI ? 1 : 0;
+        const color = it.color || CHART_PALETTE[i % CHART_PALETTE.length];
+
+        let pathD;
+        if (items.length === 1 || sliceAngle >= Math.PI * 1.999) {
+          pathD = `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} Z`;
+        } else if (innerR > 0) {
+          const iStartX = cx + innerR * Math.cos(endAngle);
+          const iStartY = cy + innerR * Math.sin(endAngle);
+          const iEndX = cx + innerR * Math.cos(cumulativeAngle);
+          const iEndY = cy + innerR * Math.sin(cumulativeAngle);
+          pathD = `M ${startX} ${startY} A ${r} ${r} 0 ${largeArc} 1 ${endX} ${endY} L ${iStartX} ${iStartY} A ${innerR} ${innerR} 0 ${largeArc} 0 ${iEndX} ${iEndY} Z`;
+        } else {
+          pathD = `M ${cx} ${cy} L ${startX} ${startY} A ${r} ${r} 0 ${largeArc} 1 ${endX} ${endY} Z`;
+        }
+
+        cumulativeAngle = endAngle;
+        const pct = Math.round((val / total) * 100);
+        return { pathD, color, label: it.label, value: it.value, pct };
+      });
+
+      svgHtml = `
+        <svg viewBox="0 0 480 230" style="width:100%; max-width:480px; height:auto;">
+          ${slices.map(s => `<path d="${s.pathD}" fill="${s.color}" stroke="#ffffff" stroke-width="2"><title>${escapeHtml(s.label)}: ${s.value}${unitSuffix} (${s.pct}%)</title></path>`).join('')}
+          ${cfg.type === 'doughnut' ? `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="13" font-weight="800" fill="#1e1b4b">Total: ${total}</text>` : ''}
+          ${slices.map((s, idx) => `
+            <g transform="translate(255, ${32 + idx * 26})">
+              <rect width="12" height="12" rx="3" fill="${s.color}"></rect>
+              <text x="20" y="10" font-size="12" font-weight="700" fill="#1e1b4b">${escapeHtml(s.label)}</text>
+              <text x="195" y="10" font-size="12" font-weight="700" fill="#6b7280" text-anchor="end">${s.value}${unitSuffix} (${s.pct}%)</text>
+            </g>
+          `).join('')}
+        </svg>
+      `;
+    } else if (cfg.type === 'line' || cfg.type === 'area') {
+      const w = 520;
+      const h = 220;
+      const padL = 48;
+      const padR = 24;
+      const padT = 26;
+      const padB = 38;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+
+      const pts = items.map((it, i) => {
+        const x = padL + (items.length === 1 ? plotW / 2 : (i / (items.length - 1)) * plotW);
+        const y = padT + plotH - (Math.max(0, it.value) / maxVal) * plotH;
+        return { x, y, label: it.label, value: it.value };
+      });
+
+      const polyPoints = pts.map(p => `${p.x},${p.y}`).join(' ');
+      const areaPath = pts.length > 0
+        ? `M ${pts[0].x},${padT + plotH} L ${ pts.map(p => `${p.x},${p.y}`).join(' L ') } L ${pts[pts.length - 1].x},${padT + plotH} Z`
+        : '';
+
+      svgHtml = `
+        <svg viewBox="0 0 ${w} ${h}" style="width:100%; max-width:540px; height:auto;">
+          ${[0, 0.25, 0.5, 0.75, 1].map(step => {
+            const y = padT + plotH * (1 - step);
+            const val = Math.round(maxVal * step);
+            return `
+              <line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="#e5e7eb" stroke-dasharray="3,3"/>
+              <text x="${padL - 8}" y="${y + 4}" font-size="10" fill="#6b7280" text-anchor="end">${val}</text>
+            `;
+          }).join('')}
+          ${cfg.type === 'area' ? `<path d="${areaPath}" fill="rgba(79, 70, 229, 0.16)"/>` : ''}
+          <polyline fill="none" stroke="#4f46e5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${polyPoints}"/>
+          ${pts.map(p => `
+            <circle cx="${p.x}" cy="${p.y}" r="5" fill="#ffffff" stroke="#4f46e5" stroke-width="3"/>
+            <text x="${p.x}" y="${p.y - 10}" font-size="10.5" font-weight="800" fill="#312e81" text-anchor="middle">${p.value}${unitSuffix}</text>
+            <text x="${p.x}" y="${h - 12}" font-size="11" font-weight="600" fill="#374151" text-anchor="middle">${escapeHtml(p.label)}</text>
+          `).join('')}
+        </svg>
+      `;
+    } else if (cfg.type === 'hbar') {
+      const rowH = 32;
+      const w = 520;
+      const h = Math.max(140, items.length * rowH + 30);
+      const padL = 110;
+      const maxBarW = w - padL - 70;
+
+      svgHtml = `
+        <svg viewBox="0 0 ${w} ${h}" style="width:100%; max-width:540px; height:auto;">
+          ${items.map((it, i) => {
+            const y = 16 + i * rowH;
+            const bw = Math.max(6, (Math.max(0, it.value) / maxVal) * maxBarW);
+            const color = it.color || CHART_PALETTE[i % CHART_PALETTE.length];
+            return `
+              <text x="${padL - 10}" y="${y + 15}" font-size="11.5" font-weight="700" fill="#374151" text-anchor="end">${escapeHtml(it.label)}</text>
+              <rect x="${padL}" y="${y + 2}" width="${bw}" height="20" rx="5" fill="${color}"/>
+              <text x="${padL + bw + 8}" y="${y + 16}" font-size="11" font-weight="800" fill="#1e1b4b">${it.value}${unitSuffix}</text>
+            `;
+          }).join('')}
+        </svg>
+      `;
+    } else {
+      // Default Vertical Bar Chart
+      const w = 520;
+      const h = 225;
+      const padL = 46;
+      const padR = 20;
+      const padT = 26;
+      const padB = 38;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+      const slotW = plotW / Math.max(items.length, 1);
+      const barW = Math.min(46, Math.max(16, slotW * 0.58));
+
+      svgHtml = `
+        <svg viewBox="0 0 ${w} ${h}" style="width:100%; max-width:540px; height:auto;">
+          ${[0, 0.25, 0.5, 0.75, 1].map(step => {
+            const y = padT + plotH * (1 - step);
+            const val = Math.round(maxVal * step);
+            return `
+              <line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="#e5e7eb" stroke-dasharray="3,3"/>
+              <text x="${padL - 8}" y="${y + 4}" font-size="10" fill="#6b7280" text-anchor="end">${val}</text>
+            `;
+          }).join('')}
+          ${items.map((it, i) => {
+            const bh = Math.max(4, (Math.max(0, it.value) / maxVal) * plotH);
+            const x = padL + i * slotW + (slotW - barW) / 2;
+            const y = padT + plotH - bh;
+            const color = it.color || CHART_PALETTE[i % CHART_PALETTE.length];
+            return `
+              <rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="5" fill="${color}"/>
+              <text x="${x + barW / 2}" y="${y - 6}" font-size="10.5" font-weight="800" fill="#1e1b4b" text-anchor="middle">${it.value}${unitSuffix}</text>
+              <text x="${x + barW / 2}" y="${h - 12}" font-size="11" font-weight="600" fill="#374151" text-anchor="middle">${escapeHtml(it.label)}</text>
+            `;
+          }).join('')}
+        </svg>
+      `;
+    }
+
+    return `
+      <div class="study-chart-card">
+        <div class="study-chart-header">
+          <div class="study-chart-title">
+            <i data-lucide="bar-chart-3" class="icon-sm" style="color:var(--primary);"></i>
+            <span>${escapeHtml(cfg.title)}</span>
+            <span class="badge badge-USER" style="font-size:0.6rem; text-transform:uppercase;">${escapeHtml(cfg.type)}</span>
+          </div>
+          ${noteId ? `
+            <div style="display:flex; gap:0.3rem;">
+              <button type="button" class="btn-tiny" onclick="window.editExistingChart(${chartIdx})" title="Edit Chart Data or Type">
+                <i data-lucide="sliders-horizontal" class="icon-xs"></i> Edit Chart
+              </button>
+              <button type="button" class="btn-tiny" style="color:var(--destructive);" onclick="window.deleteExistingChart('${noteId}', ${chartIdx})" title="Remove Chart">
+                <i data-lucide="trash-2" class="icon-xs"></i>
+              </button>
+            </div>
+          ` : ''}
+        </div>
+        <div class="study-chart-svg-wrap">
+          ${svgHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  // ======================================================
+  // RICH MARKDOWN PARSER WITH HIGHLIGHTS, PINS, CLOZES, CHARTS, MATH, MERMAID, IMAGES & WIKI LINKS
   // ======================================================
   function formatMathFormula(expr) {
     return escapeHtml(expr)
@@ -187,10 +446,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     highlightsRegistry = [];
     pinnedSectionsRegistry = [];
     headingsOutlineRegistry = [];
+    chartsRegistry = [];
     currentNoteClozeCount = 0;
 
     if (!rawMd || !rawMd.trim()) {
-      return `<p style="color:var(--muted-foreground); font-style:italic;">No content written yet. Click <strong>Edit</strong> or use the bottom quick-append bar to add notes.</p>`;
+      return `<p style="color:var(--muted-foreground); font-style:italic;">Click <strong>➕ Add Element</strong> above, switch to <strong>✍️ Write / ⚡ Split Studio</strong>, or type in the bottom bar to start building your study note directly.</p>`;
     }
 
     codeSnippetsRegistry = [];
@@ -206,10 +466,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       return token;
     });
 
-    // 2. Code Blocks & Mermaid Diagrams ```lang ... ```
-    text = text.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    // 2. Charts, Mermaid Diagrams & Code Blocks ```lang ... ```
+    text = text.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (fullBlock, lang, code) => {
       const trimmedCode = code.replace(/\n$/, '');
-      if ((lang || '').toLowerCase() === 'mermaid') {
+      const langLower = (lang || '').toLowerCase();
+
+      if (langLower === 'chart') {
+        const cIdx = chartsRegistry.length;
+        chartsRegistry.push({ rawBlock: fullBlock, rawCode: trimmedCode });
+        const html = renderSvgChartHtml(trimmedCode, cIdx, noteId);
+        const token = `@@CODEBLOCK_${codePlaceholders.length}@@`;
+        codePlaceholders.push(html);
+        return token;
+      }
+
+      if (langLower === 'mermaid') {
         const html = `<div class="mermaid-diagram-box"><pre class="mermaid">${escapeHtml(trimmedCode)}</pre></div>`;
         const token = `@@CODEBLOCK_${codePlaceholders.length}@@`;
         codePlaceholders.push(html);
@@ -916,7 +1187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {}
   };
 
-  async function saveNoteContentDirectly(noteId, newContent, toastMsg = 'Saved!') {
+  async function saveNoteContentDirectly(noteId, newContent, toastMsg = 'Saved!', skipFullReRender = false) {
     const note = notesList.find(n => n.id === noteId);
     if (!note) return;
     try {
@@ -925,8 +1196,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         body: { content: newContent }
       });
       note.content = res.note.content;
-      showToast(toastMsg, 'success');
-      renderReaderPane(note);
+      if (toastMsg) showToast(toastMsg, 'success');
+      if (!skipFullReRender) {
+        renderReaderPane(note);
+      }
       renderNotesList();
     } catch (err) {}
   }
@@ -1325,22 +1598,842 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // ======================================================
-  // RENDER EXPANSIVE READER PANE WITH SUMMARY MODE & QUICK APPEND
+  // DIRECT IN-STUDY WRITING, ELEMENT MENU, CHART STUDIO, WHITEBOARD & DIAGRAM BUILDER
+  // ======================================================
+  let liveAutoSaveTimer = null;
+
+  window.setCanvasMode = function(mode) {
+    canvasMode = mode;
+    const note = notesList.find(n => n.id === selectedNoteId);
+    if (note) renderReaderPane(note);
+  };
+
+  window.toggleElementPalette = function(forceState) {
+    const el = document.getElementById('element-palette-dropdown');
+    if (!el) return;
+    if (typeof forceState === 'boolean') {
+      el.classList.toggle('open', forceState);
+    } else {
+      el.classList.toggle('open');
+    }
+  };
+
+  document.addEventListener('click', (e) => {
+    const palette = document.getElementById('element-palette-dropdown');
+    const trigger = document.getElementById('insert-menu-trigger-btn');
+    if (palette && palette.classList.contains('open')) {
+      if (!palette.contains(e.target) && (!trigger || !trigger.contains(e.target))) {
+        palette.classList.remove('open');
+      }
+    }
+  });
+
+  // Insert or append markdown snippet directly into the current note (works in Study, Write, and Split modes!)
+  window.insertSnippetIntoActiveNote = async function(snippet, toastMsg = 'Element added to note!') {
+    window.toggleElementPalette(false);
+    const note = notesList.find(n => n.id === selectedNoteId);
+    if (!note) return;
+
+    const directTa = document.getElementById('direct-note-textarea');
+    if (directTa) {
+      const start = directTa.selectionStart ?? directTa.value.length;
+      const end = directTa.selectionEnd ?? directTa.value.length;
+      const prefix = start > 0 && !directTa.value.slice(0, start).endsWith('\n') ? '\n\n' : '';
+      const inserted = `${prefix}${snippet}\n`;
+      directTa.setRangeText(inserted, start, end, 'end');
+      directTa.focus();
+      note.content = directTa.value;
+      updateLiveSplitPreview(note);
+      await saveNoteContentDirectly(note.id, directTa.value, toastMsg, true);
+    } else {
+      const current = (note.content || '').trimEnd();
+      const updated = current ? `${current}\n\n${snippet}` : snippet;
+      await saveNoteContentDirectly(note.id, updated, toastMsg, false);
+    }
+  };
+
+  function updateLiveSplitPreview(note) {
+    const previewEl = document.getElementById('direct-live-preview-body');
+    if (!previewEl || !note) return;
+    previewEl.innerHTML = renderMarkdown(note.content, note.id);
+    if (window.lucide) lucide.createIcons();
+    runMermaidDiagrams();
+  }
+
+  window.handleDirectTextareaInput = function(noteId, textarea) {
+    const note = notesList.find(n => n.id === noteId);
+    if (!note) return;
+    note.content = textarea.value;
+
+    // Detect "/" at start of line to pop open Element Menu
+    const pos = textarea.selectionStart;
+    const before = textarea.value.slice(0, pos);
+    if (/(?:^|\n)\/$/.test(before)) {
+      window.toggleElementPalette(true);
+    }
+
+    updateLiveSplitPreview(note);
+
+    const statusBadge = document.getElementById('direct-save-status');
+    if (statusBadge) {
+      statusBadge.textContent = '● Editing...';
+      statusBadge.style.color = '#d97706';
+    }
+
+    clearTimeout(liveAutoSaveTimer);
+    liveAutoSaveTimer = setTimeout(async () => {
+      try {
+        const res = await apiRequest(`/api/study/notes/${noteId}`, {
+          method: 'PUT',
+          body: { content: textarea.value }
+        });
+        note.content = res.note.content;
+        if (statusBadge) {
+          statusBadge.textContent = '✓ Auto-saved';
+          statusBadge.style.color = '#10b981';
+        }
+        renderNotesList();
+      } catch (e) {}
+    }, 850);
+  };
+
+  window.saveDirectNoteNow = async function(noteId) {
+    clearTimeout(liveAutoSaveTimer);
+    const note = notesList.find(n => n.id === noteId);
+    if (!note) return;
+    const titleEl = document.getElementById('inline-note-title');
+    const summaryEl = document.getElementById('inline-note-summary');
+    const chapterEl = document.getElementById('inline-note-chapter');
+    const directTa = document.getElementById('direct-note-textarea');
+
+    const body = {
+      title: titleEl ? titleEl.value.trim() || 'Untitled Note' : note.title,
+      summary: summaryEl ? summaryEl.value.trim() : note.summary,
+      chapter: chapterEl ? chapterEl.value.trim() || null : note.chapter,
+      content: directTa ? directTa.value : note.content
+    };
+
+    try {
+      const res = await apiRequest(`/api/study/notes/${noteId}`, {
+        method: 'PUT',
+        body
+      });
+      Object.assign(note, res.note);
+      const statusBadge = document.getElementById('direct-save-status');
+      if (statusBadge) {
+        statusBadge.textContent = '✓ Saved';
+        statusBadge.style.color = '#10b981';
+      }
+      showToast('Note saved!', 'success');
+      await loadSubjects();
+      renderNotesList();
+      if (canvasMode === 'study') renderReaderPane(note);
+    } catch (e) {}
+  };
+
+  window.quickUpdateHeaderMeta = async function(noteId, field, value) {
+    const note = notesList.find(n => n.id === noteId);
+    if (!note) return;
+    const payload = {};
+    if (field === 'title') {
+      const v = String(value || '').trim();
+      if (!v || v === note.title) return;
+      payload.title = v;
+    } else if (field === 'summary') {
+      const v = String(value || '').trim();
+      if (v === (note.summary || '')) return;
+      payload.summary = v;
+    } else if (field === 'chapter') {
+      const v = String(value || '').trim();
+      if (v === (note.chapter || '')) return;
+      payload.chapter = v || null;
+    } else if (field === 'subjectId') {
+      payload.subjectId = value || null;
+    } else if (field === 'tags') {
+      payload.tags = String(value || '').split(',').map(t => t.trim()).filter(Boolean);
+    }
+
+    try {
+      const res = await apiRequest(`/api/study/notes/${noteId}`, {
+        method: 'PUT',
+        body: payload
+      });
+      Object.assign(note, res.note);
+      await loadSubjects();
+      renderNotesList();
+    } catch (e) {}
+  };
+
+  // ======================================================
+  // EMBEDDED STUDIO PANELS (CHART BUILDER, WHITEBOARD, FLOWCHART, MATH, FLASHCARDS)
+  // ======================================================
+  window.openInlineStudio = function(studioType) {
+    window.toggleElementPalette(false);
+    if (activeInlineStudio === studioType) {
+      activeInlineStudio = null;
+    } else {
+      activeInlineStudio = studioType;
+      if (studioType !== 'chart') editingChartIdx = -1;
+    }
+    const note = notesList.find(n => n.id === selectedNoteId);
+    if (note) {
+      renderReaderPane(note);
+      if (activeInlineStudio === 'whiteboard') {
+        setTimeout(() => initWhiteboardCanvas(), 40);
+      } else if (activeInlineStudio === 'chart') {
+        setTimeout(() => updateChartStudioPreview(), 40);
+      } else if (activeInlineStudio === 'diagram') {
+        setTimeout(() => updateDiagramStudioPreview(), 40);
+      }
+    }
+  };
+
+  window.editExistingChart = function(chartIdx) {
+    editingChartIdx = chartIdx;
+    activeInlineStudio = 'chart';
+    const note = notesList.find(n => n.id === selectedNoteId);
+    if (note) {
+      renderReaderPane(note);
+      setTimeout(() => updateChartStudioPreview(), 40);
+    }
+  };
+
+  window.deleteExistingChart = async function(noteId, chartIdx) {
+    const note = notesList.find(n => n.id === noteId);
+    const ch = chartsRegistry[chartIdx];
+    if (!note || !ch) return;
+    const updated = (note.content || '').replace(ch.rawBlock, '').replace(/\n{3,}/g, '\n\n').trim();
+    await saveNoteContentDirectly(noteId, updated, 'Chart removed');
+  };
+
+  function renderInlineStudioHtml(note) {
+    if (!activeInlineStudio) return '';
+
+    // 1. INTERACTIVE CHART BUILDER STUDIO
+    if (activeInlineStudio === 'chart') {
+      let initCfg = {
+        type: 'bar',
+        title: 'Performance Comparison',
+        unit: '',
+        items: [
+          { label: 'Q1', value: 48 },
+          { label: 'Q2', value: 85 },
+          { label: 'Q3', value: 112 },
+          { label: 'Q4', value: 145 }
+        ]
+      };
+      if (editingChartIdx >= 0 && chartsRegistry[editingChartIdx]) {
+        initCfg = parseChartConfig(chartsRegistry[editingChartIdx].rawCode);
+      }
+
+      return `
+        <div class="inline-studio-panel">
+          <div class="inline-studio-header">
+            <div style="display:flex; align-items:center; gap:0.45rem; font-weight:800; font-size:0.9rem; color:var(--primary);">
+              <i data-lucide="bar-chart-3" class="icon-sm"></i>
+              <span>${editingChartIdx >= 0 ? 'Edit Data Chart' : 'Interactive Data Chart Studio'}</span>
+            </div>
+            <button type="button" class="btn-tiny" onclick="openInlineStudio(null)">
+              <i data-lucide="x" class="icon-xs"></i> Close
+            </button>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1.15fr 1fr; gap:1rem; align-items:start;">
+            <div>
+              <div style="display:grid; grid-template-columns: 1.3fr 1fr 0.7fr; gap:0.5rem; margin-bottom:0.65rem;">
+                <div>
+                  <label class="form-label" style="font-size:0.7rem;">Chart Title</label>
+                  <input type="text" id="studio-chart-title" class="form-input" style="height:1.85rem; font-size:0.78rem;" value="${escapeHtml(initCfg.title)}" oninput="window.updateChartStudioPreview()">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:0.7rem;">Chart Type</label>
+                  <select id="studio-chart-type" class="form-select" style="height:1.85rem; font-size:0.78rem;" onchange="window.updateChartStudioPreview()">
+                    <option value="bar" ${initCfg.type === 'bar' ? 'selected' : ''}>📊 Vertical Bar Chart</option>
+                    <option value="line" ${initCfg.type === 'line' ? 'selected' : ''}>📈 Line Trend Chart</option>
+                    <option value="area" ${initCfg.type === 'area' ? 'selected' : ''}>🌊 Shaded Area Chart</option>
+                    <option value="pie" ${initCfg.type === 'pie' ? 'selected' : ''}>🥧 Pie Chart</option>
+                    <option value="doughnut" ${initCfg.type === 'doughnut' ? 'selected' : ''}>🍩 Doughnut Chart</option>
+                    <option value="hbar" ${initCfg.type === 'hbar' ? 'selected' : ''}>📉 Horizontal Bar</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:0.7rem;">Unit (optional)</label>
+                  <input type="text" id="studio-chart-unit" class="form-input" style="height:1.85rem; font-size:0.78rem;" placeholder="%, $, ms" value="${escapeHtml(initCfg.unit || '')}" oninput="window.updateChartStudioPreview()">
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                <span style="font-size:0.7rem; font-weight:700; color:var(--muted-foreground);">DATA POINTS (LABEL &amp; NUMBER)</span>
+                <button type="button" class="btn-tiny" onclick="window.addChartStudioRow()">+ Add Row</button>
+              </div>
+
+              <div id="studio-chart-rows" style="display:flex; flex-direction:column; gap:0.35rem; max-height:11.5rem; overflow-y:auto; padding-right:0.2rem;">
+                ${initCfg.items.map(it => `
+                  <div class="chart-data-row" style="display:grid; grid-template-columns: 1.2fr 0.8fr auto; gap:0.35rem; align-items:center;">
+                    <input type="text" class="form-input chart-row-label" style="height:1.75rem; font-size:0.76rem;" placeholder="Label" value="${escapeHtml(it.label)}" oninput="window.updateChartStudioPreview()">
+                    <input type="number" step="any" class="form-input chart-row-val" style="height:1.75rem; font-size:0.76rem;" placeholder="Value" value="${it.value}" oninput="window.updateChartStudioPreview()">
+                    <button type="button" class="btn-icon" style="width:1.65rem; height:1.65rem; color:var(--destructive);" onclick="this.parentElement.remove(); window.updateChartStudioPreview();">
+                      <i data-lucide="x" class="icon-xs"></i>
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:0.4rem; margin-top:0.85rem;">
+                <button type="button" class="btn btn-primary btn-compact" onclick="window.commitChartStudioToNote('${note.id}')">
+                  <i data-lucide="check" class="icon-xs"></i>
+                  <span>${editingChartIdx >= 0 ? 'Update Chart in Note' : 'Insert Chart into Note'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div style="font-size:0.68rem; font-weight:700; color:var(--muted-foreground); margin-bottom:0.25rem; text-transform:uppercase;">Live Preview</div>
+              <div id="studio-chart-live-preview" style="border:1px solid var(--border); border-radius:var(--radius-md); padding:0.5rem; background:#faf9ff;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. INTERACTIVE WHITEBOARD & DIAGRAM DRAWING STUDIO
+    if (activeInlineStudio === 'whiteboard') {
+      return `
+        <div class="inline-studio-panel">
+          <div class="inline-studio-header">
+            <div style="display:flex; align-items:center; gap:0.45rem; font-weight:800; font-size:0.9rem; color:var(--primary);">
+              <i data-lucide="pen-tool" class="icon-sm"></i>
+              <span>Interactive Whiteboard &amp; Diagram Sketchpad</span>
+            </div>
+            <div style="display:flex; gap:0.4rem;">
+              <button type="button" class="btn btn-primary btn-compact" onclick="window.insertWhiteboardIntoNote()">
+                <i data-lucide="check" class="icon-xs"></i> Insert Drawing into Note
+              </button>
+              <button type="button" class="btn-tiny" onclick="openInlineStudio(null)">
+                <i data-lucide="x" class="icon-xs"></i> Close
+              </button>
+            </div>
+          </div>
+
+          <div class="whiteboard-toolbar">
+            <button type="button" class="wb-tool-btn active" data-wb-tool="pen" onclick="window.setWbTool('pen', this)">✏️ Pen</button>
+            <button type="button" class="wb-tool-btn" data-wb-tool="line" onclick="window.setWbTool('line', this)">📏 Line</button>
+            <button type="button" class="wb-tool-btn" data-wb-tool="arrow" onclick="window.setWbTool('arrow', this)">↗️ Arrow</button>
+            <button type="button" class="wb-tool-btn" data-wb-tool="rect" onclick="window.setWbTool('rect', this)">▭ Box</button>
+            <button type="button" class="wb-tool-btn" data-wb-tool="circle" onclick="window.setWbTool('circle', this)">◯ Circle</button>
+            <button type="button" class="wb-tool-btn" data-wb-tool="diamond" onclick="window.setWbTool('diamond', this)">◇ Decision</button>
+            <button type="button" class="wb-tool-btn" data-wb-tool="text" onclick="window.setWbTool('text', this)">🔤 Text</button>
+            <button type="button" class="wb-tool-btn" data-wb-tool="eraser" onclick="window.setWbTool('eraser', this)">🧹 Eraser</button>
+
+            <span style="width:1px; height:1.25rem; background:var(--border); margin:0 0.2rem;"></span>
+
+            <div style="display:inline-flex; align-items:center; gap:0.25rem;">
+              ${['#4f46e5', '#0f172a', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9'].map((col, idx) => `
+                <button type="button" class="sel-color-dot" style="background:${col}; border:2px solid ${idx === 0 ? '#111827' : 'transparent'};" onclick="window.setWbColor('${col}', this)"></button>
+              `).join('')}
+            </div>
+
+            <span style="width:1px; height:1.25rem; background:var(--border); margin:0 0.2rem;"></span>
+
+            <button type="button" class="wb-tool-btn" onclick="window.undoWhiteboard()">↩ Undo</button>
+            <button type="button" class="wb-tool-btn" onclick="window.clearWhiteboard()">🗑 Clear</button>
+          </div>
+
+          <div class="whiteboard-canvas-wrap">
+            <canvas id="study-whiteboard-canvas" width="760" height="340"></canvas>
+          </div>
+          <div style="font-size:0.68rem; color:var(--muted-foreground); margin-top:0.35rem;">
+            💡 Tip: Use <strong>▭ Box</strong>, <strong>◇ Decision</strong>, <strong>↗️ Arrow</strong>, and <strong>🔤 Text</strong> to draw flowcharts or architecture diagrams, or sketch freely with <strong>✏️ Pen</strong>.
+          </div>
+        </div>
+      `;
+    }
+
+    // 3. VISUAL FLOWCHART & MERMAID DIAGRAM BUILDER
+    if (activeInlineStudio === 'diagram') {
+      return `
+        <div class="inline-studio-panel">
+          <div class="inline-studio-header">
+            <div style="display:flex; align-items:center; gap:0.45rem; font-weight:800; font-size:0.9rem; color:var(--primary);">
+              <i data-lucide="git-merge" class="icon-sm"></i>
+              <span>Visual Flowchart &amp; Diagram Studio</span>
+            </div>
+            <button type="button" class="btn-tiny" onclick="openInlineStudio(null)">
+              <i data-lucide="x" class="icon-xs"></i> Close
+            </button>
+          </div>
+
+          <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.65rem;">
+            <span style="font-size:0.7rem; font-weight:700; color:var(--muted-foreground); align-self:center; margin-right:0.2rem;">1-Click Templates:</span>
+            <button type="button" class="btn-tiny" onclick="window.loadDiagramPreset('flowchart')">🔀 Flowchart</button>
+            <button type="button" class="btn-tiny" onclick="window.loadDiagramPreset('sequence')">🔄 Sequence Diagram</button>
+            <button type="button" class="btn-tiny" onclick="window.loadDiagramPreset('mindmap')">🧠 Hierarchy Tree</button>
+            <button type="button" class="btn-tiny" onclick="window.loadDiagramPreset('state')">⚡ State Machine</button>
+            <button type="button" class="btn-tiny" onclick="window.loadDiagramPreset('er')">🗄️ Database ER</button>
+          </div>
+
+          <!-- Visual Quick Step Adder -->
+          <div style="display:grid; grid-template-columns: 1fr 0.8fr 1fr auto; gap:0.4rem; align-items:center; background:#f8fafc; padding:0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:0.65rem;">
+            <input type="text" id="diag-from-node" class="form-input" style="height:1.75rem; font-size:0.75rem;" placeholder="From Node (e.g. Client)">
+            <input type="text" id="diag-edge-label" class="form-input" style="height:1.75rem; font-size:0.75rem;" placeholder="Arrow Label (optional)">
+            <input type="text" id="diag-to-node" class="form-input" style="height:1.75rem; font-size:0.75rem;" placeholder="To Node (e.g. API Server)">
+            <button type="button" class="btn btn-secondary btn-compact" style="height:1.75rem !important;" onclick="window.addVisualDiagramConnection()">+ Add Connection</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.85rem; align-items:start;">
+            <div>
+              <textarea id="studio-diagram-code" class="form-textarea code-font" rows="7" style="font-size:0.78rem;" oninput="window.updateDiagramStudioPreview()">graph LR
+  A[Start / Input] --> B{Decision}
+  B -->|Yes| C[Process Data]
+  B -->|No| D[Fallback]
+  C --> E[Final Output]</textarea>
+              <div style="display:flex; justify-content:flex-end; margin-top:0.5rem;">
+                <button type="button" class="btn btn-primary btn-compact" onclick="window.commitDiagramStudioToNote()">
+                  <i data-lucide="check" class="icon-xs"></i> Insert Diagram into Note
+                </button>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:0.68rem; font-weight:700; color:var(--muted-foreground); margin-bottom:0.25rem; text-transform:uppercase;">Live Diagram Preview</div>
+              <div id="studio-diagram-preview" class="mermaid-diagram-box" style="margin:0; min-height:9rem;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 4. MATH FORMULA BUILDER STUDIO
+    if (activeInlineStudio === 'math') {
+      const symbols = [
+        { label: '∑ Sum', code: '\\sum_{i=1}^{n} ' },
+        { label: '∫ Integral', code: '\\int_{a}^{b} ' },
+        { label: '√ Root', code: '\\sqrt{x} ' },
+        { label: 'π Pi', code: '\\pi ' },
+        { label: 'Δ Delta', code: '\\Delta ' },
+        { label: 'α Alpha', code: '\\alpha ' },
+        { label: 'β Beta', code: '\\beta ' },
+        { label: 'σ Sigma', code: '\\sigma ' },
+        { label: '∞ Infinity', code: '\\infty ' },
+        { label: '≈ Approx', code: '\\approx ' },
+        { label: '≠ Not Eq', code: '\\neq ' },
+        { label: '≤ Less/Eq', code: '\\leq ' },
+        { label: '≥ Greater/Eq', code: '\\geq ' },
+        { label: '⇒ Implies', code: '\\Rightarrow ' },
+        { label: 'x² Squared', code: '^2 ' }
+      ];
+      return `
+        <div class="inline-studio-panel">
+          <div class="inline-studio-header">
+            <div style="display:flex; align-items:center; gap:0.45rem; font-weight:800; font-size:0.9rem; color:var(--primary);">
+              <i data-lucide="sigma" class="icon-sm"></i>
+              <span>Math Equation &amp; Formula Builder</span>
+            </div>
+            <button type="button" class="btn-tiny" onclick="openInlineStudio(null)">
+              <i data-lucide="x" class="icon-xs"></i> Close
+            </button>
+          </div>
+          <div style="display:flex; gap:0.3rem; flex-wrap:wrap; margin-bottom:0.6rem;">
+            ${symbols.map(s => `
+              <button type="button" class="btn-tiny" onclick="const inp=document.getElementById('studio-math-input'); inp.value += '${escapeJsAttr(s.code)}'; inp.focus();">${s.label}</button>
+            `).join('')}
+          </div>
+          <div style="display:flex; gap:0.5rem;">
+            <input type="text" id="studio-math-input" class="form-input code-font" value="NPV = \\sum CF_t / (1 + r)^t - C_0" placeholder="Type formula...">
+            <button type="button" class="btn btn-primary btn-compact" onclick="const v=document.getElementById('studio-math-input').value.trim(); if(v){ window.insertSnippetIntoActiveNote('$$\\n' + v + '\\n$$', 'Math formula inserted!'); window.openInlineStudio(null); }">
+              Insert Equation
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // 5. INLINE FLASHCARD & REFERENCE ADDER
+    if (activeInlineStudio === 'flashcard') {
+      return `
+        <div class="inline-studio-panel">
+          <div class="inline-studio-header">
+            <div style="display:flex; align-items:center; gap:0.45rem; font-weight:800; font-size:0.9rem; color:#7c3aed;">
+              <i data-lucide="sparkles" class="icon-sm"></i>
+              <span>Add Flashcards &amp; Reference Links to Note</span>
+            </div>
+            <button type="button" class="btn-tiny" onclick="openInlineStudio(null)">
+              <i data-lucide="x" class="icon-xs"></i> Close
+            </button>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <div>
+              <div style="font-size:0.72rem; font-weight:700; margin-bottom:0.35rem;">✦ Add Active Recall Flashcard</div>
+              <input type="text" id="inline-fc-q" class="form-input" style="height:1.85rem; font-size:0.8rem; margin-bottom:0.35rem;" placeholder="Question (Front of card)...">
+              <input type="text" id="inline-fc-a" class="form-input" style="height:1.85rem; font-size:0.8rem; margin-bottom:0.45rem;" placeholder="Answer (Back of card)...">
+              <button type="button" class="btn btn-primary btn-compact" onclick="window.addInlineFlashcard('${note.id}')">+ Save Flashcard</button>
+            </div>
+            <div>
+              <div style="font-size:0.72rem; font-weight:700; margin-bottom:0.35rem;">🔗 Add Reference URL</div>
+              <input type="text" id="inline-res-title" class="form-input" style="height:1.85rem; font-size:0.8rem; margin-bottom:0.35rem;" placeholder="Resource Title (e.g. Official Docs)...">
+              <input type="url" id="inline-res-url" class="form-input" style="height:1.85rem; font-size:0.8rem; margin-bottom:0.45rem;" placeholder="https://...">
+              <button type="button" class="btn btn-secondary btn-compact" onclick="window.addInlineResource('${note.id}')">+ Save Link</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    return '';
+  }
+
+  // Chart Studio Helpers
+  window.addChartStudioRow = function() {
+    const container = document.getElementById('studio-chart-rows');
+    if (!container) return;
+    const row = document.createElement('div');
+    row.className = 'chart-data-row';
+    row.style.cssText = 'display:grid; grid-template-columns: 1.2fr 0.8fr auto; gap:0.35rem; align-items:center;';
+    row.innerHTML = `
+      <input type="text" class="form-input chart-row-label" style="height:1.75rem; font-size:0.76rem;" placeholder="Label" value="Item" oninput="window.updateChartStudioPreview()">
+      <input type="number" step="any" class="form-input chart-row-val" style="height:1.75rem; font-size:0.76rem;" placeholder="Value" value="50" oninput="window.updateChartStudioPreview()">
+      <button type="button" class="btn-icon" style="width:1.65rem; height:1.65rem; color:var(--destructive);" onclick="this.parentElement.remove(); window.updateChartStudioPreview();">
+        <i data-lucide="x" class="icon-xs"></i>
+      </button>
+    `;
+    container.appendChild(row);
+    if (window.lucide) lucide.createIcons();
+    window.updateChartStudioPreview();
+  };
+
+  function buildChartMarkdownFromStudio() {
+    const title = document.getElementById('studio-chart-title')?.value.trim() || 'Study Chart';
+    const type = document.getElementById('studio-chart-type')?.value || 'bar';
+    const unit = document.getElementById('studio-chart-unit')?.value.trim() || '';
+    const pairs = [];
+    document.querySelectorAll('#studio-chart-rows .chart-data-row').forEach(r => {
+      const k = r.querySelector('.chart-row-label')?.value.trim();
+      const v = r.querySelector('.chart-row-val')?.value.trim();
+      if (k && v !== '' && !isNaN(Number(v))) {
+        pairs.push(`${k}: ${Number(v)}`);
+      }
+    });
+    return `type: ${type}\ntitle: ${title}${unit ? `\nunit: ${unit}` : ''}\n${pairs.join('\n')}`;
+  }
+
+  window.updateChartStudioPreview = function() {
+    const preview = document.getElementById('studio-chart-live-preview');
+    if (!preview) return;
+    const raw = buildChartMarkdownFromStudio();
+    preview.innerHTML = renderSvgChartHtml(raw, -1, '');
+    if (window.lucide) lucide.createIcons();
+  };
+
+  window.commitChartStudioToNote = async function(noteId) {
+    const raw = buildChartMarkdownFromStudio();
+    const block = `\`\`\`chart\n${raw}\n\`\`\``;
+    const note = notesList.find(n => n.id === noteId);
+    if (!note) return;
+
+    if (editingChartIdx >= 0 && chartsRegistry[editingChartIdx]) {
+      const updated = (note.content || '').replace(chartsRegistry[editingChartIdx].rawBlock, block);
+      activeInlineStudio = null;
+      editingChartIdx = -1;
+      await saveNoteContentDirectly(noteId, updated, 'Chart updated!');
+    } else {
+      activeInlineStudio = null;
+      editingChartIdx = -1;
+      await window.insertSnippetIntoActiveNote(block, 'Chart inserted into note!');
+    }
+  };
+
+  // Diagram Studio Helpers
+  window.loadDiagramPreset = function(preset) {
+    const ta = document.getElementById('studio-diagram-code');
+    if (!ta) return;
+    const presets = {
+      flowchart: `graph LR\n  A[Start] --> B{Valid?}\n  B -->|Yes| C[Execute Action]\n  B -->|No| D[Log Error]\n  C --> E[Success]`,
+      sequence: `sequenceDiagram\n  participant User\n  participant API\n  participant DB\n  User->>API: POST /request\n  API->>DB: Query Data\n  DB-->>API: Return Rows\n  API-->>User: 200 OK JSON`,
+      mindmap: `graph TD\n  Root[Core Topic] --> B1[Branch 1: Theory]\n  Root --> B2[Branch 2: Formulas]\n  Root --> B3[Branch 3: Case Studies]\n  B1 --> C1[Key Principle]\n  B2 --> C2[Equation]`,
+      state: `stateDiagram-v2\n  [*] --> Idle\n  Idle --> Processing : Start\n  Processing --> Completed : Success\n  Processing --> Failed : Error\n  Completed --> [*]`,
+      er: `erDiagram\n  STUDY_SUBJECT ||--o{ STUDY_NOTE : contains\n  USER ||--o{ STUDY_SUBJECT : owns`
+    };
+    ta.value = presets[preset] || presets.flowchart;
+    window.updateDiagramStudioPreview();
+  };
+
+  window.addVisualDiagramConnection = function() {
+    const fromEl = document.getElementById('diag-from-node');
+    const edgeEl = document.getElementById('diag-edge-label');
+    const toEl = document.getElementById('diag-to-node');
+    const ta = document.getElementById('studio-diagram-code');
+    if (!fromEl || !toEl || !ta) return;
+    const f = fromEl.value.trim();
+    const t = toEl.value.trim();
+    const lbl = edgeEl?.value.trim();
+    if (!f || !t) return;
+    const fId = f.replace(/[^a-zA-Z0-9]/g, '') || 'N1';
+    const tId = t.replace(/[^a-zA-Z0-9]/g, '') || 'N2';
+    const line = lbl ? `  ${fId}[${f}] -->|${lbl}| ${tId}[${t}]` : `  ${fId}[${f}] --> ${tId}[${t}]`;
+    ta.value = `${ta.value.trimEnd()}\n${line}`;
+    fromEl.value = '';
+    if (edgeEl) edgeEl.value = '';
+    toEl.value = '';
+    window.updateDiagramStudioPreview();
+  };
+
+  window.updateDiagramStudioPreview = function() {
+    const ta = document.getElementById('studio-diagram-code');
+    const prev = document.getElementById('studio-diagram-preview');
+    if (!ta || !prev) return;
+    prev.innerHTML = `<pre class="mermaid">${escapeHtml(ta.value.trim())}</pre>`;
+    runMermaidDiagrams();
+  };
+
+  window.commitDiagramStudioToNote = async function() {
+    const ta = document.getElementById('studio-diagram-code');
+    if (!ta || !ta.value.trim()) return;
+    const block = `\`\`\`mermaid\n${ta.value.trim()}\n\`\`\``;
+    activeInlineStudio = null;
+    await window.insertSnippetIntoActiveNote(block, 'Diagram inserted into note!');
+  };
+
+  // Interactive Whiteboard Sketchpad Engine
+  let wbTool = 'pen';
+  let wbColor = '#4f46e5';
+  let wbHistory = [];
+
+  window.setWbTool = function(tool, btnEl) {
+    wbTool = tool;
+    document.querySelectorAll('.wb-tool-btn[data-wb-tool]').forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+  };
+
+  window.setWbColor = function(col, btnEl) {
+    wbColor = col;
+    if (btnEl && btnEl.parentElement) {
+      btnEl.parentElement.querySelectorAll('.sel-color-dot').forEach(d => { d.style.borderColor = 'transparent'; });
+      btnEl.style.borderColor = '#111827';
+    }
+  };
+
+  function initWhiteboardCanvas() {
+    const canvas = document.getElementById('study-whiteboard-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    wbHistory = [];
+
+    // Fill white background so exported PNG is crisp
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    wbHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+
+    let drawing = false;
+    let startX = 0;
+    let startY = 0;
+    let snapshot = null;
+
+    function getCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    function drawArrowhead(context, fromX, fromY, toX, toY) {
+      const headLen = 12;
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      context.beginPath();
+      context.moveTo(toX, toY);
+      context.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
+      context.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+      context.closePath();
+      context.fillStyle = wbColor;
+      context.fill();
+    }
+
+    canvas.onpointerdown = (e) => {
+      const pt = getCoords(e);
+      if (wbTool === 'text') {
+        const label = prompt('Enter label or text for diagram:');
+        if (label && label.trim()) {
+          ctx.font = 'bold 15px Inter, sans-serif';
+          ctx.fillStyle = wbColor;
+          ctx.fillText(label.trim(), pt.x, pt.y);
+          wbHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        }
+        return;
+      }
+
+      drawing = true;
+      startX = pt.x;
+      startY = pt.y;
+      snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      if (wbTool === 'pen' || wbTool === 'eraser') {
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+      }
+    };
+
+    canvas.onpointermove = (e) => {
+      if (!drawing) return;
+      const pt = getCoords(e);
+
+      if (wbTool === 'pen' || wbTool === 'eraser') {
+        ctx.strokeStyle = wbTool === 'eraser' ? '#ffffff' : wbColor;
+        ctx.lineWidth = wbTool === 'eraser' ? 18 : 2.8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineTo(pt.x, pt.y);
+        ctx.stroke();
+        return;
+      }
+
+      ctx.putImageData(snapshot, 0, 0);
+      ctx.strokeStyle = wbColor;
+      ctx.lineWidth = 2.5;
+
+      if (wbTool === 'line' || wbTool === 'arrow') {
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(pt.x, pt.y);
+        ctx.stroke();
+        if (wbTool === 'arrow') drawArrowhead(ctx, startX, startY, pt.x, pt.y);
+      } else if (wbTool === 'rect') {
+        ctx.fillStyle = `${wbColor}14`;
+        ctx.fillRect(startX, startY, pt.x - startX, pt.y - startY);
+        ctx.strokeRect(startX, startY, pt.x - startX, pt.y - startY);
+      } else if (wbTool === 'circle') {
+        const rx = Math.abs(pt.x - startX) / 2;
+        const ry = Math.abs(pt.y - startY) / 2;
+        const cx = (startX + pt.x) / 2;
+        const cy = (startY + pt.y) / 2;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fillStyle = `${wbColor}14`;
+        ctx.fill();
+        ctx.stroke();
+      } else if (wbTool === 'diamond') {
+        const mx = (startX + pt.x) / 2;
+        const my = (startY + pt.y) / 2;
+        ctx.beginPath();
+        ctx.moveTo(mx, startY);
+        ctx.lineTo(pt.x, my);
+        ctx.lineTo(mx, pt.y);
+        ctx.lineTo(startX, my);
+        ctx.closePath();
+        ctx.fillStyle = `${wbColor}14`;
+        ctx.fill();
+        ctx.stroke();
+      }
+    };
+
+    canvas.onpointerup = () => {
+      if (!drawing) return;
+      drawing = false;
+      wbHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    };
+  }
+
+  window.undoWhiteboard = function() {
+    const canvas = document.getElementById('study-whiteboard-canvas');
+    if (!canvas || wbHistory.length <= 1) return;
+    wbHistory.pop();
+    const ctx = canvas.getContext('2d');
+    ctx.putImageData(wbHistory[wbHistory.length - 1], 0, 0);
+  };
+
+  window.clearWhiteboard = function() {
+    const canvas = document.getElementById('study-whiteboard-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    wbHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+  };
+
+  window.insertWhiteboardIntoNote = async function() {
+    const canvas = document.getElementById('study-whiteboard-canvas');
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL('image/png');
+    activeInlineStudio = null;
+    await window.insertSnippetIntoActiveNote(`![Diagram Sketch](${dataUrl})`, 'Whiteboard diagram inserted into note!');
+  };
+
+  // Inline Flashcard & Resource Adders
+  window.addInlineFlashcard = async function(noteId) {
+    const qEl = document.getElementById('inline-fc-q');
+    const aEl = document.getElementById('inline-fc-a');
+    const note = notesList.find(n => n.id === noteId);
+    if (!qEl || !aEl || !note) return;
+    const q = qEl.value.trim();
+    const a = aEl.value.trim();
+    if (!q || !a) {
+      showToast('Enter both Question and Answer.', 'info');
+      return;
+    }
+    const updated = [...(note.takeaways || []), { question: q, answer: a, interval: 0, ease: 2.5, reps: 0, nextReview: null }];
+    try {
+      const res = await apiRequest(`/api/study/notes/${noteId}`, { method: 'PUT', body: { takeaways: updated } });
+      note.takeaways = res.note.takeaways;
+      qEl.value = '';
+      aEl.value = '';
+      showToast('Flashcard added to note!', 'success');
+      await loadSubjects();
+      renderReaderPane(note);
+      renderNotesList();
+    } catch (e) {}
+  };
+
+  window.deleteInlineFlashcard = async function(noteId, idx) {
+    const note = notesList.find(n => n.id === noteId);
+    if (!note || !Array.isArray(note.takeaways)) return;
+    const updated = note.takeaways.filter((_, i) => i !== idx);
+    try {
+      const res = await apiRequest(`/api/study/notes/${noteId}`, { method: 'PUT', body: { takeaways: updated } });
+      note.takeaways = res.note.takeaways;
+      showToast('Flashcard removed', 'info');
+      await loadSubjects();
+      renderReaderPane(note);
+      renderNotesList();
+    } catch (e) {}
+  };
+
+  window.addInlineResource = async function(noteId) {
+    const tEl = document.getElementById('inline-res-title');
+    const uEl = document.getElementById('inline-res-url');
+    const note = notesList.find(n => n.id === noteId);
+    if (!uEl || !note) return;
+    const u = uEl.value.trim();
+    const t = tEl?.value.trim() || u;
+    if (!u) return;
+    const updated = [...(note.resources || []), { title: t, url: u }];
+    try {
+      const res = await apiRequest(`/api/study/notes/${noteId}`, { method: 'PUT', body: { resources: updated } });
+      note.resources = res.note.resources;
+      if (tEl) tEl.value = '';
+      uEl.value = '';
+      showToast('Reference link added!', 'success');
+      renderReaderPane(note);
+    } catch (e) {}
+  };
+
+  // ======================================================
+  // RENDER EXPANSIVE READER PANE WITH DIRECT WRITING, ELEMENT MENU, CHARTS & WHITEBOARD
   // ======================================================
   function renderEmptyReaderPane() {
     if (!readerPaneEl) return;
     readerPaneEl.innerHTML = `
-      <div style="margin:auto; padding:3rem 1.5rem; text-align:center; max-width:24rem;">
+      <div style="margin:auto; padding:3rem 1.5rem; text-align:center; max-width:26rem;">
         <div style="width:3rem; height:3rem; border-radius:var(--radius-lg); background:var(--secondary); color:var(--primary); display:flex; align-items:center; justify-content:center; margin:0 auto 0.875rem auto;">
           <i data-lucide="graduation-cap" class="icon-lg"></i>
         </div>
-        <h3 style="font-size:1rem; margin-bottom:0.35rem;">Ready to Study</h3>
+        <h3 style="font-size:1rem; margin-bottom:0.35rem;">Interactive Study Studio</h3>
         <p style="font-size:0.8rem; margin-bottom:1.125rem;">
-          Select a note on the left or create a new study note with Markdown, highlights, pinned sections, and flashcards.
+          Create a note and write directly inside the study canvas — insert charts, sketch diagrams, pin sections, and build flashcards without any popup dialogs.
         </p>
         <button class="btn btn-primary" onclick="openStudyNoteModal()">
           <i data-lucide="plus" class="icon-xs"></i>
-          <span>New Study Note</span>
+          <span>Start Writing New Note</span>
         </button>
       </div>
     `;
@@ -1350,12 +2443,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderReaderPane(note) {
     if (!readerPaneEl || !note) return;
 
-    const subj = note.subject;
+    const subjects = (subjectsData && subjectsData.subjects) || [];
     const takeaways = note.takeaways || [];
     const resources = note.resources || [];
     const tags = note.tags || [];
 
     const renderedArticleHtml = renderMarkdown(note.content, note.id);
+    const inlineStudioHtml = renderInlineStudioHtml(note);
 
     const hasPinsOrHeadings = pinnedSectionsRegistry.length > 0 || headingsOutlineRegistry.length > 0;
     const pinsAndOutlineHtml = hasPinsOrHeadings ? `
@@ -1387,67 +2481,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     readerPaneEl.innerHTML = `
       <div class="reader-header">
         <div class="reader-top-bar">
-          <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+          <!-- Direct Inline Metadata Controls (Subject, Mastery, Chapter, Tags) -->
+          <div style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;">
             <button type="button" class="btn-tiny mobile-menu-trigger" onclick="closeMobileReader()">
               <i data-lucide="arrow-left" class="icon-xs"></i> Back
             </button>
 
-            ${subj ? `
-              <span class="badge" style="color:${subj.color || '#4f46e5'}; border-color:${subj.color || '#4f46e5'}50; background:${subj.color || '#4f46e5'}12; cursor:pointer;" onclick="filterStudySubject('${subj.id}')">
-                <i data-lucide="${escapeHtml(subj.icon || 'book-open')}" class="icon-xs"></i>
-                ${escapeHtml(subj.name)}
-              </span>
-            ` : `
-              <span class="badge badge-USER">General Note</span>
-            `}
+            <select class="form-select" style="width:auto; max-width:11rem; height:1.6rem; font-size:0.72rem; padding:0 0.45rem; font-weight:700;" onchange="window.quickUpdateHeaderMeta('${note.id}', 'subjectId', this.value)" title="Assign Study Subject">
+              <option value="">📚 General Notes</option>
+              ${subjects.map(s => `
+                <option value="${s.id}" ${note.subjectId === s.id ? 'selected' : ''}>🎓 ${escapeHtml(s.name)}</option>
+              `).join('')}
+            </select>
 
-            <select class="form-select" style="width:auto; height:1.6rem; font-size:0.72rem; padding:0 0.45rem; font-weight:700;" onchange="quickUpdateMastery('${note.id}', this.value)">
+            <select class="form-select" style="width:auto; height:1.6rem; font-size:0.72rem; padding:0 0.45rem; font-weight:700;" onchange="quickUpdateMastery('${note.id}', this.value)" title="Mastery Status">
               <option value="NEW" ${note.mastery === 'NEW' ? 'selected' : ''}>🟣 New Topic</option>
               <option value="LEARNING" ${note.mastery === 'LEARNING' ? 'selected' : ''}>🔵 In Progress</option>
               <option value="REVIEW" ${note.mastery === 'REVIEW' ? 'selected' : ''}>🟠 Needs Review</option>
               <option value="MASTERED" ${note.mastery === 'MASTERED' ? 'selected' : ''}>🟢 Mastered</option>
             </select>
 
-            ${note.chapter ? `
-              <span class="badge badge-OTHER" style="font-size:0.65rem;">📂 ${escapeHtml(note.chapter)}</span>
-            ` : ''}
+            <input type="text" id="inline-note-chapter" list="chapter-suggestions" class="inline-meta-input" style="width:8.5rem;" placeholder="📂 Chapter / Module..." value="${escapeHtml(note.chapter || '')}" onblur="window.quickUpdateHeaderMeta('${note.id}', 'chapter', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}" title="Group under a Chapter / Module">
 
-            ${tags.map(t => `<span class="note-tag-chip">#${escapeHtml(t)}</span>`).join('')}
+            <input type="text" class="inline-meta-input" style="width:8.5rem;" placeholder="# tags (comma sep)" value="${escapeHtml(tags.join(', '))}" onblur="window.quickUpdateHeaderMeta('${note.id}', 'tags', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}" title="Tags (comma separated)">
           </div>
 
+          <!-- Canvas Mode Switcher & Note Actions -->
           <div class="reader-actions-group">
-            <button type="button" class="btn-tiny ${isCornellMode ? 'cornell-active' : ''}" onclick="toggleCornellMode()" title="Toggle Cornell Note-Taking Split Layout (Left Cue Column + Right Notes + Bottom Summary)">
-              <i data-lucide="columns" class="icon-xs"></i>
+            <div class="canvas-mode-switcher" role="tablist">
+              <button type="button" class="canvas-mode-btn ${canvasMode === 'study' ? 'active' : ''}" onclick="window.setCanvasMode('study')" title="Interactive Study & Reader View">
+                <i data-lucide="book-open" class="icon-xs"></i> Study
+              </button>
+              <button type="button" class="canvas-mode-btn ${canvasMode === 'split' ? 'active' : ''}" onclick="window.setCanvasMode('split')" title="Side-by-Side Live Editor + Study Canvas">
+                <i data-lucide="columns" class="icon-xs"></i> Split Studio
+              </button>
+              <button type="button" class="canvas-mode-btn ${canvasMode === 'write' ? 'active' : ''}" onclick="window.setCanvasMode('write')" title="Full Direct Writing Canvas">
+                <i data-lucide="pen-line" class="icon-xs"></i> Write
+              </button>
+            </div>
+
+            <button type="button" class="btn-tiny ${isCornellMode ? 'cornell-active' : ''}" onclick="toggleCornellMode()" title="Toggle Cornell Note-Taking Split Layout">
               <span>${isCornellMode ? '📐 Cornell ON' : '📐 Cornell'}</span>
             </button>
 
-            <button type="button" class="btn-tiny ${isSummaryMode ? 'summary-active' : ''}" onclick="toggleSummaryMode()" title="Toggle Summary / Cheat-Sheet Mode (shows only Pinned Sections & Highlights)">
-              <i data-lucide="filter" class="icon-xs"></i>
+            <button type="button" class="btn-tiny ${isSummaryMode ? 'summary-active' : ''}" onclick="toggleSummaryMode()" title="Toggle Summary Mode (shows only Pinned Sections & Highlights)">
               <span>${isSummaryMode ? '🎯 Summary ON' : '🎯 Summary'}</span>
             </button>
 
             ${currentNoteClozeCount > 0 ? `
-              <button type="button" id="reveal-clozes-btn" class="btn-tiny" onclick="toggleRevealAllClozes()" title="Reveal or Hide all Cloze Fill-in-the-blanks">
+              <button type="button" id="reveal-clozes-btn" class="btn-tiny" onclick="toggleRevealAllClozes()">
                 <i data-lucide="${revealAllClozes ? 'eye-off' : 'eye'}" class="icon-xs"></i>
-                <span>${revealAllClozes ? 'Hide Clozes' : 'Reveal Clozes'}</span>
+                <span>${revealAllClozes ? 'Hide Clozes' : 'Clozes'}</span>
               </button>
             ` : ''}
 
-            <button type="button" class="btn-tiny" style="${note.pinned ? 'color:#b45309; border-color:#fde68a; background:#fffbeb;' : ''}" onclick="togglePinNote('${note.id}')" title="${note.pinned ? 'Unpin Note' : 'Pin Note'}">
+            <button type="button" class="btn-tiny" style="${note.pinned ? 'color:#b45309; border-color:#fde68a; background:#fffbeb;' : ''}" onclick="togglePinNote('${note.id}')" title="Pin Note">
               <i data-lucide="pin" class="icon-xs"></i>
-              <span>${note.pinned ? 'Pinned' : 'Pin'}</span>
-            </button>
-            <button type="button" class="btn-tiny" onclick="copyNoteMarkdown('${note.id}')" title="Copy Note Markdown">
-              <i data-lucide="copy" class="icon-xs"></i>
-              <span>Copy</span>
             </button>
             <button type="button" class="btn-tiny" onclick="exportNoteMarkdown('${note.id}')" title="Download .md file">
-              <i data-lucide="download" class="icon-xs"></i>
-              <span>.md</span>
-            </button>
-            <button type="button" class="btn btn-primary btn-compact" style="height:1.6rem !important;" onclick="openStudyNoteModal('${note.id}')">
-              <i data-lucide="pencil" class="icon-xs"></i>
-              <span>Edit</span>
+              <i data-lucide="download" class="icon-xs"></i> .md
             </button>
             <button type="button" class="btn btn-danger btn-compact" style="height:1.6rem !important; padding:0 0.45rem !important;" onclick="deleteStudyNoteConfirm('${note.id}')" title="Delete Note">
               <i data-lucide="trash-2" class="icon-xs"></i>
@@ -1455,21 +2547,199 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
 
-        <div class="reader-title-row">
-          <div>
-            <h1 class="reader-title">${escapeHtml(note.title)}</h1>
-            ${note.summary ? `<div class="reader-summary">${escapeHtml(note.summary)}</div>` : ''}
+        <!-- Direct Editable Title & Subtitle right in the Study Workspace -->
+        <div class="reader-title-row" style="margin-top:0.15rem;">
+          <div style="flex:1; min-width:0;">
+            <input type="text" id="inline-note-title" class="inline-title-input" value="${escapeHtml(note.title)}" placeholder="Note / Lesson Title..." onblur="window.quickUpdateHeaderMeta('${note.id}', 'title', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
+            <input type="text" id="inline-note-summary" class="inline-summary-input" value="${escapeHtml(note.summary || '')}" placeholder="Click to add a brief summary or core takeaway..." onblur="window.quickUpdateHeaderMeta('${note.id}', 'summary', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
           </div>
-          <span style="font-size:0.68rem; color:var(--muted-foreground);" class="desktop-only-btn">
-            💡 Select text to Highlight / Pin / Cloze • Double-click paragraph to edit
-          </span>
+          <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
+            <span id="direct-save-status" style="font-size:0.7rem; font-weight:700; color:#10b981;">✓ Saved</span>
+            ${canvasMode !== 'study' ? `
+              <button type="button" class="btn btn-primary btn-compact" style="height:1.65rem !important;" onclick="window.saveDirectNoteNow('${note.id}')">
+                <i data-lucide="check" class="icon-xs"></i> Done / Save
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================================================
+           STICKY "+ ADD ELEMENT" MENU RIBBON (CHARTS, DIAGRAMS, WHITEBOARD, BLOCKS)
+           ====================================================== -->
+      <div class="insert-element-bar">
+        <button type="button" id="insert-menu-trigger-btn" class="insert-menu-trigger" onclick="window.toggleElementPalette()">
+          <i data-lucide="plus-circle" class="icon-xs"></i>
+          <span>Add Element</span>
+          <i data-lucide="chevron-down" class="icon-xs"></i>
+        </button>
+
+        <button type="button" class="insert-quick-chip" onclick="window.openInlineStudio('chart')" title="Draw Bar, Line, Area, Pie or Doughnut Chart">
+          <i data-lucide="bar-chart-3" class="icon-xs" style="color:#4f46e5;"></i>
+          <span>📊 Chart</span>
+        </button>
+
+        <button type="button" class="insert-quick-chip" onclick="window.openInlineStudio('whiteboard')" title="Freehand & Shape Diagram Sketchpad">
+          <i data-lucide="pen-tool" class="icon-xs" style="color:#ec4899;"></i>
+          <span>🎨 Draw / Sketch</span>
+        </button>
+
+        <button type="button" class="insert-quick-chip" onclick="window.openInlineStudio('diagram')" title="Build Flowchart, Sequence, Mindmap or State Diagram">
+          <i data-lucide="git-merge" class="icon-xs" style="color:#10b981;"></i>
+          <span>🔀 Flowchart</span>
+        </button>
+
+        <button type="button" class="insert-quick-chip" onclick="window.openInlineStudio('math')" title="Insert Math Formula or Equation">
+          <i data-lucide="sigma" class="icon-xs" style="color:#0ea5e9;"></i>
+          <span>📐 Math</span>
+        </button>
+
+        <button type="button" class="insert-quick-chip" onclick="window.insertSnippetIntoActiveNote('| Column 1 | Column 2 | Column 3 |\\n| --- | --- | --- |\\n| Data 1 | Data 2 | Data 3 |', 'Table added!')" title="Insert Table">
+          <i data-lucide="table" class="icon-xs" style="color:#f59e0b;"></i>
+          <span>📅 Table</span>
+        </button>
+
+        <button type="button" class="insert-quick-chip" onclick="window.insertSnippetIntoActiveNote('> [!PIN: Key Concept] Write your key concept or rule here.', 'Pinned concept added!')" title="Insert Pinned Section">
+          <i data-lucide="pin" class="icon-xs" style="color:#d97706;"></i>
+          <span>📌 Pin Box</span>
+        </button>
+
+        <button type="button" class="insert-quick-chip" onclick="window.openInlineStudio('flashcard')" title="Add Flashcards & Reference Links">
+          <i data-lucide="sparkles" class="icon-xs" style="color:#8b5cf6;"></i>
+          <span>✦ +Card / Link</span>
+        </button>
+
+        <!-- Categorized Dropdown Element Menu -->
+        <div id="element-palette-dropdown" class="element-palette-dropdown">
+          <div>
+            <div class="palette-section-title">📊 Visuals, Charts &amp; Diagrams</div>
+            <div class="palette-grid">
+              <button type="button" class="palette-item" onclick="window.openInlineStudio('chart')">
+                <div class="palette-item-icon">📊</div>
+                <div>
+                  <div class="palette-item-title">Data Chart</div>
+                  <div class="palette-item-desc">Bar, Line, Pie, Area, Doughnut</div>
+                </div>
+              </button>
+              <button type="button" class="palette-item" onclick="window.openInlineStudio('whiteboard')">
+                <div class="palette-item-icon">🎨</div>
+                <div>
+                  <div class="palette-item-title">Draw / Whiteboard</div>
+                  <div class="palette-item-desc">Sketch shapes, arrows &amp; diagrams</div>
+                </div>
+              </button>
+              <button type="button" class="palette-item" onclick="window.openInlineStudio('diagram')">
+                <div class="palette-item-icon">🔀</div>
+                <div>
+                  <div class="palette-item-title">Flowchart / Sequence</div>
+                  <div class="palette-item-desc">Visual node &amp; arrow builder</div>
+                </div>
+              </button>
+              <button type="button" class="palette-item" onclick="window.insertSnippetIntoActiveNote('| Metric | Value | Notes |\\n| --- | --- | --- |\\n| Example | 100% | Key detail |', 'Table inserted!')">
+                <div class="palette-item-icon">📅</div>
+                <div>
+                  <div class="palette-item-title">Data Table</div>
+                  <div class="palette-item-desc">Structured comparison grid</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="palette-section-title">📌 Study &amp; Active Recall Elements</div>
+            <div class="palette-grid">
+              <button type="button" class="palette-item" onclick="window.insertSnippetIntoActiveNote('> [!PIN: Core Principle] Write the essential rule or definition here.', 'Pinned block inserted!')">
+                <div class="palette-item-icon">📌</div>
+                <div>
+                  <div class="palette-item-title">Pinned Section</div>
+                  <div class="palette-item-desc">Appears in top navigation &amp; Digest</div>
+                </div>
+              </button>
+              <button type="button" class="palette-item" onclick="window.insertSnippetIntoActiveNote('The key term is {{hidden answer}} for active recall.', 'Cloze deletion inserted!')">
+                <div class="palette-item-icon">🔒</div>
+                <div>
+                  <div class="palette-item-title">Cloze Blank ({{...}})</div>
+                  <div class="palette-item-desc">Click-to-reveal memory test</div>
+                </div>
+              </button>
+              <button type="button" class="palette-item" onclick="window.openInlineStudio('flashcard')">
+                <div class="palette-item-icon">✦</div>
+                <div>
+                  <div class="palette-item-title">Flashcard (Q&amp;A)</div>
+                  <div class="palette-item-desc">Spaced repetition card</div>
+                </div>
+              </button>
+              <button type="button" class="palette-item" onclick="window.insertSnippetIntoActiveNote('> 💡 **Exam Tip / Callout:** Important insight to remember.', 'Callout box inserted!')">
+                <div class="palette-item-icon">💡</div>
+                <div>
+                  <div class="palette-item-title">Callout / Warning Box</div>
+                  <div class="palette-item-desc">Highlighted note block</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="palette-section-title">📐 Structure, Math &amp; Code</div>
+            <div class="palette-grid">
+              <button type="button" class="palette-item" onclick="window.insertSnippetIntoActiveNote('## New Section Title\\nWrite section details here...', 'Section heading inserted!')">
+                <div class="palette-item-icon">H2</div>
+                <div>
+                  <div class="palette-item-title">Section Heading</div>
+                  <div class="palette-item-desc">Auto-indexed in top outline</div>
+                </div>
+              </button>
+              <button type="button" class="palette-item" onclick="window.openInlineStudio('math')">
+                <div class="palette-item-icon">📐</div>
+                <div>
+                  <div class="palette-item-title">Math Formula</div>
+                  <div class="palette-item-desc">Equations &amp; Greek symbols</div>
+                </div>
+              </button>
+              <button type="button" class="palette-item" onclick="window.insertSnippetIntoActiveNote('\`\`\`javascript\\n// Code example\\nconsole.log(\"Hello Study Hub\");\\n\`\`\`', 'Code block inserted!')">
+                <div class="palette-item-icon">💻</div>
+                <div>
+                  <div class="palette-item-title">Code Block</div>
+                  <div class="palette-item-desc">Syntax block with 1-click Copy</div>
+                </div>
+              </button>
+              <button type="button" class="palette-item" onclick="window.insertSnippetIntoActiveNote('- [ ] Review concept\\n- [ ] Complete practice exercise', 'Checklist inserted!')">
+                <div class="palette-item-icon">☑️</div>
+                <div>
+                  <div class="palette-item-title">Task Checklist</div>
+                  <div class="palette-item-desc">Interactive study to-do list</div>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       ${pinsAndOutlineHtml}
 
       <div class="reader-body">
-        ${isCornellMode ? `
+        ${inlineStudioHtml}
+
+        ${canvasMode !== 'study' ? `
+          <!-- DIRECT IN-STUDY WRITING / SPLIT STUDIO MODE -->
+          <div class="direct-editor-container ${canvasMode === 'split' ? 'split-mode' : ''}">
+            <div style="display:flex; flex-direction:column; gap:0.35rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.68rem; font-weight:800; text-transform:uppercase; color:var(--primary);">✍️ Direct Note Canvas (Type "/" on a new line to open Element Menu • Ctrl+V to paste screenshots)</span>
+              </div>
+              <textarea id="direct-note-textarea" class="direct-canvas-textarea" placeholder="Write directly here... Use the '+ Add Element' bar above to draw Charts, Diagrams, Flowcharts, Tables, Math, or Pinned Sections." oninput="window.handleDirectTextareaInput('${note.id}', this)" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='s'){event.preventDefault();window.saveDirectNoteNow('${note.id}');}">${escapeHtml(note.content || '')}</textarea>
+            </div>
+
+            ${canvasMode === 'split' ? `
+              <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                <span style="font-size:0.68rem; font-weight:800; text-transform:uppercase; color:var(--muted-foreground);">📖 Live Interactive Preview</span>
+                <article id="direct-live-preview-body" class="markdown-content direct-live-preview ${isSummaryMode ? 'summary-mode-active' : ''} ${revealAllClozes ? 'reveal-all-clozes' : ''}">
+                  ${renderedArticleHtml}
+                </article>
+              </div>
+            ` : ''}
+          </div>
+        ` : isCornellMode ? `
           <div class="cornell-grid">
             <aside class="cornell-cue-col">
               <div class="cornell-cue-title">
@@ -1531,9 +2801,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         <!-- Quick-Append Input Bar right inside Viewer -->
         <div class="reader-quick-append">
-          <input type="text" id="reader-quick-append-input" class="form-input" style="height:1.95rem; font-size:0.8125rem;" placeholder="Quick append paragraph, ## Heading, or > [!PIN: Title] text... (Press Enter)" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.quickAppendToNote('${note.id}');}">
+          <input type="text" id="reader-quick-append-input" class="form-input" style="height:1.95rem; font-size:0.8125rem;" placeholder="Type here to append a paragraph, ## Heading, or > [!PIN: Title] text... (Press Enter)" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.quickAppendToNote('${note.id}');}">
           <button type="button" class="btn btn-secondary btn-compact" style="height:1.95rem !important;" onclick="window.quickAppendToNote('${note.id}')">
             <i data-lucide="plus" class="icon-xs"></i> Append
+          </button>
+          <button type="button" class="btn btn-outline btn-compact" style="height:1.95rem !important;" onclick="window.setCanvasMode(canvasMode === 'study' ? 'split' : 'study')">
+            <i data-lucide="columns" class="icon-xs"></i> ${canvasMode === 'study' ? 'Open Split Editor' : 'Back to Reader'}
           </button>
         </div>
 
@@ -1544,16 +2817,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <i data-lucide="sparkles" class="icon-xs" style="color:#8b5cf6;"></i>
                 <span>Flashcards &amp; Key Takeaways (${takeaways.length})</span>
               </div>
-              <button type="button" class="btn-tiny" onclick="openFlashcardDeck('${note.id}')">
-                <i data-lucide="play" class="icon-xs"></i> Practice
-              </button>
+              <div style="display:flex; gap:0.35rem;">
+                <button type="button" class="btn-tiny" onclick="window.openInlineStudio('flashcard')">+ Add Card</button>
+                <button type="button" class="btn-tiny" onclick="openFlashcardDeck('${note.id}')">
+                  <i data-lucide="play" class="icon-xs"></i> Practice
+                </button>
+              </div>
             </div>
             <div>
               ${takeaways.map((card, idx) => `
                 <div class="takeaway-item">
                   <div class="takeaway-q" onclick="const ans = this.nextElementSibling; ans.style.display = ans.style.display === 'none' ? 'block' : 'none';">
                     <span><strong style="color:var(--primary);">Q${idx + 1}:</strong> ${escapeHtml(card.question)}</span>
-                    <span class="badge badge-USER" style="font-size:0.6rem; flex-shrink:0;">Answer</span>
+                    <div style="display:flex; align-items:center; gap:0.3rem;">
+                      <span class="badge badge-USER" style="font-size:0.6rem;">Answer</span>
+                      <button type="button" class="btn-icon" style="width:1.3rem; height:1.3rem; color:var(--destructive);" onclick="event.stopPropagation(); window.deleteInlineFlashcard('${note.id}', ${idx})" title="Delete card">
+                        <i data-lucide="x" class="icon-xs"></i>
+                      </button>
+                    </div>
                   </div>
                   <div class="takeaway-a" style="display:none;">
                     ${escapeHtml(card.answer)}
@@ -1571,6 +2852,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <i data-lucide="bookmark" class="icon-xs" style="color:var(--primary);"></i>
                 <span>References &amp; Resources (${resources.length})</span>
               </div>
+              <button type="button" class="btn-tiny" onclick="window.openInlineStudio('flashcard')">+ Add Link</button>
             </div>
             <div style="display:flex; flex-direction:column; gap:0.35rem;">
               ${resources.map(r => `
@@ -1848,42 +3130,53 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.lucide) lucide.createIcons();
   };
 
-  window.openStudyNoteModal = function(noteId = null) {
-    editingNoteId = noteId;
-    if (noteForm) noteForm.reset();
-    if (takeawaysContainer) takeawaysContainer.innerHTML = '';
-    if (resourcesContainer) resourcesContainer.innerHTML = '';
-    switchEditorTab('write');
-
+  // Direct In-Study Note Creation / Editing (Zero Modal Dialog!)
+  window.openStudyNoteModal = async function(noteId = null) {
     if (noteId) {
+      selectedNoteId = noteId;
+      canvasMode = 'split';
       const note = notesList.find(n => n.id === noteId);
       if (note) {
-        if (noteModalTitle) noteModalTitle.innerHTML = `<i data-lucide="pencil" class="icon-sm"></i><span>Edit Study Note</span>`;
-        if (noteSubmitBtn) noteSubmitBtn.textContent = 'Update Note';
-        populateSubjectDropdown(note.subjectId || '');
-        document.getElementById('note-mastery-select').value = note.mastery || 'LEARNING';
-        document.getElementById('note-title-input').value = note.title || '';
-        const chInput = document.getElementById('note-chapter-input');
-        if (chInput) chInput.value = note.chapter || '';
-        document.getElementById('note-summary-input').value = note.summary || '';
-        document.getElementById('note-content-input').value = note.content || '';
-        document.getElementById('note-tags-input').value = (note.tags || []).join(', ');
-        document.getElementById('note-pinned-input').checked = Boolean(note.pinned);
-
-        (note.takeaways || []).forEach(c => addTakeawayRow(c.question, c.answer));
-        (note.resources || []).forEach(r => addResourceRow(r.title, r.url));
+        highlightSelectedCard();
+        renderReaderPane(note);
+        setTimeout(() => document.getElementById('direct-note-textarea')?.focus(), 40);
       }
-    } else {
-      if (noteModalTitle) noteModalTitle.innerHTML = `<i data-lucide="file-plus-2" class="icon-sm"></i><span>New Study Note</span>`;
-      if (noteSubmitBtn) noteSubmitBtn.textContent = 'Save Note';
-      populateSubjectDropdown();
+      return;
     }
 
-    if (noteModal) {
-      noteModal.classList.add('open');
-      setTimeout(() => document.getElementById('note-title-input')?.focus(), 50);
-    }
-    if (window.lucide) lucide.createIcons();
+    // Create a fresh note directly in the current study and open it in Split Studio mode
+    const defaultSubjectId = !['ALL', 'PINNED', 'NONE'].includes(activeSubjectId) ? activeSubjectId : null;
+    try {
+      const res = await apiRequest('/api/study/notes', {
+        method: 'POST',
+        body: {
+          title: 'Untitled Study Note',
+          subjectId: defaultSubjectId,
+          summary: '',
+          content: `## 🎯 Core Concepts\n> [!PIN: Key Principle] Write the main concept here.\n\n`,
+          mastery: 'LEARNING',
+          pinned: false
+        }
+      });
+
+      if (res && res.note) {
+        selectedNoteId = res.note.id;
+        canvasMode = 'split';
+        activeInlineStudio = null;
+        await loadSubjects();
+        await loadNotes(true);
+        if (window.innerWidth < 1024 && readerPaneEl) {
+          readerPaneEl.classList.add('mobile-open');
+        }
+        setTimeout(() => {
+          const titleEl = document.getElementById('inline-note-title');
+          if (titleEl) {
+            titleEl.focus();
+            titleEl.select();
+          }
+        }, 60);
+      }
+    } catch (err) {}
   };
 
   window.closeStudyNoteModal = function() {
@@ -2081,10 +3374,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (!imageFile) return;
 
+    const directTextarea = document.getElementById('direct-note-textarea');
     const noteTextarea = document.getElementById('note-content-input');
-    const isEditorOpen = noteModal && noteModal.classList.contains('open') && document.activeElement === noteTextarea;
+    const isModalEditorOpen = noteModal && noteModal.classList.contains('open') && document.activeElement === noteTextarea;
 
-    if (isEditorOpen && noteTextarea) {
+    if (document.activeElement === directTextarea && directTextarea && selectedNoteId) {
+      e.preventDefault();
+      showToast('Inserting pasted screenshot...', 'info');
+      try {
+        const dataUrl = await compressImageFileToDataUrl(imageFile);
+        await window.insertSnippetIntoActiveNote(`![Screenshot](${dataUrl})`, 'Screenshot inserted into note!');
+      } catch (err) {
+        showToast('Failed to process pasted image.', 'error');
+      }
+    } else if (isModalEditorOpen && noteTextarea) {
       e.preventDefault();
       showToast('Processing pasted screenshot...', 'info');
       try {
