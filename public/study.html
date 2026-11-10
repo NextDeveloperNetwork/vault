@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Study & Notes Hub — PassKeeper</title>
-  <meta name="description" content="Organize your studies, technical notes, code snippets, flashcards, and learning progress inside PassKeeper.">
+  <title>Study &amp; Notes Studio — PassKeeper</title>
+  <meta name="description" content="Word & Modern Notepad style Study Hub with rich pages, tables, charts, diagrams, and distraction-free reading.">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,152 +13,435 @@
   <link rel="shortcut icon" href="/favicon.jpg">
   <link rel="apple-touch-icon" href="/favicon.jpg">
 
-  <link rel="stylesheet" href="/css/variables.css?v=23">
-  <link rel="stylesheet" href="/css/global.css?v=23">
-  <link rel="stylesheet" href="/css/mobile.css?v=23">
-  <link rel="stylesheet" href="/css/study.css?v=23">
-  <script src="/js/lucide.min.js?v=23"></script>
+  <link rel="stylesheet" href="/css/variables.css?v=27">
+  <link rel="stylesheet" href="/css/global.css?v=27">
+  <link rel="stylesheet" href="/css/mobile.css?v=27">
+  <link rel="stylesheet" href="/css/study.css?v=27">
+  <script src="/js/lucide.min.js?v=27"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
 </head>
 <body class="study-page-body">
   <div class="app-container study-app-container">
 
     <!-- ======================================================
-         1. ULTRA-COMPACT UNIFIED COMMAND BAR
+         1. TOP DOCUMENT BAR (WORD / MODERN NOTEPAD HEADER)
          ====================================================== -->
-    <header class="study-command-bar">
-      <!-- Brand + Inline Stats -->
-      <div class="study-cmd-left">
-        <button id="mobile-menu-btn" class="btn-icon mobile-menu-trigger" aria-label="Open Navigation Menu">
-          <i data-lucide="menu" class="icon-sm"></i>
+    <header class="word-top-titlebar">
+      <div class="word-titlebar-left">
+        <!-- App Sidebar / Mobile Nav Trigger -->
+        <button id="mobile-menu-btn" class="word-icon-btn mobile-menu-trigger" title="Open App Navigation">
+          <i data-lucide="layout-grid" class="icon-xs"></i>
         </button>
 
-        <button id="toggle-notes-list-btn" onclick="toggleNotesSidebar()" class="btn-icon desktop-only-btn" title="Toggle Notes List (Focus Mode)">
+        <!-- Toggle Left Notebooks & Pages Drawer -->
+        <button id="toggle-notes-list-btn" type="button" class="word-icon-btn" onclick="toggleNotesSidebar()" title="Toggle Notebooks &amp; Pages Sidebar (☰)">
           <i data-lucide="panel-left" class="icon-xs"></i>
+          <span class="hide-on-mobile" style="font-size:0.72rem; font-weight:700;">Pages</span>
         </button>
 
-        <div class="brand" style="gap:0.45rem;">
-          <div class="brand-logo" style="width:1.5rem; height:1.5rem; background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);">
-            <i data-lucide="graduation-cap" class="icon-xs"></i>
-          </div>
-          <span class="brand-title" style="font-size:0.875rem;">Study Hub</span>
+        <div class="word-doc-icon">
+          <i data-lucide="file-text" class="icon-xs"></i>
         </div>
 
-        <div class="study-inline-metrics">
-          <span class="study-stat-chip" title="Total Studies">
-            <i data-lucide="library" class="icon-xs"></i>
-            <strong id="metric-studies">0</strong>
-          </span>
-          <span class="study-stat-chip" title="Total Notes">
-            <i data-lucide="book-open" class="icon-xs"></i>
-            <strong id="metric-notes">0</strong>
-          </span>
-          <span class="study-stat-chip stat-chip-mastered" title="Mastered Notes">
-            <i data-lucide="check-circle-2" class="icon-xs"></i>
-            <strong id="metric-mastered">0</strong>
-          </span>
-        </div>
+        <!-- Editable Document Title directly in Top Bar -->
+        <input type="text" id="top-doc-title-input" class="word-top-title-input" placeholder="Untitled Document..." onchange="syncDocTitleFromTopbar(this.value)">
+
+        <!-- Study Subject / Notebook Selector -->
+        <select id="top-doc-subject-select" class="word-top-select hide-on-mobile" onchange="updateActiveNoteMeta('subjectId', this.value)" title="Assign to Study Notebook">
+          <option value="">📚 General Notebook</option>
+        </select>
+
+        <!-- Chapter / Module Input -->
+        <input type="text" id="top-doc-chapter-input" list="chapter-suggestions" class="word-top-meta-input hide-on-small" placeholder="📂 Chapter..." onblur="updateActiveNoteMeta('chapter', this.value)" onkeydown="if(event.key==='Enter')this.blur();" title="Chapter / Module">
+        <datalist id="chapter-suggestions"></datalist>
+
+        <!-- Mastery Status Pill -->
+        <select id="top-doc-mastery-select" class="word-top-select hide-on-small" onchange="updateActiveNoteMeta('mastery', this.value)" title="Learning Status">
+          <option value="NEW">🟣 New</option>
+          <option value="LEARNING">🔵 Learning</option>
+          <option value="REVIEW">🟠 Review</option>
+          <option value="MASTERED">🟢 Mastered</option>
+        </select>
+
+        <span id="word-save-status" class="word-save-indicator">✓ Saved</span>
       </div>
 
-      <!-- Compact Search + Mastery Filter -->
-      <div class="study-cmd-center">
-        <div class="study-compact-search">
-          <i data-lucide="search" class="icon-xs study-search-icon"></i>
-          <input type="text" id="study-search-input" class="form-input study-search-field" placeholder="Search notes, code, tags... (/)">
-        </div>
+      <div class="word-titlebar-right">
+        <!-- Pomodoro Study Focus Timer -->
+        <button type="button" id="pomodoro-timer-btn" class="word-action-btn hide-on-small" onclick="togglePomodoroTimer()" oncontextmenu="event.preventDefault(); resetPomodoroTimer();" title="Click to Start/Pause 25m Focus Timer • Right-click to Reset">
+          <i data-lucide="timer" class="icon-xs" style="color:#d97706;"></i>
+          <span id="pomodoro-time-display" style="font-family:var(--font-mono); font-weight:700;">25:00</span>
+        </button>
 
-        <div class="study-mastery-segmented" role="tablist">
-          <button type="button" class="seg-btn active" data-mastery="ALL" onclick="filterStudyMastery('ALL')">All</button>
-          <button type="button" class="seg-btn" data-mastery="PINNED" onclick="filterStudySubject('PINNED')" title="Pinned Notes">📌</button>
-          <button type="button" class="seg-btn" data-mastery="NEW" onclick="filterStudyMastery('NEW')">New</button>
-          <button type="button" class="seg-btn" data-mastery="LEARNING" onclick="filterStudyMastery('LEARNING')">Active</button>
-          <button type="button" class="seg-btn" data-mastery="REVIEW" onclick="filterStudyMastery('REVIEW')">Review</button>
-          <button type="button" class="seg-btn" data-mastery="MASTERED" onclick="filterStudyMastery('MASTERED')">Done</button>
-        </div>
-      </div>
+        <!-- Distraction-Free Read Mode -->
+        <button type="button" id="read-mode-toggle-btn" class="word-action-btn word-action-primary-soft" onclick="toggleReadMode()" title="Distraction-Free Read Mode (Esc to exit)">
+          <i data-lucide="book-open-check" class="icon-xs"></i>
+          <span>Read Mode</span>
+        </button>
 
-      <!-- Compact Primary Actions -->
-      <div class="study-cmd-right">
-        <button id="pomodoro-timer-btn" type="button" class="pomodoro-chip cmd-collapsible-item" onclick="togglePomodoroTimer()" oncontextmenu="event.preventDefault(); resetPomodoroTimer();" title="Click to Start/Pause 25m Study Timer • Right-click to Reset">
-          <i data-lucide="timer" class="icon-xs"></i>
-          <span id="pomodoro-time-display">25:00</span>
+        <!-- AI Prompt & Paste Converter -->
+        <button type="button" class="word-action-btn hide-on-mobile" onclick="openAiPromptModal()" title="Copy AI Formatting Instructions (.md) or Paste AI Content into Document">
+          <i data-lucide="bot" class="icon-xs"></i>
+          <span>AI Assistant</span>
         </button>
-        <button onclick="toggleReadMode()" class="btn btn-secondary btn-compact" title="Enter Distraction-Free Read Mode (Phone & PC)">
-          <i data-lucide="book-open-check" class="icon-xs" style="color:var(--primary);"></i>
-          <span>📖 Read</span>
-        </button>
-        <button onclick="exportAiStudyInstructionsMd()" class="btn btn-secondary btn-compact cmd-collapsible-item" title="Download & Copy AI Markdown Formatting Instructions (.md) so any AI can generate rich study notes for you">
-          <i data-lucide="bot" class="icon-xs" style="color:var(--primary);"></i>
-          <span>🤖 AI Prompt .md</span>
-        </button>
-        <button onclick="openStudyDigestView()" class="btn btn-secondary btn-compact cmd-collapsible-item" title="Master Digest: View all Pinned Sections & Highlights across notes">
-          <i data-lucide="Scan-text" class="icon-xs"></i>
-          <span>📑 Digest</span>
-        </button>
-        <button onclick="openFlashcardDeck()" class="btn btn-secondary btn-compact cmd-collapsible-item" title="Practice Flashcards">
+
+        <!-- Flashcards -->
+        <button type="button" class="word-action-btn hide-on-mobile" onclick="openFlashcardModalForCurrent()" title="Study Flashcards (Q&amp;A)">
           <i data-lucide="sparkles" class="icon-xs"></i>
           <span>Cards (<span id="metric-flashcards">0</span>)</span>
         </button>
-        <button onclick="openStudySubjectModal()" class="btn btn-secondary btn-compact cmd-collapsible-item" title="Create New Study Subject">
-          <i data-lucide="folder-plus" class="icon-xs"></i>
-          <span>+ Study</span>
+
+        <!-- Export / Print -->
+        <button type="button" class="word-action-btn hide-on-small" onclick="exportActiveNoteDoc()" title="Export as Markdown (.md)">
+          <i data-lucide="download" class="icon-xs"></i>
+          <span>.md</span>
         </button>
-        <button onclick="openStudyNoteModal()" class="btn btn-primary btn-compact">
+        <button type="button" class="word-action-btn hide-on-small" onclick="window.print()" title="Print / Save as PDF">
+          <i data-lucide="printer" class="icon-xs"></i>
+        </button>
+
+        <!-- New Page & Delete Page Buttons -->
+        <button type="button" class="word-action-btn word-action-primary" onclick="createNewBlankNote()" title="Create New Blank Page">
           <i data-lucide="plus" class="icon-xs"></i>
-          <span>Note</span>
+          <span>New Page</span>
         </button>
-        <button type="button" class="btn btn-secondary btn-compact mobile-cmd-hamburger-btn" onclick="this.closest('.study-command-bar').classList.toggle('mobile-cmd-expanded')" title="Toggle Search, Filters & Tools">
-          <i data-lucide="sliders-horizontal" class="icon-xs"></i>
+        <button type="button" class="word-action-btn word-action-danger" onclick="deleteActiveNote()" title="Delete Current Page">
+          <i data-lucide="trash-2" class="icon-xs"></i>
+          <span>Delete Page</span>
         </button>
       </div>
     </header>
 
     <!-- ======================================================
-         2. COMPACT SINGLE-LINE STUDY SUBJECT TABS STRIP
+         2. MICROSOFT WORD / MODERN NOTEPAD FORMATTING RIBBON
          ====================================================== -->
-    <div class="study-tabs-bar">
-      <div id="subjects-shelf" class="study-tabs-scroll">
-        <!-- Rendered dynamically by study.js -->
-      </div>
-      <div id="active-study-actions" class="active-study-actions" style="display:none;">
-        <button onclick="editCurrentActiveSubject()" class="btn-tiny" title="Edit Selected Study">
-          <i data-lucide="settings-2" class="icon-xs"></i>
-          <span>Edit Study</span>
+    <div id="word-ribbon-bar" class="word-ribbon-bar">
+      <!-- Undo / Redo -->
+      <div class="ribbon-group">
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('undo')" title="Undo (Ctrl+Z)">
+          <i data-lucide="undo-2" class="icon-xs"></i>
         </button>
-        <button onclick="clearStudyFilters()" class="btn-tiny" title="Show All Studies">
-          <i data-lucide="x" class="icon-xs"></i>
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('redo')" title="Redo (Ctrl+Y)">
+          <i data-lucide="redo-2" class="icon-xs"></i>
+        </button>
+      </div>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Block Style & Font -->
+      <div class="ribbon-group">
+        <select id="ribbon-block-style" class="ribbon-select" onchange="applyHeadingStyle(this.value); this.value='';" title="Paragraph / Heading Style">
+          <option value="" selected disabled>Style / Heading</option>
+          <option value="P">Normal Text</option>
+          <option value="H1">Heading 1 (Title)</option>
+          <option value="H2">Heading 2 (Section)</option>
+          <option value="H3">Heading 3 (Subsection)</option>
+          <option value="BLOCKQUOTE">Quote / Callout</option>
+          <option value="PRE">Code Block</option>
+        </select>
+
+        <select id="ribbon-font-family" class="ribbon-select hide-on-mobile" onchange="applyDocFontFamily(this.value)" title="Document Font">
+          <option value="sans">Sans (Inter / Modern)</option>
+          <option value="serif">Serif (Georgia / Book)</option>
+          <option value="calibri">Calibri / Clean</option>
+          <option value="mono">Monospace (Code)</option>
+        </select>
+      </div>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Text Formatting: Bold, Italic, Underline, Strikethrough -->
+      <div class="ribbon-group">
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('bold')" title="Bold (Ctrl+B)">
+          <strong>B</strong>
+        </button>
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('italic')" title="Italic (Ctrl+I)">
+          <em>I</em>
+        </button>
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('underline')" title="Underline (Ctrl+U)">
+          <u>U</u>
+        </button>
+        <button type="button" class="ribbon-btn hide-on-mobile" onmousedown="event.preventDefault(); execDocCommand('strikeThrough')" title="Strikethrough">
+          <s>S</s>
+        </button>
+      </div>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Highlight Colors & Text Color -->
+      <div class="ribbon-group">
+        <span class="ribbon-label hide-on-small">Highlight:</span>
+        <button type="button" class="ribbon-color-swatch" style="background:#fef08a;" onmousedown="event.preventDefault(); applyHighlightColor('#fef08a')" title="Yellow Highlight"></button>
+        <button type="button" class="ribbon-color-swatch" style="background:#bbf7d0;" onmousedown="event.preventDefault(); applyHighlightColor('#bbf7d0')" title="Green Highlight"></button>
+        <button type="button" class="ribbon-color-swatch" style="background:#ddd6fe;" onmousedown="event.preventDefault(); applyHighlightColor('#ddd6fe')" title="Purple Highlight"></button>
+        <button type="button" class="ribbon-color-swatch" style="background:#fecdd3;" onmousedown="event.preventDefault(); applyHighlightColor('#fecdd3')" title="Pink Highlight"></button>
+        <button type="button" class="ribbon-color-swatch" style="background:#bae6fd;" onmousedown="event.preventDefault(); applyHighlightColor('#bae6fd')" title="Blue Highlight"></button>
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); applyHighlightColor('transparent')" title="Clear Highlight">
+          <i data-lucide="eraser" class="icon-xs"></i>
+        </button>
+      </div>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Lists & Alignment -->
+      <div class="ribbon-group">
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('insertUnorderedList')" title="Bullet List">
+          <i data-lucide="list" class="icon-xs"></i>
+        </button>
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('insertOrderedList')" title="Numbered List">
+          <i data-lucide="list-ordered" class="icon-xs"></i>
+        </button>
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); insertChecklistAtCursor()" title="Insert Interactive Checklist">
+          <i data-lucide="check-square" class="icon-xs"></i>
+        </button>
+        <button type="button" class="ribbon-btn hide-on-small" onmousedown="event.preventDefault(); execDocCommand('justifyLeft')" title="Align Left">
+          <i data-lucide="align-left" class="icon-xs"></i>
+        </button>
+        <button type="button" class="ribbon-btn hide-on-small" onmousedown="event.preventDefault(); execDocCommand('justifyCenter')" title="Align Center">
+          <i data-lucide="align-center" class="icon-xs"></i>
+        </button>
+      </div>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Insert Rich Elements directly at Cursor -->
+      <div class="ribbon-group">
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); insertTableAtCursor()" title="Insert Editable Word Table">
+          <i data-lucide="table" class="icon-xs" style="color:#d97706;"></i>
+          <span>Table</span>
+        </button>
+
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openChartBuilderModal()" title="Insert Bar, Line, Pie or Area Chart">
+          <i data-lucide="bar-chart-3" class="icon-xs" style="color:#4f46e5;"></i>
+          <span>Chart</span>
+        </button>
+
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openWhiteboardModal()" title="Draw Freehand Sketch or Diagram">
+          <i data-lucide="pen-tool" class="icon-xs" style="color:#ec4899;"></i>
+          <span>Draw</span>
+        </button>
+
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openDiagramBuilderModal()" title="Insert Flowchart or Sequence Diagram">
+          <i data-lucide="git-merge" class="icon-xs" style="color:#10b981;"></i>
+          <span>Flowchart</span>
+        </button>
+
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); insertCalloutBoxAtCursor()" title="Insert Pinned Concept / Callout Box">
+          <i data-lucide="pin" class="icon-xs" style="color:#f59e0b;"></i>
+          <span>Callout Box</span>
+        </button>
+
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); wrapSelectionAsCloze()" title="Turn Selected Text into a Click-to-Reveal Cloze Blank">
+          <i data-lucide="eye-off" class="icon-xs" style="color:#7c3aed;"></i>
+          <span>Cloze</span>
+        </button>
+
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openCodeEditorModal()" title="Insert or Edit IDE Syntax-Highlighted Code Block">
+          <i data-lucide="code-2" class="icon-xs" style="color:#0ea5e9;"></i>
+          <span>Code (IDE)</span>
+        </button>
+
+        <select class="ribbon-select hide-on-small" onchange="insertDocumentTemplate(this.value); this.value='';" title="Insert Smart Study Page Template">
+          <option value="" selected disabled>📄 Templates</option>
+          <option value="lecture">📘 Lecture &amp; Summary</option>
+          <option value="cornell">📐 Cornell Study Sheet</option>
+          <option value="cheatsheet">🧪 Exam Formula &amp; Rules</option>
+          <option value="case">📊 Case Analysis &amp; Table</option>
+        </select>
+      </div>
+
+      <!-- Right side of Ribbon: Cram Filter, Find, Pin & Delete Page -->
+      <div class="ribbon-group" style="margin-left:auto;">
+        <button type="button" id="ribbon-cram-btn" class="ribbon-insert-btn" onclick="toggleCramHighlightsMode()" title="Exam Cram Mode: Show Only Headings, Highlights, Callouts &amp; Tables">
+          <span>🎯 Cram</span>
+        </button>
+        <button type="button" class="ribbon-btn" onclick="toggleFindReplaceBar()" title="Find &amp; Replace in Page (Ctrl+F)">
+          <i data-lucide="search" class="icon-xs"></i>
+        </button>
+        <button type="button" id="ribbon-pin-note-btn" class="ribbon-btn" onclick="togglePinActiveNote()" title="Pin / Unpin Page">
+          <i data-lucide="pin" class="icon-xs"></i>
+        </button>
+        <button type="button" class="ribbon-insert-btn" style="color:var(--destructive); border-color:#fecaca; background:#fef2f2;" onclick="deleteActiveNote()" title="Delete Current Page">
+          <i data-lucide="trash-2" class="icon-xs" style="color:var(--destructive);"></i>
+          <span>Delete Page</span>
         </button>
       </div>
     </div>
 
     <!-- ======================================================
-         3. EXPANSIVE STUDY WORKSPACE (FULL REMAINING HEIGHT)
+         3. MAIN WORD / NOTEPAD WORKSPACE (SIDEBAR + PAPER DESK)
          ====================================================== -->
-    <div id="study-workspace" class="study-workspace">
-      <!-- Left Column: Compact Notes List -->
-      <aside id="study-notes-sidebar" class="notes-list-column">
-        <div class="notes-list-header" style="gap:0.3rem;">
-          <span id="notes-list-heading" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Notes</span>
-          <div style="display:flex; align-items:center; gap:0.25rem; flex-shrink:0;">
-            <select id="notes-sort-select" class="inline-meta-input" style="height:1.45rem; font-size:0.65rem; padding:0 0.3rem; width:auto;" onchange="changeNotesSortOrder(this.value)" title="Sort & Order Notes">
-              <option value="custom_asc">1→N Order</option>
-              <option value="title_asc">A→Z Title</option>
-              <option value="created_desc">Newest</option>
-              <option value="updated_desc">Edited</option>
-            </select>
-            <button onclick="openStudyNoteModal()" class="btn-tiny" style="color:var(--primary); height:1.45rem; padding:0 0.4rem;">
-              <i data-lucide="plus" class="icon-xs"></i> Add
-            </button>
+    <div id="study-workspace" class="word-workspace">
+      <!-- Backdrop for Mobile Sidebar Drawer -->
+      <div class="word-sidebar-backdrop" onclick="toggleNotesSidebar(false)"></div>
+
+      <!-- LEFT SIDEBAR: NOTEBOOKS & PAGES (ORDERED 1 -> N) -->
+      <aside id="study-notes-sidebar" class="word-sidebar">
+        <!-- Study Subject Filter & Create Study -->
+        <div class="word-sidebar-section">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.35rem;">
+            <span class="word-sidebar-label">📚 STUDY NOTEBOOK</span>
+            <div style="display:flex; gap:0.2rem;">
+              <button type="button" id="edit-active-study-btn" class="btn-tiny" style="display:none; height:1.35rem; padding:0 0.35rem;" onclick="editCurrentActiveSubject()" title="Edit Selected Study">
+                <i data-lucide="settings-2" class="icon-xs"></i>
+              </button>
+              <button type="button" class="btn-tiny" style="height:1.35rem; padding:0 0.4rem; color:var(--primary);" onclick="openStudySubjectModal()" title="Create New Study Subject">
+                <i data-lucide="folder-plus" class="icon-xs"></i> +Study
+              </button>
+            </div>
+          </div>
+
+          <select id="sidebar-subject-filter" class="form-select" style="height:1.9rem; font-size:0.78rem; font-weight:700;" onchange="filterStudySubject(this.value)">
+            <option value="ALL">📚 All Studies (0)</option>
+          </select>
+        </div>
+
+        <!-- Search & Sort Controls -->
+        <div class="word-sidebar-section" style="padding-top:0.45rem; padding-bottom:0.45rem;">
+          <div style="position:relative; margin-bottom:0.35rem;">
+            <i data-lucide="search" class="icon-xs" style="position:absolute; left:0.55rem; top:50%; transform:translateY(-50%); color:var(--muted-foreground);"></i>
+            <input type="text" id="study-search-input" class="form-input" style="height:1.75rem; padding-left:1.75rem; font-size:0.75rem;" placeholder="Search pages...">
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:0.3rem;">
+            <span id="notes-list-heading" style="font-size:0.68rem; font-weight:800; color:var(--muted-foreground); text-transform:uppercase;">Pages (0)</span>
+            <div style="display:flex; align-items:center; gap:0.25rem;">
+              <select id="notes-sort-select" class="inline-meta-input" style="height:1.4rem; font-size:0.65rem; padding:0 0.25rem; width:auto;" onchange="changeNotesSortOrder(this.value)">
+                <option value="custom_asc">1→N Order</option>
+                <option value="title_asc">A→Z Title</option>
+                <option value="created_desc">Newest</option>
+                <option value="updated_desc">Edited</option>
+              </select>
+              <button type="button" class="btn-tiny" style="height:1.4rem; padding:0 0.4rem; background:var(--primary); color:#fff; border-color:var(--primary);" onclick="createNewBlankNote()">
+                + Page
+              </button>
+            </div>
           </div>
         </div>
-        <div id="study-notes-list" class="notes-list-scroll">
-          <!-- Rendered dynamically by study.js -->
+
+        <!-- Ordered Pages List -->
+        <div id="study-notes-list" class="word-pages-list">
+          <!-- Populated by study.js -->
+        </div>
+
+        <!-- Document Outline (Headings inside Active Page) -->
+        <div class="word-sidebar-outline-box">
+          <div class="word-sidebar-label" style="margin-bottom:0.3rem;">📑 PAGE OUTLINE (SECTIONS)</div>
+          <div id="sidebar-outline-list" class="word-outline-list">
+            <div style="font-size:0.72rem; color:var(--muted-foreground); font-style:italic;">No headings yet</div>
+          </div>
         </div>
       </aside>
 
-      <!-- Right Column: Expansive Note Reader & Study Canvas -->
-      <main id="study-reader-pane" class="note-reader-pane">
-        <!-- Rendered dynamically by study.js -->
+      <!-- CENTER: THE WORD PAPER / MODERN NOTEPAD CANVAS -->
+      <main id="study-reader-pane" class="word-desk-area">
+        <!-- Read Mode Floating Minimal Topbar (Only visible in Read Mode) -->
+        <div id="read-mode-floating-bar" class="read-mode-floating-bar" style="display:none;">
+          <div style="display:flex; align-items:center; gap:0.4rem; min-width:0; flex:1;">
+            <button type="button" class="read-exit-btn" onclick="toggleReadMode(false)" title="Exit Read Mode (Esc)">
+              <i data-lucide="arrow-left" class="icon-xs"></i>
+              <span>Exit Read Mode</span>
+            </button>
+
+            <button type="button" class="read-ctrl-pill" onclick="toggleNotesSidebar()" title="Open Pages &amp; Outline Menu (☰)">
+              <i data-lucide="menu" class="icon-xs"></i>
+              <span class="hide-on-mobile">Pages &amp; Outline</span>
+            </button>
+
+            <select id="read-mode-page-select" class="read-mode-select" style="flex:1; max-width:18rem; font-weight:700;" onchange="selectStudyNote(this.value)">
+            </select>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:0.25rem; flex-shrink:0;">
+            <button type="button" id="read-cram-btn" class="read-ctrl-pill" onclick="toggleCramHighlightsMode()" title="Show Only Highlights, Callouts &amp; Headings">🎯 Cram</button>
+            <button type="button" class="read-ctrl-pill" onclick="revealAllClozesInDoc()" title="Reveal / Hide All Cloze Blanks">🔒 Clozes</button>
+            <button type="button" class="read-ctrl-pill" onclick="stepDocZoom(-10)" title="Zoom Out">A-</button>
+            <button type="button" class="read-ctrl-pill" onclick="stepDocZoom(10)" title="Zoom In">A+</button>
+            <button type="button" class="read-ctrl-pill" onclick="setDocTheme('light')" title="Paper White">☀️</button>
+            <button type="button" class="read-ctrl-pill" onclick="setDocTheme('sepia')" title="Warm Sepia">📜</button>
+            <button type="button" class="read-ctrl-pill" onclick="setDocTheme('dark')" title="Night Dark">🌙</button>
+            <button type="button" class="read-exit-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5;" onclick="toggleReadMode(false)" title="Exit Read Mode (Esc)">
+              <i data-lucide="x" class="icon-xs"></i>
+              <span class="hide-on-mobile">Exit</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Inline Find & Replace Bar (Ctrl+F) -->
+        <div id="doc-find-bar" class="doc-find-bar" style="display:none;">
+          <i data-lucide="search" class="icon-xs" style="color:#64748b;"></i>
+          <input type="text" id="doc-find-input" class="form-input" style="height:1.65rem; width:10rem; font-size:0.75rem;" placeholder="Find in page..." onkeydown="if(event.key==='Enter')findNextInDoc();">
+          <button type="button" class="btn-tiny" onclick="findNextInDoc()">Find</button>
+          <input type="text" id="doc-replace-input" class="form-input hide-on-mobile" style="height:1.65rem; width:10rem; font-size:0.75rem;" placeholder="Replace with...">
+          <button type="button" class="btn-tiny hide-on-mobile" onclick="replaceInDoc(false)">Replace</button>
+          <button type="button" class="btn-tiny hide-on-mobile" onclick="replaceInDoc(true)">Replace All</button>
+          <button type="button" class="btn-tiny" onclick="toggleFindReplaceBar(false)">✕</button>
+        </div>
+
+        <!-- Contextual Table Editing Bar (Appears when clicking inside a Table) -->
+        <div id="word-table-toolbar" class="word-table-toolbar" style="display:none;">
+          <span style="font-size:0.68rem; font-weight:800; color:#b45309; margin-right:0.25rem;">📅 TABLE TOOLS:</span>
+          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('row-below')">+ Row Below</button>
+          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('row-above')">+ Row Above</button>
+          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('col-right')">+ Col Right</button>
+          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('del-row')">− Del Row</button>
+          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('del-col')">− Del Col</button>
+          <button type="button" class="btn-tiny" style="color:var(--destructive);" onmousedown="event.preventDefault(); modifyActiveTable('del-table')">🗑️ Remove Table</button>
+        </div>
+
+        <!-- Scrollable Desk Holding the Paper Sheet -->
+        <div id="word-desk-scroller" class="word-desk-scroller">
+          <div id="word-paper-sheet" class="word-paper-sheet">
+            <!-- Document Header inside the Paper Sheet -->
+            <div class="word-sheet-header">
+              <input type="text" id="sheet-title-input" class="word-sheet-title" placeholder="Document Title..." oninput="handleSheetTitleInput(this.value)">
+              <input type="text" id="sheet-summary-input" class="word-sheet-subtitle" placeholder="Add a subtitle, objective, or key takeaway..." oninput="handleSheetSummaryInput(this.value)">
+            </div>
+
+            <!-- Rich WYSIWYG Document Body (Like MS Word / Google Docs / Modern Notepad) -->
+            <div id="word-editor-surface" class="word-editor-surface markdown-content" contenteditable="true" spellcheck="true" data-placeholder="Start typing your study notes directly on this page... Use the Word ribbon above to format text, or insert Tables, Charts, Drawings, Flowcharts, and Callout Boxes."></div>
+
+            <!-- Prev / Next Page Footer Navigation -->
+            <div id="word-sheet-footer-nav" class="word-sheet-footer-nav"></div>
+          </div>
+        </div>
+
+        <!-- BOTTOM STATUS BAR (LIKE MICROSOFT WORD / WINDOWS 11 NOTEPAD) -->
+        <footer class="word-status-bar">
+          <div class="word-status-left">
+            <select id="status-outline-select" class="word-status-select" onchange="jumpToOutlineHeading(this.value); this.value='';" title="Jump to Section">
+              <option value="">📑 Jump to section...</option>
+            </select>
+            <span id="status-word-count">0 words</span>
+            <span class="hide-on-mobile" id="status-char-count">0 chars</span>
+            <span class="hide-on-mobile" id="status-read-time">~1 min read</span>
+          </div>
+
+          <div class="word-status-right">
+            <!-- Paper Pattern Style: Plain, Ruled Lines, Dot Grid, Graph Grid -->
+            <select id="paper-pattern-select" class="word-status-select hide-on-mobile" onchange="setPaperPattern(this.value)" title="Paper Surface Pattern">
+              <option value="plain">📄 Plain Paper</option>
+              <option value="lined">📝 Ruled Lines</option>
+              <option value="dots">⠿ Dot Grid</option>
+              <option value="grid">▦ Graph Grid</option>
+            </select>
+
+            <!-- Paper Sheet vs Full-Width Notepad Toggle -->
+            <button type="button" id="layout-mode-btn" class="word-status-btn" onclick="togglePageLayoutMode()" title="Switch between Centered Paper Sheet and Full-Width Notepad">
+              <span>📄 Paper View</span>
+            </button>
+
+            <!-- Page Theme Switcher -->
+            <button type="button" class="word-status-btn" onclick="setDocTheme('light')" title="Paper White">☀️</button>
+            <button type="button" class="word-status-btn" onclick="setDocTheme('sepia')" title="Sepia Book">📜</button>
+            <button type="button" class="word-status-btn" onclick="setDocTheme('dark')" title="Dark Mode">🌙</button>
+
+            <!-- Zoom Controls -->
+            <button type="button" class="word-status-btn" onclick="stepDocZoom(-10)" title="Zoom Out">−</button>
+            <span id="status-zoom-label" style="font-weight:700; min-width:2.6rem; text-align:center;">100%</span>
+            <button type="button" class="word-status-btn" onclick="stepDocZoom(10)" title="Zoom In">+</button>
+          </div>
+        </footer>
       </main>
     </div>
 
@@ -168,22 +451,18 @@
         <i data-lucide="layout-dashboard" class="icon-md"></i>
         <span>Vault</span>
       </a>
-
       <a href="/study" class="nav-item active">
         <i data-lucide="graduation-cap" class="icon-md"></i>
         <span>Study</span>
       </a>
-
-      <button class="nav-item" style="background:none; border:none; cursor:pointer;" onclick="toggleReadMode(true)">
+      <button class="nav-item" style="background:none; border:none; cursor:pointer;" onclick="toggleReadMode()">
         <i data-lucide="book-open-check" class="icon-md"></i>
         <span>Read</span>
       </button>
-
-      <button class="nav-item" style="background:none; border:none; cursor:pointer;" onclick="openStudyNoteModal()">
+      <button class="nav-item" style="background:none; border:none; cursor:pointer;" onclick="createNewBlankNote()">
         <i data-lucide="plus-circle" class="icon-md"></i>
-        <span>Note</span>
+        <span>New Page</span>
       </button>
-
       <a href="/settings" class="nav-item">
         <i data-lucide="settings" class="icon-md"></i>
         <span>Settings</span>
@@ -192,29 +471,27 @@
   </div>
 
   <!-- ======================================================
-       CREATE / EDIT STUDY SUBJECT MODAL
+       MODAL 1: CREATE / EDIT STUDY SUBJECT
        ====================================================== -->
   <div id="study-subject-modal" class="modal-overlay">
     <div class="modal-dialog" style="max-width: 28rem;">
       <div class="modal-header">
-        <h2 id="subject-modal-title" style="font-size: 1.05rem; font-weight: 700; color: var(--foreground); display: flex; align-items: center; gap: 0.5rem;">
+        <h2 id="subject-modal-title" style="font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
           <i data-lucide="graduation-cap" class="icon-sm"></i>
           <span>Create New Study</span>
         </h2>
-        <button onclick="closeStudySubjectModal()" class="modal-close-btn" aria-label="Close">
-          <i data-lucide="x" class="icon-sm"></i>
-        </button>
+        <button onclick="closeStudySubjectModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
       </div>
 
       <form id="study-subject-form">
         <div class="form-group">
-          <label class="form-label" for="subject-name-input">Study / Course / Subject Name</label>
-          <input type="text" id="subject-name-input" class="form-input" placeholder="e.g. Finance, Kubernetes, PostgreSQL Internals" required>
+          <label class="form-label" for="subject-name-input">Study / Course / Notebook Name</label>
+          <input type="text" id="subject-name-input" class="form-input" placeholder="e.g. Financial Accounting, Kubernetes, SQL" required>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="subject-desc-input">Study Goal / Description</label>
-          <input type="text" id="subject-desc-input" class="form-input" placeholder="e.g. Core standards, formulas & case studies">
+          <label class="form-label" for="subject-desc-input">Description / Goal</label>
+          <input type="text" id="subject-desc-input" class="form-input" placeholder="e.g. Core principles, formulas &amp; exam notes">
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
@@ -222,67 +499,42 @@
             <label class="form-label" for="subject-icon-select">Icon</label>
             <select id="subject-icon-select" class="form-select">
               <option value="book-open">📖 Book / Study</option>
-              <option value="graduation-cap">🎓 Course / Certification</option>
-              <option value="code">💻 Programming / Code</option>
-              <option value="terminal">⌨️ Linux / CLI / DevOps</option>
-              <option value="database">🗄️ Database / SQL</option>
-              <option value="server">🖥️ Systems / Networking</option>
-              <option value="cpu">🧠 AI / Algorithms</option>
-              <option value="shield">🔐 Cybersecurity</option>
-              <option value="globe">🌐 Web / Cloud</option>
-              <option value="layers">📚 General Subject</option>
+              <option value="graduation-cap">🎓 Course</option>
+              <option value="code">💻 Programming</option>
+              <option value="terminal">⌨️ Linux / DevOps</option>
+              <option value="database">🗄️ Database</option>
+              <option value="server">🖥️ Systems</option>
+              <option value="cpu">🧠 AI / Math</option>
+              <option value="shield">🔐 Security</option>
+              <option value="layers">📚 General</option>
             </select>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="subject-status-select">Status</label>
             <select id="subject-status-select" class="form-select">
-              <option value="ACTIVE">🟢 Active Study</option>
-              <option value="PLANNED">🟣 Planned / Next</option>
+              <option value="ACTIVE">🟢 Active</option>
+              <option value="PLANNED">🟣 Planned</option>
               <option value="COMPLETED">✅ Completed</option>
-              <option value="PAUSED">⏸️ On Hold</option>
+              <option value="PAUSED">⏸️ Paused</option>
             </select>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Theme Color</label>
+          <label class="form-label">Color</label>
           <div style="display:flex; gap:0.625rem; align-items:center; margin-top:0.25rem; flex-wrap:wrap;">
-            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
-              <input type="radio" name="subject-color" value="#4f46e5" checked style="accent-color:#4f46e5;">
-              <span style="display:inline-block; width:1.35rem; height:1.35rem; border-radius:50%; background:#4f46e5;"></span>
-            </label>
-            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
-              <input type="radio" name="subject-color" value="#7c3aed" style="accent-color:#7c3aed;">
-              <span style="display:inline-block; width:1.35rem; height:1.35rem; border-radius:50%; background:#7c3aed;"></span>
-            </label>
-            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
-              <input type="radio" name="subject-color" value="#10b981" style="accent-color:#10b981;">
-              <span style="display:inline-block; width:1.35rem; height:1.35rem; border-radius:50%; background:#10b981;"></span>
-            </label>
-            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
-              <input type="radio" name="subject-color" value="#0ea5e9" style="accent-color:#0ea5e9;">
-              <span style="display:inline-block; width:1.35rem; height:1.35rem; border-radius:50%; background:#0ea5e9;"></span>
-            </label>
-            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
-              <input type="radio" name="subject-color" value="#f59e0b" style="accent-color:#f59e0b;">
-              <span style="display:inline-block; width:1.35rem; height:1.35rem; border-radius:50%; background:#f59e0b;"></span>
-            </label>
-            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
-              <input type="radio" name="subject-color" value="#ec4899" style="accent-color:#ec4899;">
-              <span style="display:inline-block; width:1.35rem; height:1.35rem; border-radius:50%; background:#ec4899;"></span>
-            </label>
-            <label style="cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
-              <input type="radio" name="subject-color" value="#ef4444" style="accent-color:#ef4444;">
-              <span style="display:inline-block; width:1.35rem; height:1.35rem; border-radius:50%; background:#ef4444;"></span>
-            </label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#4f46e5" checked> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#4f46e5;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#7c3aed"> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#7c3aed;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#10b981"> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#10b981;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#0ea5e9"> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#0ea5e9;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#f59e0b"> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#f59e0b;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#ec4899"> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#ec4899;vertical-align:middle;"></span></label>
           </div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-top:1.25rem;">
-          <button type="button" id="subject-delete-btn" onclick="deleteEditingSubject()" class="btn btn-danger" style="display:none;">
-            <i data-lucide="trash-2" class="icon-xs"></i> Delete
-          </button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+          <button type="button" id="subject-delete-btn" onclick="deleteEditingSubject()" class="btn btn-danger" style="display:none;">Delete</button>
           <div style="display:flex; gap:0.5rem; margin-left:auto;">
             <button type="button" onclick="closeStudySubjectModal()" class="btn btn-outline">Cancel</button>
             <button type="submit" id="subject-submit-btn" class="btn btn-primary">Save Study</button>
@@ -293,368 +545,372 @@
   </div>
 
   <!-- ======================================================
-       CREATE / EDIT STUDY NOTE MODAL (RICH WORKSPACE EDITOR)
+       MODAL 2: INTERACTIVE CHART BUILDER (INSERTS INTO WORD PAGE)
        ====================================================== -->
-  <div id="study-note-modal" class="modal-overlay">
-    <div class="modal-dialog" style="max-width: 52rem;">
-      <div class="modal-header" style="margin-bottom:1rem; padding-bottom:0.75rem;">
-        <h2 id="note-modal-title" style="font-size: 1.05rem; font-weight: 700; color: var(--foreground); display: flex; align-items: center; gap: 0.5rem;">
-          <i data-lucide="file-plus-2" class="icon-sm"></i>
-          <span>New Study Note</span>
+  <div id="chart-builder-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 44rem;">
+      <div class="modal-header">
+        <h2 style="font-size:1.05rem; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="bar-chart-3" class="icon-sm" style="color:var(--primary);"></i>
+          <span>Insert Data Chart into Page</span>
         </h2>
-        <button onclick="closeStudyNoteModal()" class="modal-close-btn" aria-label="Close">
-          <i data-lucide="x" class="icon-sm"></i>
-        </button>
+        <button onclick="closeChartBuilderModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
       </div>
 
-      <form id="study-note-form">
-        <div style="display:grid; grid-template-columns: 1.4fr 1fr 0.9fr 0.9fr; gap: 0.625rem;">
-          <div class="form-group">
-            <label class="form-label" for="note-title-input">Note / Lesson Title</label>
-            <input type="text" id="note-title-input" class="form-input" placeholder="e.g. Lecture 01: Financial Standards" required>
-          </div>
-
-          <div class="form-group">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.2rem;">
-              <label class="form-label" for="note-subject-select" style="margin-bottom:0;">Study Subject</label>
-              <button type="button" onclick="openStudySubjectModal()" class="btn-tiny" style="height:1.15rem; padding:0 0.35rem; font-size:0.65rem;">+ New</button>
+      <div style="display:grid; grid-template-columns: 1.15fr 1fr; gap:1rem; align-items:start;">
+        <div>
+          <div style="display:grid; grid-template-columns: 1.2fr 1fr 0.6fr; gap:0.45rem; margin-bottom:0.65rem;">
+            <div>
+              <label class="form-label" style="font-size:0.72rem;">Chart Title</label>
+              <input type="text" id="studio-chart-title" class="form-input" style="height:1.85rem; font-size:0.8rem;" value="Performance Metrics" oninput="updateChartModalPreview()">
             </div>
-            <select id="note-subject-select" class="form-select">
-              <option value="">General Notes</option>
-            </select>
+            <div>
+              <label class="form-label" style="font-size:0.72rem;">Type</label>
+              <select id="studio-chart-type" class="form-select" style="height:1.85rem; font-size:0.8rem;" onchange="updateChartModalPreview()">
+                <option value="bar">📊 Bar Chart</option>
+                <option value="line">📈 Line Chart</option>
+                <option value="area">🌊 Area Chart</option>
+                <option value="pie">🥧 Pie Chart</option>
+                <option value="doughnut">🍩 Doughnut</option>
+                <option value="hbar">📉 Horizontal Bar</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-size:0.72rem;">Unit</label>
+              <input type="text" id="studio-chart-unit" class="form-input" style="height:1.85rem; font-size:0.8rem;" placeholder="%, $" oninput="updateChartModalPreview()">
+            </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="note-chapter-input">Chapter / Module</label>
-            <input type="text" id="note-chapter-input" list="chapter-suggestions" class="form-input" placeholder="e.g. Module 1: Basics">
-            <datalist id="chapter-suggestions"></datalist>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+            <span style="font-size:0.7rem; font-weight:700; color:var(--muted-foreground);">DATA ROWS</span>
+            <button type="button" class="btn-tiny" onclick="addChartModalRow()">+ Add Row</button>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="note-mastery-select">Mastery Level</label>
-            <select id="note-mastery-select" class="form-select">
-              <option value="NEW">🟣 New Topic</option>
-              <option value="LEARNING" selected>🔵 In Progress</option>
-              <option value="REVIEW">🟠 Needs Review</option>
-              <option value="MASTERED">🟢 Mastered</option>
-            </select>
-          </div>
+          <div id="studio-chart-rows" style="display:flex; flex-direction:column; gap:0.35rem; max-height:11rem; overflow-y:auto;"></div>
         </div>
 
-        <div class="form-group">
-          <input type="text" id="note-summary-input" class="form-input" placeholder="Brief summary or Cornell takeaway (optional)...">
+        <div>
+          <div style="font-size:0.7rem; font-weight:700; color:var(--muted-foreground); margin-bottom:0.25rem;">LIVE PREVIEW</div>
+          <div id="studio-chart-live-preview" style="border:1px solid var(--border); border-radius:var(--radius-md); padding:0.5rem; background:#faf9ff;"></div>
         </div>
+      </div>
 
-        <!-- Markdown Editor with Formatting Toolbar & Live Preview Toggle -->
-        <div class="form-group">
-          <div id="editor-write-wrap">
-            <div class="editor-toolbar">
-              <div class="editor-tool-btns">
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('## ', '')" title="Heading 2">H2</button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('### ', '')" title="Heading 3">H3</button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('**', '**')" title="Bold"><strong>B</strong></button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('*', '*')" title="Italic"><em>I</em></button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('`', '`')" title="Inline Code"><code>&lt;/&gt;</code></button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('==yellow:', '==')" title="Highlight Text">🖍️ Highlight</button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('{{', '}}')" title="Cloze Fill-in-the-blank">🔒 Cloze</button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('[[', ']]')" title="Link to Another Note">🔗 [[Note]]</button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('[[vault:', ']]')" title="Link to a Secret in Vault">🔐 [[Vault]]</button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('> [!PIN: Key Concept] ', '')" title="Pinned Section Block">📌 Pin Block</button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('\n$$\n', '\n$$\n')" title="Math Formula Block">📐 Math</button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('\n```mermaid\ngraph LR\n  A[Start] --> B[Result]\n', '```\n')" title="Mermaid Flowchart Diagram">📊 Diagram</button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('\n```bash\n', '\n```\n')" title="Code Block">Code</button>
-                <button type="button" class="editor-tool-btn" onclick="insertMdSyntax('- [ ] ', '')" title="Checklist Item">☑ Task</button>
-                <button type="button" class="editor-tool-btn" onclick="insertNoteTemplate()" style="color:var(--primary);" title="Insert Study Template">
-                  <i data-lucide="wand-2" class="icon-xs"></i> Template
-                </button>
-              </div>
-              <div style="display:flex; gap:0.25rem;">
-                <button type="button" id="editor-tab-write" onclick="switchEditorTab('write')" class="editor-tool-btn" style="background:var(--primary); color:#fff; border-color:var(--primary);">Write</button>
-                <button type="button" id="editor-tab-preview" onclick="switchEditorTab('preview')" class="editor-tool-btn">Preview</button>
-              </div>
-            </div>
-            <textarea id="note-content-input" class="form-textarea code-font editor-textarea-attached" rows="12" placeholder="Write your study notes here... (Tip: Press Ctrl+V to paste screenshots directly!)&#10;&#10;## Key Concepts&#10;- Main ideas & explanations&#10;- Code snippets, $$math formulas$$, or ```mermaid diagrams"></textarea>
-          </div>
-
-          <div id="editor-preview-wrap" style="display:none;">
-            <div class="editor-toolbar">
-              <span style="font-size:0.75rem; font-weight:700; color:var(--primary); padding-left:0.25rem;">Markdown Preview</span>
-              <div style="display:flex; gap:0.25rem;">
-                <button type="button" onclick="switchEditorTab('write')" class="editor-tool-btn">Back to Write</button>
-                <button type="button" class="editor-tool-btn" style="background:var(--primary); color:#fff; border-color:var(--primary);">Preview</button>
-              </div>
-            </div>
-            <div id="editor-preview-body" class="markdown-content" style="border:1.5px solid var(--border); border-radius:0 0 var(--radius-md) var(--radius-md); padding:1rem; min-height:15rem; background:#ffffff;"></div>
-          </div>
-        </div>
-
-        <!-- Compact Collapsible Extras: Flashcards & Links -->
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom:0.75rem;">
-          <div style="background:#faf9ff; border:1px solid var(--border); border-radius:var(--radius-md); padding:0.625rem;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-              <span style="font-size:0.75rem; font-weight:700; display:flex; align-items:center; gap:0.3rem;">
-                <i data-lucide="sparkles" class="icon-xs" style="color:#8b5cf6;"></i> Flashcards (Q&amp;A)
-              </span>
-              <button type="button" onclick="addTakeawayRow()" class="btn-tiny">+ Add Card</button>
-            </div>
-            <div id="note-takeaways-container" style="display:flex; flex-direction:column; gap:0.35rem;"></div>
-          </div>
-
-          <div style="background:#f8fafc; border:1px solid var(--border); border-radius:var(--radius-md); padding:0.625rem;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-              <span style="font-size:0.75rem; font-weight:700; display:flex; align-items:center; gap:0.3rem;">
-                <i data-lucide="link" class="icon-xs" style="color:var(--primary);"></i> Reference Links
-              </span>
-              <button type="button" onclick="addResourceRow()" class="btn-tiny">+ Add Link</button>
-            </div>
-            <div id="note-resources-container" style="display:flex; flex-direction:column; gap:0.35rem;"></div>
-          </div>
-        </div>
-
-        <div style="display:flex; align-items:center; justify-content:space-between; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
-          <div style="display:flex; align-items:center; gap:0.75rem; flex:1;">
-            <input type="text" id="note-tags-input" class="form-input" style="max-width:18rem; height:1.9rem; font-size:0.8rem;" placeholder="Tags: finance, exam, lecture-1">
-            <label style="font-size: 0.8rem; font-weight: 600; color: var(--foreground); cursor: pointer; display: flex; align-items: center; gap: 0.3rem; white-space:nowrap;">
-              <input type="checkbox" id="note-pinned-input" style="width: 0.95rem; height: 0.95rem; accent-color: var(--primary);">
-              <span>📌 Pin to top</span>
-            </label>
-          </div>
-
-          <div style="display:flex; gap: 0.5rem;">
-            <button type="button" onclick="closeStudyNoteModal()" class="btn btn-outline">Cancel</button>
-            <button type="submit" id="note-submit-btn" class="btn btn-primary">Save Note</button>
-          </div>
-        </div>
-      </form>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border);">
+        <button type="button" class="btn btn-outline" onclick="closeChartBuilderModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="insertChartFromModal()">Insert Chart into Page</button>
+      </div>
     </div>
   </div>
 
   <!-- ======================================================
-       INTERACTIVE FLASHCARD PRACTICE MODAL
+       MODAL 3: UPGRADED DRAWING & WHITEBOARD STUDIO
+       ====================================================== -->
+  <div id="whiteboard-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 56rem;">
+      <div class="modal-header">
+        <h2 style="font-size:1.05rem; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="pen-tool" class="icon-sm" style="color:#ec4899;"></i>
+          <span>Drawing &amp; Diagram Whiteboard Studio</span>
+          <span style="font-size:0.68rem; font-weight:600; color:var(--muted-foreground); margin-left:0.35rem;">(Tip: Double-click any drawing on your page to re-edit it)</span>
+        </h2>
+        <button onclick="closeWhiteboardModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
+      </div>
+
+      <!-- Row 1: Drawing & Shape Tools -->
+      <div class="whiteboard-toolbar">
+        <div class="wb-tool-group">
+          <button type="button" class="wb-tool-btn active" data-wb-tool="pen" onclick="setWbTool('pen', this)" title="Smooth Freehand Pen">✏️ Pen</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="marker" onclick="setWbTool('marker', this)" title="Semi-Transparent Highlighter Marker">🖍️ Marker</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="line" onclick="setWbTool('line', this)" title="Straight Line">📏 Line</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="arrow" onclick="setWbTool('arrow', this)" title="Directional Arrow">↗️ Arrow</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="darrow" onclick="setWbTool('darrow', this)" title="Double-Headed Arrow">↔️ 2-Arrow</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="rect" onclick="setWbTool('rect', this)" title="Rectangle Box">▭ Box</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="roundrect" onclick="setWbTool('roundrect', this)" title="Rounded Node Box">▢ Rounded</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="circle" onclick="setWbTool('circle', this)" title="Circle / Ellipse">◯ Circle</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="diamond" onclick="setWbTool('diamond', this)" title="Decision Diamond Node">◇ Diamond</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="text" onclick="setWbTool('text', this)" title="Click Canvas to Type Text Label">🔤 Text</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="eraser" onclick="setWbTool('eraser', this)" title="Eraser">🧽 Eraser</button>
+        </div>
+
+        <div style="margin-left:auto; display:flex; align-items:center; gap:0.25rem;">
+          <button type="button" class="btn-tiny" onclick="undoWhiteboard()" title="Undo (Ctrl+Z)">↶ Undo</button>
+          <button type="button" class="btn-tiny" onclick="redoWhiteboard()" title="Redo (Ctrl+Y)">↷ Redo</button>
+          <button type="button" class="btn-tiny" onclick="clearWhiteboard()" title="Clear Canvas">🗑️ Clear</button>
+        </div>
+      </div>
+
+      <!-- Row 2: Colors, Stroke Width, Fill, Dashed & Canvas Background -->
+      <div class="whiteboard-subtoolbar">
+        <!-- Color Swatches + Picker -->
+        <div style="display:flex; align-items:center; gap:0.28rem;">
+          <span class="wb-sub-label">Color:</span>
+          <button type="button" class="sel-color-dot" style="background:#0f172a; border-color:#111827;" onclick="setWbColor('#0f172a', this)" title="Dark Slate"></button>
+          <button type="button" class="sel-color-dot" style="background:#4f46e5;" onclick="setWbColor('#4f46e5', this)" title="Indigo"></button>
+          <button type="button" class="sel-color-dot" style="background:#0ea5e9;" onclick="setWbColor('#0ea5e9', this)" title="Sky Blue"></button>
+          <button type="button" class="sel-color-dot" style="background:#10b981;" onclick="setWbColor('#10b981', this)" title="Emerald"></button>
+          <button type="button" class="sel-color-dot" style="background:#f59e0b;" onclick="setWbColor('#f59e0b', this)" title="Amber"></button>
+          <button type="button" class="sel-color-dot" style="background:#ef4444;" onclick="setWbColor('#ef4444', this)" title="Red"></button>
+          <button type="button" class="sel-color-dot" style="background:#ec4899;" onclick="setWbColor('#ec4899', this)" title="Pink"></button>
+          <button type="button" class="sel-color-dot" style="background:#8b5cf6;" onclick="setWbColor('#8b5cf6', this)" title="Violet"></button>
+          <input type="color" id="wb-custom-color" value="#4f46e5" onchange="setWbColor(this.value, null)" title="Custom Color Picker" style="width:1.35rem; height:1.35rem; padding:0; border:none; background:transparent; cursor:pointer;">
+        </div>
+
+        <span class="ribbon-divider"></span>
+
+        <!-- Stroke Thickness -->
+        <div style="display:flex; align-items:center; gap:0.2rem;">
+          <span class="wb-sub-label">Size:</span>
+          <button type="button" class="wb-opt-btn active" data-wb-size="2.5" onclick="setWbStrokeSize(2.5, this)">Thin</button>
+          <button type="button" class="wb-opt-btn" data-wb-size="4.5" onclick="setWbStrokeSize(4.5, this)">Med</button>
+          <button type="button" class="wb-opt-btn" data-wb-size="8" onclick="setWbStrokeSize(8, this)">Thick</button>
+        </div>
+
+        <span class="ribbon-divider"></span>
+
+        <!-- Shape Fill & Dashed Toggle -->
+        <div style="display:flex; align-items:center; gap:0.25rem;">
+          <button type="button" id="wb-fill-toggle" class="wb-opt-btn" onclick="toggleWbShapeFill(this)" title="Fill Shapes with Soft Color Tint">🎨 Fill: OFF</button>
+          <button type="button" id="wb-dash-toggle" class="wb-opt-btn" onclick="toggleWbDashed(this)" title="Dashed Stroke">┄ Dashed</button>
+        </div>
+
+        <span class="ribbon-divider"></span>
+
+        <!-- Canvas Background Mode -->
+        <div style="display:flex; align-items:center; gap:0.25rem;">
+          <span class="wb-sub-label">Canvas:</span>
+          <select id="wb-bg-select" class="ribbon-select" style="height:1.55rem; font-size:0.7rem;" onchange="setWhiteboardBackground(this.value)">
+            <option value="dots">⠿ Dot Grid</option>
+            <option value="grid">📏 Graph Grid</option>
+            <option value="plain">⬜ Clean White</option>
+            <option value="dark">⬛ Dark Board</option>
+          </select>
+        </div>
+
+        <div style="margin-left:auto; display:flex; align-items:center; gap:0.3rem;">
+          <label class="btn-tiny" style="cursor:pointer; display:inline-flex; align-items:center; gap:0.2rem;" title="Import Image onto Canvas to Annotate">
+            🖼️ +Image
+            <input type="file" accept="image/*" style="display:none;" onchange="importImageToWhiteboard(event)">
+          </label>
+          <button type="button" class="btn-tiny" onclick="downloadWhiteboardPng()" title="Download Drawing as PNG">⬇ PNG</button>
+        </div>
+      </div>
+
+      <!-- Canvas Container + Floating Inline Text Box -->
+      <div id="whiteboard-canvas-wrap" class="whiteboard-canvas-wrap" style="position:relative;">
+        <canvas id="study-whiteboard-canvas" width="820" height="400"></canvas>
+        <input type="text" id="wb-floating-text-input" class="wb-floating-text-input" placeholder="Type label & press Enter..." style="display:none;">
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-top:0.85rem;">
+        <input type="text" id="wb-caption-input" class="form-input" style="max-width:22rem; height:1.95rem; font-size:0.8rem;" placeholder="Optional caption for this drawing...">
+        <div style="display:flex; gap:0.5rem;">
+          <button type="button" class="btn btn-outline" onclick="closeWhiteboardModal()">Cancel</button>
+          <button type="button" id="wb-submit-btn" class="btn btn-primary" onclick="insertWhiteboardFromModal()">Insert Drawing into Page</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       MODAL 3B: IDE CODE STUDIO (SYNTAX HIGHLIGHTED CODE EDITOR)
+       ====================================================== -->
+  <div id="code-editor-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 52rem;">
+      <div class="modal-header">
+        <h2 style="font-size:1.05rem; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="code-2" class="icon-sm" style="color:#0ea5e9;"></i>
+          <span id="code-modal-heading">IDE Code Block Studio</span>
+        </h2>
+        <button onclick="closeCodeEditorModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.65rem;">
+        <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
+          <label class="form-label" style="margin:0; font-size:0.75rem;">Language:</label>
+          <select id="ide-code-lang" class="form-select" style="width:auto; height:1.85rem; font-size:0.78rem; font-weight:700;" onchange="updateIdeCodePreview()">
+            <option value="javascript">JavaScript / Node.js</option>
+            <option value="typescript">TypeScript</option>
+            <option value="python">Python</option>
+            <option value="sql">SQL / Database</option>
+            <option value="bash">Bash / Linux / CLI</option>
+            <option value="html">HTML / CSS / XML</option>
+            <option value="json">JSON / YAML</option>
+            <option value="csharp">C# / Java / C++</option>
+            <option value="docker">Dockerfile / DevOps</option>
+          </select>
+
+          <input type="text" id="ide-code-filename" class="form-input" style="width:12rem; height:1.85rem; font-size:0.78rem;" placeholder="Filename (e.g. query.sql)" oninput="updateIdeCodePreview()">
+        </div>
+
+        <div style="display:flex; align-items:center; gap:0.3rem;">
+          <span style="font-size:0.68rem; color:var(--muted-foreground); font-weight:700;">Snippets:</span>
+          <button type="button" class="btn-tiny" onclick="loadIdeCodeSnippet('js')">JS Async</button>
+          <button type="button" class="btn-tiny" onclick="loadIdeCodeSnippet('py')">Python</button>
+          <button type="button" class="btn-tiny" onclick="loadIdeCodeSnippet('sql')">SQL Join</button>
+          <button type="button" class="btn-tiny" onclick="loadIdeCodeSnippet('bash')">Bash</button>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; align-items:stretch;">
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-size:0.68rem; font-weight:800; color:var(--muted-foreground); margin-bottom:0.25rem; text-transform:uppercase;">Source Code (Tab key supported)</div>
+          <textarea id="ide-code-input" class="form-textarea code-font" rows="12" style="flex:1; background:#0d1117; color:#e6edf3; border-color:#30363d; font-size:0.82rem; line-height:1.55; tab-size:2;" placeholder="// Write or paste your code here..." oninput="updateIdeCodePreview()"></textarea>
+        </div>
+
+        <div style="display:flex; flex-direction:column; min-width:0;">
+          <div style="font-size:0.68rem; font-weight:800; color:var(--muted-foreground); margin-bottom:0.25rem; text-transform:uppercase;">Live IDE Syntax Preview</div>
+          <div id="ide-code-live-preview" style="flex:1; max-height:19.5rem; overflow:auto; border-radius:8px;"></div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.9rem;">
+        <button type="button" class="btn btn-outline" onclick="closeCodeEditorModal()">Cancel</button>
+        <button type="button" id="ide-code-submit-btn" class="btn btn-primary" onclick="insertOrUpdateIdeCodeBlock()">Insert IDE Code Block</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       MODAL 4: FLOWCHART / DIAGRAM BUILDER
+       ====================================================== -->
+  <div id="diagram-builder-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 44rem;">
+      <div class="modal-header">
+        <h2 style="font-size:1.05rem; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="git-merge" class="icon-sm" style="color:#10b981;"></i>
+          <span>Insert Flowchart / Diagram</span>
+        </h2>
+        <button onclick="closeDiagramBuilderModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
+      </div>
+
+      <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.65rem;">
+        <button type="button" class="btn-tiny" onclick="loadDiagramPreset('flowchart')">🔀 Flowchart</button>
+        <button type="button" class="btn-tiny" onclick="loadDiagramPreset('sequence')">🔄 Sequence</button>
+        <button type="button" class="btn-tiny" onclick="loadDiagramPreset('mindmap')">🌳 Hierarchy</button>
+        <button type="button" class="btn-tiny" onclick="loadDiagramPreset('state')">⚡ State</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.85rem;">
+        <textarea id="studio-diagram-code" class="form-textarea code-font" rows="8" oninput="updateDiagramStudioPreview()">graph LR
+  A[Core Concept] --> B{Decision}
+  B -->|Option 1| C[Result A]
+  B -->|Option 2| D[Result B]</textarea>
+        <div id="studio-diagram-preview" style="border:1px solid var(--border); border-radius:var(--radius-md); padding:0.75rem; background:#ffffff; min-height:11rem; display:flex; align-items:center; justify-content:center; overflow:auto;"></div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
+        <button type="button" class="btn btn-outline" onclick="closeDiagramBuilderModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="insertDiagramFromModal()">Insert Diagram into Page</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       MODAL 5: AI PROMPT EXPORT & AI CONTENT PASTE CONVERTER
+       ====================================================== -->
+  <div id="ai-prompt-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 44rem;">
+      <div class="modal-header">
+        <h2 style="font-size:1.05rem; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="bot" class="icon-sm" style="color:var(--primary);"></i>
+          <span>AI Study Assistant — Export Prompt or Paste AI Content</span>
+        </h2>
+        <button onclick="closeAiPromptModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.85rem;">
+        <div style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:var(--radius-md); padding:0.75rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <div>
+              <div style="font-size:0.82rem; font-weight:800; color:var(--primary);">1. Get the AI Formatting Instructions (.md)</div>
+              <div style="font-size:0.74rem; color:var(--muted-foreground);">Give this file/prompt to ChatGPT, Claude, or Gemini so it generates rich tables, charts, diagrams &amp; callouts.</div>
+            </div>
+            <div style="display:flex; gap:0.4rem;">
+              <button type="button" class="btn btn-secondary btn-compact" onclick="copyAiPromptToClipboard()">
+                <i data-lucide="copy" class="icon-xs"></i> Copy Prompt
+              </button>
+              <button type="button" class="btn btn-primary btn-compact" onclick="downloadAiPromptMdFile()">
+                <i data-lucide="download" class="icon-xs"></i> Download .md
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label" style="font-size:0.8rem; font-weight:700;">2. Paste AI Response Here (Auto-Formats into Your Word Page)</label>
+          <textarea id="ai-paste-input" class="form-textarea code-font" rows="8" placeholder="Paste the Markdown response from ChatGPT / Claude / Gemini here... It will automatically convert into formatted Word headings, tables, charts, diagrams, and callout boxes on your page!"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+          <button type="button" class="btn btn-outline" onclick="closeAiPromptModal()">Close</button>
+          <button type="button" class="btn btn-outline" onclick="insertAiContentIntoPage(false)">Append to Current Page</button>
+          <button type="button" class="btn btn-primary" onclick="insertAiContentIntoPage(true)">Replace Current Page Content</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       MODAL 6: FLASHCARDS MANAGER & PRACTICE DECK
        ====================================================== -->
   <div id="flashcard-modal" class="modal-overlay">
-    <div class="modal-dialog" style="max-width: 34rem;">
+    <div class="modal-dialog" style="max-width: 36rem;">
       <div class="modal-header">
         <div>
-          <h2 style="font-size: 1.125rem; font-weight: 700; color: var(--foreground); display: flex; align-items: center; gap: 0.5rem;">
+          <h2 style="font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
             <i data-lucide="sparkles" class="icon-sm" style="color:#8b5cf6;"></i>
-            <span>Flashcard Practice</span>
+            <span>Flashcards (Active Recall)</span>
           </h2>
-          <div id="flashcard-source-subtitle" style="font-size:0.75rem; color:var(--muted-foreground); margin-top:0.15rem;">Active Recall Deck</div>
+          <div id="flashcard-source-subtitle" style="font-size:0.72rem; color:var(--muted-foreground);">Practice or add Q&amp;A cards for this page</div>
         </div>
-        <button onclick="closeFlashcardDeck()" class="modal-close-btn" aria-label="Close">
-          <i data-lucide="x" class="icon-sm"></i>
-        </button>
+        <button onclick="closeFlashcardDeck()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
       </div>
 
-      <div>
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.625rem; gap:0.5rem;">
-          <div style="display:flex; align-items:center; gap:0.4rem;">
-            <span id="flashcard-counter" class="badge badge-OTHER">Card 1 of 1</span>
-            <span id="flashcard-due-badge" class="badge badge-USER" style="font-size:0.62rem;">New Card</span>
-          </div>
-          <div style="display:flex; gap:0.35rem;">
-            <button type="button" id="flashcard-due-filter-btn" onclick="toggleFlashcardDueFilter()" class="btn-tiny" title="Filter to cards due for Spaced Repetition review today">
-              <i data-lucide="calendar-clock" class="icon-xs"></i> <span id="flashcard-due-filter-label">All Cards</span>
-            </button>
-            <button type="button" onclick="shuffleFlashcards()" class="btn-tiny">
-              <i data-lucide="shuffle" class="icon-xs"></i> Shuffle
-            </button>
-          </div>
+      <!-- Quick Add Card to Current Note -->
+      <div style="background:#faf9ff; border:1px solid var(--border); border-radius:var(--radius-md); padding:0.65rem; margin-bottom:0.85rem;">
+        <div style="font-size:0.72rem; font-weight:800; color:var(--primary); margin-bottom:0.35rem;">+ ADD FLASHCARD TO THIS PAGE</div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:0.4rem;">
+          <input type="text" id="quick-fc-q" class="form-input" style="height:1.8rem; font-size:0.78rem;" placeholder="Question / Front...">
+          <input type="text" id="quick-fc-a" class="form-input" style="height:1.8rem; font-size:0.78rem;" placeholder="Answer / Back...">
+          <button type="button" class="btn btn-primary btn-compact" onclick="addQuickFlashcardToActiveNote()">Add</button>
         </div>
+      </div>
 
-        <div id="flashcard-stage" class="flashcard-stage" onclick="flipCurrentFlashcard()">
-          <div id="flashcard-side-label" class="badge badge-PASSWORD" style="margin-bottom:0.75rem;">QUESTION — CLICK TO REVEAL</div>
-          <div id="flashcard-text" style="font-size:1.05rem; font-weight:700; color:var(--foreground); line-height:1.5; white-space:pre-wrap;"></div>
-        </div>
+      <div id="flashcard-stage" class="flashcard-stage" onclick="flipFlashcard()">
+        <span id="flashcard-badge" class="flashcard-side-badge">QUESTION</span>
+        <div id="flashcard-text" class="flashcard-text">No flashcards yet</div>
+        <span id="flashcard-subject-tag" style="margin-top:0.75rem; font-size:0.72rem; color:var(--muted-foreground);"></span>
+      </div>
 
-        <!-- SM-2 Spaced Repetition Rating Bar (shown when Answer is revealed) -->
-        <div id="sm2-rating-bar" class="sm2-rating-bar" style="display:none;">
-          <button type="button" class="sm2-btn sm2-again" onclick="rateCurrentFlashcard(0)">
-            <span>Again</span>
-            <small>&lt; 1 day</small>
-          </button>
-          <button type="button" class="sm2-btn sm2-hard" onclick="rateCurrentFlashcard(3)">
-            <span>Hard</span>
-            <small id="sm2-hard-label">2 days</small>
-          </button>
-          <button type="button" class="sm2-btn sm2-good" onclick="rateCurrentFlashcard(4)">
-            <span>Good</span>
-            <small id="sm2-good-label">4 days</small>
-          </button>
-          <button type="button" class="sm2-btn sm2-easy" onclick="rateCurrentFlashcard(5)">
-            <span>Easy</span>
-            <small id="sm2-easy-label">7 days</small>
-          </button>
-        </div>
-
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:1rem;">
-          <button type="button" onclick="prevFlashcard()" class="btn btn-outline">
-            <i data-lucide="chevron-left" class="icon-xs"></i> Previous
-          </button>
-          <button type="button" onclick="flipCurrentFlashcard()" class="btn btn-secondary">
-            <i data-lucide="rotate-cw" class="icon-xs"></i> Flip Card
-          </button>
-          <button type="button" onclick="nextFlashcard()" class="btn btn-primary">
-            Next <i data-lucide="chevron-right" class="icon-xs"></i>
-          </button>
-        </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.85rem;">
+        <button type="button" onclick="prevFlashcard()" class="btn btn-outline btn-compact">← Prev</button>
+        <span id="flashcard-progress" style="font-size:0.78rem; font-weight:700;">0 / 0</span>
+        <button type="button" onclick="nextFlashcard()" class="btn btn-primary btn-compact">Next →</button>
       </div>
     </div>
   </div>
 
   <!-- ======================================================
-       MOBILE NAVIGATION SLIDE-OVER DRAWER (LEFT SHEET)
+       FLOATING WORD SELECTION MINI-TOOLBAR (LIKE MS WORD / NOTION)
        ====================================================== -->
-  <div id="mobile-menu-drawer" class="drawer-overlay" style="justify-content:flex-start;">
-    <div class="drawer-panel mobile-nav-panel">
-      <div class="mobile-nav-brand">
-        <div class="mobile-nav-brand-inner">
-          <div class="mobile-nav-brand-logo">
-            <i data-lucide="graduation-cap" class="icon-md"></i>
-          </div>
-          <div>
-            <div class="mobile-nav-title">PassKeeper</div>
-            <div class="mobile-nav-subtitle">Study &amp; Notes Hub</div>
-          </div>
-        </div>
-        <button id="close-mobile-menu-btn" class="modal-close-btn" aria-label="Close menu">
-          <i data-lucide="x" class="icon-sm"></i>
-        </button>
-      </div>
-
-      <nav class="mobile-nav-links">
-        <a href="/dashboard" class="sidebar-link">
-          <i data-lucide="layout-dashboard" class="icon-sm"></i>
-          <span>Secret Vault</span>
-        </a>
-        <a href="/study" class="sidebar-link active">
-          <i data-lucide="graduation-cap" class="icon-sm"></i>
-          <span>Study &amp; Notes Hub</span>
-        </a>
-        <a href="/users" id="mobile-menu-users-link" class="sidebar-link" style="display:none;">
-          <i data-lucide="users" class="icon-sm"></i>
-          <span>Users</span>
-        </a>
-        <a href="/settings" class="sidebar-link">
-          <i data-lucide="settings" class="icon-sm"></i>
-          <span>Settings</span>
-        </a>
-      </nav>
-
-      <div class="mobile-nav-groups">
-        <div id="mobile-menu-study-container"></div>
-      </div>
-
-      <div class="mobile-nav-footer">
-        <div id="mobile-menu-user-info" class="mobile-nav-user-row"></div>
-        <button onclick="handleSidebarLogout()" class="btn btn-secondary" style="width:100%; height:2.25rem; font-size:0.8125rem;">
-          <i data-lucide="log-out" class="icon-xs"></i>
-          <span>Log Out</span>
-        </button>
-      </div>
-    </div>
+  <div id="word-selection-toolbar" class="word-selection-toolbar" style="display:none;">
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); execDocCommand('bold')" title="Bold"><strong>B</strong></button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); execDocCommand('italic')" title="Italic"><em>I</em></button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); execDocCommand('underline')" title="Underline"><u>U</u></button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); applyHeadingStyle('H2')" title="Heading 2">H2</button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); applyHeadingStyle('H3')" title="Heading 3">H3</button>
+    <span class="sel-mini-sep"></span>
+    <button type="button" class="sel-color-dot" style="background:#fef08a;" onmousedown="event.preventDefault(); applyHighlightColor('#fef08a')" title="Yellow Highlight"></button>
+    <button type="button" class="sel-color-dot" style="background:#bbf7d0;" onmousedown="event.preventDefault(); applyHighlightColor('#bbf7d0')" title="Green Highlight"></button>
+    <button type="button" class="sel-color-dot" style="background:#ddd6fe;" onmousedown="event.preventDefault(); applyHighlightColor('#ddd6fe')" title="Purple Highlight"></button>
+    <button type="button" class="sel-color-dot" style="background:#fecdd3;" onmousedown="event.preventDefault(); applyHighlightColor('#fecdd3')" title="Pink Highlight"></button>
+    <span class="sel-mini-sep"></span>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); wrapSelectionAsCloze()" title="Turn into Click-to-Reveal Cloze Blank">🔒 Cloze</button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); pinSelectedTextAsCallout()" title="Pin Selection as Callout Box">📌 Pin</button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); createFlashcardFromSelection()" title="Create Flashcard from Selection">✦ +Card</button>
   </div>
 
-  <!-- ======================================================
-       FLOATING SMART SELECTION TOOLBAR (DIRECT VIEWER ACTIONS)
-       ====================================================== -->
-  <div id="selection-floating-toolbar" class="selection-floating-toolbar">
-    <span style="font-size:0.65rem; color:#a5b4fc; font-weight:700; padding:0 0.25rem;">Highlight:</span>
-    <button type="button" class="sel-color-dot" style="background:#facc15;" onmousedown="event.preventDefault(); applyViewerHighlight('yellow')" title="Highlight Yellow (Key Point)"></button>
-    <button type="button" class="sel-color-dot" style="background:#34d399;" onmousedown="event.preventDefault(); applyViewerHighlight('green')" title="Highlight Green (Definition / Formula)"></button>
-    <button type="button" class="sel-color-dot" style="background:#c084fc;" onmousedown="event.preventDefault(); applyViewerHighlight('purple')" title="Highlight Purple (Important Concept)"></button>
-    <button type="button" class="sel-color-dot" style="background:#fb7185;" onmousedown="event.preventDefault(); applyViewerHighlight('pink')" title="Highlight Pink (Critical / Exam)"></button>
-
-    <div class="sel-divider"></div>
-
-    <button type="button" class="sel-tool-btn" onmousedown="event.preventDefault(); promptPinOrTitleSelection('pin')" title="Pin Selection with a Custom Title">
-      <i data-lucide="pin" class="icon-xs" style="color:#f59e0b;"></i>
-      <span>Pin Section</span>
-    </button>
-
-    <button type="button" class="sel-tool-btn" onmousedown="event.preventDefault(); promptPinOrTitleSelection('heading')" title="Add Section Heading Above Selection">
-      <i data-lucide="heading-2" class="icon-xs" style="color:#38bdf8;"></i>
-      <span>Title Section</span>
-    </button>
-
-    <button type="button" class="sel-tool-btn" onmousedown="event.preventDefault(); applyViewerCloze()" title="Turn Selection into Fill-in-the-Blank Cloze ({{term}})">
-      <i data-lucide="eye-off" class="icon-xs" style="color:#a5b4fc;"></i>
-      <span>Cloze</span>
-    </button>
-
-    <button type="button" class="sel-tool-btn" onmousedown="event.preventDefault(); createFlashcardFromSelection()" title="Create Q&A Flashcard from Selection">
-      <i data-lucide="sparkles" class="icon-xs" style="color:#c084fc;"></i>
-      <span>+ Card</span>
-    </button>
-  </div>
-
-  <!-- ======================================================
-       QUICK PIN / TITLE SECTION MODAL (FROM VIEWER)
-       ====================================================== -->
-  <div id="section-marker-modal" class="modal-overlay">
-    <div class="modal-dialog" style="max-width: 26rem;">
-      <div class="modal-header" style="margin-bottom:0.875rem; padding-bottom:0.65rem;">
-        <h2 id="section-marker-modal-title" style="font-size: 1rem; font-weight: 700; color: var(--foreground); display: flex; align-items: center; gap: 0.45rem;">
-          <i data-lucide="pin" class="icon-sm" style="color:var(--primary);"></i>
-          <span>Pin &amp; Title Section</span>
-        </h2>
-        <button onclick="closeSectionMarkerModal()" class="modal-close-btn" aria-label="Close">
-          <i data-lucide="x" class="icon-sm"></i>
-        </button>
-      </div>
-
-      <form id="section-marker-form">
-        <div class="form-group">
-          <label class="form-label" for="section-marker-title-input">Section Title / Label</label>
-          <input type="text" id="section-marker-title-input" class="form-input" placeholder="e.g. Core Formula, Exam Rule, Definition, Step 1" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Quick Presets</label>
-          <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
-            <button type="button" class="btn-tiny" onclick="document.getElementById('section-marker-title-input').value='Key Concept'">💡 Key Concept</button>
-            <button type="button" class="btn-tiny" onclick="document.getElementById('section-marker-title-input').value='Exam Focus'">🎯 Exam Focus</button>
-            <button type="button" class="btn-tiny" onclick="document.getElementById('section-marker-title-input').value='Formula / Rule'">📐 Formula / Rule</button>
-            <button type="button" class="btn-tiny" onclick="document.getElementById('section-marker-title-input').value='Definition'">📖 Definition</button>
-            <button type="button" class="btn-tiny" onclick="document.getElementById('section-marker-title-input').value='Important Warning'">⚠️ Warning</button>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Selected Excerpt</label>
-          <div id="section-marker-preview" style="font-size:0.78rem; color:var(--muted-foreground); background:#f8f8fc; border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.5rem 0.65rem; max-height:4.5rem; overflow-y:auto; font-style:italic;"></div>
-        </div>
-
-        <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
-          <button type="button" onclick="closeSectionMarkerModal()" class="btn btn-outline">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Section</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ======================================================
-       CLICKED HIGHLIGHT ACTION POPOVER (CHANGE COLOR / PIN / CARD / REMOVE)
-       ====================================================== -->
-  <div id="highlight-action-popover" class="highlight-action-popover">
-    <button type="button" class="sel-color-dot" style="background:#facc15;" onclick="changeExistingHighlightColor('yellow')" title="Yellow"></button>
-    <button type="button" class="sel-color-dot" style="background:#34d399;" onclick="changeExistingHighlightColor('green')" title="Green"></button>
-    <button type="button" class="sel-color-dot" style="background:#c084fc;" onclick="changeExistingHighlightColor('purple')" title="Purple"></button>
-    <button type="button" class="sel-color-dot" style="background:#fb7185;" onclick="changeExistingHighlightColor('pink')" title="Pink"></button>
-    <div class="sel-divider"></div>
-    <button type="button" class="sel-tool-btn" onclick="pinExistingHighlight()" title="Pin this Highlight with a Title">
-      <i data-lucide="pin" class="icon-xs" style="color:#f59e0b;"></i> Pin
-    </button>
-    <button type="button" class="sel-tool-btn" onclick="cardFromExistingHighlight()" title="Make Flashcard">
-      <i data-lucide="sparkles" class="icon-xs" style="color:#c084fc;"></i> +Card
-    </button>
-    <button type="button" class="sel-tool-btn" style="color:#fda4af;" onclick="removeActiveHighlight()" title="Remove Highlight">
-      <i data-lucide="trash-2" class="icon-xs"></i>
-    </button>
-  </div>
-
-  <script src="/js/api.js?v=23"></script>
-  <script src="/js/study.js?v=23"></script>
+  <script src="/js/api.js?v=29"></script>
+  <script src="/js/study.js?v=29"></script>
 </body>
 </html>
