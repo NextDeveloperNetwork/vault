@@ -500,6 +500,31 @@ async function deleteNote(req, res, next) {
   }
 }
 
+async function streamNaturalTts(req, res) {
+  try {
+    const text = String(req.query.text || '').trim().slice(0, 200);
+    const lang = String(req.query.lang || 'en').trim().slice(0, 10);
+    if (!text) {
+      return res.status(400).json({ error: 'Missing text parameter.' });
+    }
+    const ttsUrl = `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${encodeURIComponent(lang)}&q=${encodeURIComponent(text)}`;
+    const response = await fetch(ttsUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    if (!response.ok) {
+      return res.status(502).json({ error: 'Upstream TTS unavailable' });
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.send(Buffer.from(arrayBuffer));
+  } catch (err) {
+    return res.status(500).json({ error: 'TTS stream failed' });
+  }
+}
+
 module.exports = {
   getSubjects,
   createSubject,
@@ -511,6 +536,7 @@ module.exports = {
   updateNote,
   togglePinNote,
   updateNoteMastery,
-  deleteNote
+  deleteNote,
+  streamNaturalTts
 };
 

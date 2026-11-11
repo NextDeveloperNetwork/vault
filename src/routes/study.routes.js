@@ -22,5 +22,8 @@ router.patch('/notes/:id/pin', studyController.togglePinNote);
 router.patch('/notes/:id/mastery', studyController.updateNoteMastery);
 router.delete('/notes/:id', studyController.deleteNote);
 
+// Natural Cloud TTS Stream Fallback
+router.get('/tts', studyController.streamNaturalTts);
+
 module.exports = router;
 

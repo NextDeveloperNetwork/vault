@@ -26,9 +26,11 @@ body.study-page-body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  height: 2.65rem;
-  padding: 0 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  min-height: 2.65rem;
+  height: auto;
+  padding: 0.3rem 0.75rem;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
@@ -38,15 +40,17 @@ body.study-page-body {
 .word-titlebar-left {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  flex: 1;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1 1 20rem;
   min-width: 0;
 }
 
 .word-titlebar-right {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  flex-wrap: wrap;
+  gap: 0.3rem;
   flex-shrink: 0;
 }
 
@@ -210,27 +214,22 @@ body.study-page-body {
 .word-ribbon-bar {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.35rem;
   min-height: 2.45rem;
-  padding: 0.25rem 0.75rem;
+  height: auto;
+  padding: 0.35rem 0.75rem;
   background: #f8fafc;
   border-bottom: 1px solid #cbd5e1;
-  overflow-x: auto;
-  flex-wrap: nowrap;
   flex-shrink: 0;
-  scrollbar-width: none;
   z-index: 35;
-}
-
-.word-ribbon-bar::-webkit-scrollbar {
-  display: none;
 }
 
 .ribbon-group {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 0.22rem;
 }
 
 .ribbon-divider {
@@ -1181,14 +1180,16 @@ body.study-read-mode-active .study-app-container {
 }
 
 .read-mode-floating-bar {
-  height: 2.5rem;
-  padding: 0 0.75rem;
+  min-height: 2.5rem;
+  height: auto;
+  padding: 0.3rem 0.75rem;
   background: #ffffff;
   border-bottom: 1px solid #cbd5e1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
   flex-shrink: 0;
   z-index: 45;
 }
@@ -1242,6 +1243,223 @@ body.study-read-mode-active .study-app-container {
   background: var(--primary);
   color: #ffffff;
   border-color: var(--primary);
+}
+
+.read-voice-pill {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+  color: #4338ca;
+}
+
+.read-voice-pill.active {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #ffffff;
+}
+
+/* ============================================================
+   6B. READ MODE NATURAL VOICE NARRATOR BAR & ACTIVE HIGHLIGHT
+   ============================================================ */
+.read-voice-player-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding: 0.4rem 0.85rem;
+  background: linear-gradient(90deg, #1e1b4b 0%, #312e81 100%);
+  color: #f8fafc;
+  border-bottom: 1px solid #4338ca;
+  flex-shrink: 0;
+  z-index: 44;
+}
+
+.voice-player-controls,
+.voice-player-settings {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.voice-btn {
+  height: 1.65rem;
+  padding: 0 0.55rem;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.12s ease;
+}
+
+.voice-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.voice-btn-primary {
+  background: #10b981;
+  border-color: #059669;
+  color: #ffffff;
+  padding: 0 0.75rem;
+}
+
+.voice-btn-primary:hover {
+  background: #059669;
+}
+
+.voice-setting-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #e0e7ff;
+}
+
+.voice-select {
+  height: 1.55rem;
+  max-width: 14rem;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(15, 23, 42, 0.65);
+  color: #f8fafc;
+  font-size: 0.7rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.voice-player-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.tts-wave-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+
+.tts-wave-dot.speaking {
+  background: #34d399;
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.28);
+  animation: ttsPulse 1.1s infinite ease-in-out;
+}
+
+@keyframes ttsPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.28); opacity: 0.75; }
+}
+
+.tts-status-text {
+  font-size: 0.7rem;
+  color: #c7d2fe;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 24rem;
+}
+
+/* Highlight Active Spoken Paragraph / Section in Read Mode */
+.tts-active-reading-block {
+  background: rgba(79, 70, 229, 0.11) !important;
+  box-shadow: -4px 0 0 #4f46e5;
+  border-radius: 4px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.word-paper-sheet.doc-theme-dark .tts-active-reading-block {
+  background: rgba(99, 102, 241, 0.22) !important;
+  box-shadow: -4px 0 0 #818cf8;
+}
+
+/* ============================================================
+   6C. TIMESTAMPED STUDY LOG ENTRIES & TIMELINE
+   ============================================================ */
+.study-log-entry {
+  margin: 0.85rem 0;
+  padding: 0.65rem 0.95rem;
+  border-left: 4px solid #0ea5e9;
+  background: rgba(14, 165, 233, 0.06);
+  border-radius: 0 8px 8px 0;
+}
+
+.study-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #0284c7;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+
+.word-paper-sheet.doc-theme-dark .study-log-header {
+  color: #38bdf8;
+}
+
+.study-log-tag {
+  padding: 0.08rem 0.42rem;
+  border-radius: 4px;
+  background: rgba(14, 165, 233, 0.15);
+  color: #0369a1;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.word-paper-sheet.doc-theme-dark .study-log-tag {
+  color: #7dd3fc;
+}
+
+.study-log-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 16rem;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+.study-log-card {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 3.5px solid #0ea5e9;
+  border-radius: 6px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.study-log-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.study-log-card-stamp {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  color: #0284c7;
+  font-weight: 800;
 }
 
 .read-mode-select {

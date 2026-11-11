@@ -91,9 +91,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   const diagramModal = document.getElementById('diagram-builder-modal');
   const aiPromptModal = document.getElementById('ai-prompt-modal');
   const flashcardModal = document.getElementById('flashcard-modal');
+  const studyLogModal = document.getElementById('study-log-modal');
+  const readVoicePlayerBar = document.getElementById('read-voice-player-bar');
 
   let editingCodeCardEl = null;
   let editingDrawingTargetEl = null;
+
+  // Voice Reader (TTS) State
+  let isVoiceBarOpen = true;
+  let ttsPlaying = false;
+  let ttsPaused = false;
+  let ttsQueue = [];
+  let ttsCurrentIndex = 0;
+  let ttsAvailableVoices = [];
+  let ttsSelectedVoiceURI = localStorage.getItem('pk_tts_voice_uri') || '';
+  let ttsPauseTimer = null;
+  let ttsAudioEl = null;
 
   // ======================================================
   // 1. INITIALIZATION & APPEARANCE SYNC
@@ -163,6 +176,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (readModeFloatingBar) {
       readModeFloatingBar.style.display = isReadMode ? 'flex' : 'none';
     }
+    if (readVoicePlayerBar) {
+      readVoicePlayerBar.style.display = (isReadMode && isVoiceBarOpen) ? 'flex' : 'none';
+    }
+    const voiceToggleBtn = document.getElementById('read-voice-toggle-btn');
+    if (voiceToggleBtn) {
+      voiceToggleBtn.classList.toggle('active', isReadMode && isVoiceBarOpen);
+    }
     document.body.classList.toggle('study-read-mode-active', isReadMode);
   }
 
@@ -226,6 +246,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     isReadMode = typeof forceState === 'boolean' ? forceState : !isReadMode;
     if (isReadMode && window.innerWidth <= 900) {
       isSidebarCollapsed = true;
+    }
+    if (!isReadMode && typeof window.stopSpeechPlayback === 'function') {
+      window.stopSpeechPlayback();
     }
     syncWorkspaceAppearance();
   };
@@ -1086,6 +1109,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.selectStudyNote = function(noteId, closeMobileDrawer = false) {
     const note = notesList.find(n => n.id === noteId);
     if (!note) return;
+    if (typeof window.stopSpeechPlayback === 'function') {
+      window.stopSpeechPlayback();
+    }
     selectedNoteId = noteId;
     highlightSelectedPageItem();
     loadNoteIntoWordSheet(note);
@@ -2525,6 +2551,11 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
       e.preventDefault();
       window.toggleFindReplaceBar(true);
+    } else if (e.key === 'F5') {
+      e.preventDefault();
+      if (!isReadMode && typeof window.insertTimestampLogAtCursor === 'function') {
+        window.insertTimestampLogAtCursor();
+      }
     } else if (e.key === 'Escape') {
       if (isReadMode) window.toggleReadMode(false);
       window.toggleFindReplaceBar(false);
@@ -2829,4 +2860,681 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
     updatePomoDisplay();
     showToast('Focus timer reset to 25:00', 'info');
   };
+
+  // ======================================================
+  // 14. TIMESTAMPED STUDY LOG (LIVE DATE & CLOCK ENGINE)
+  // ======================================================
+  let studyLogsList = [];
+  try {
+    studyLogsList = JSON.parse(localStorage.getItem('pk_study_logs_v1') || '[]');
+    if (!Array.isArray(studyLogsList)) studyLogsList = [];
+  } catch (e) {
+    studyLogsList = [];
+  }
+
+  function saveStudyLogsToStorage() {
+    try {
+      localStorage.setItem('pk_study_logs_v1', JSON.stringify(studyLogsList));
+    } catch (e) {}
+  }
+
+  function getFormattedNowTimestamp(now = new Date()) {
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const sec = String(now.getSeconds()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    const clockStr = `${hh}:${min}:${sec}`;
+    const humanDay = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    return {
+      dateStr,
+      clockStr,
+      humanDay,
+      fullStamp: `${dateStr} • ${clockStr} (${humanDay})`,
+      iso: now.toISOString()
+    };
+  }
+
+  function updateLiveStudyClocks() {
+    const ts = getFormattedNowTimestamp(new Date());
+    const statusClock = document.getElementById('status-live-clock');
+    if (statusClock) {
+      statusClock.textContent = `🕒 ${ts.dateStr} ${ts.clockStr}`;
+    }
+    const modalBanner = document.getElementById('study-log-live-banner');
+    if (modalBanner) {
+      modalBanner.textContent = `📅 ${ts.humanDay} (${ts.dateStr})`;
+    }
+    const bigClock = document.getElementById('study-log-big-clock');
+    if (bigClock) {
+      bigClock.textContent = `🕒 ${ts.clockStr}`;
+    }
+  }
+  updateLiveStudyClocks();
+  setInterval(updateLiveStudyClocks, 1000);
+
+  function buildStudyLogBlockHtml(fullStamp, tag, bodyText) {
+    return `
+      <div class="study-log-entry">
+        <div class="study-log-header" contenteditable="false">
+          <span>🕒 ${escapeHtml(fullStamp)}</span>
+          <span class="study-log-tag">${escapeHtml(tag || '📝 LOG')}</span>
+        </div>
+        <div class="study-log-body">${escapeHtml(bodyText || 'Log entry — write your notes or progress here...')}</div>
+      </div>
+      <p><br></p>
+    `;
+  }
+
+  window.insertTimestampLogAtCursor = function(customTag = '📝 LOG', customText = '') {
+    if (!editorSurface) return;
+    const ts = getFormattedNowTimestamp(new Date());
+    const note = notesList.find(n => n.id === selectedNoteId);
+    const entryText = customText || 'Session log entry...';
+
+    // Also record in the chronological Study Log timeline
+    studyLogsList.unshift({
+      id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      noteId: note ? note.id : null,
+      noteTitle: note ? note.title : 'General Study',
+      subjectId: note ? note.subjectId : null,
+      tag: customTag,
+      text: entryText,
+      dateStr: ts.dateStr,
+      clockStr: ts.clockStr,
+      fullStamp: ts.fullStamp,
+      iso: ts.iso
+    });
+    saveStudyLogsToStorage();
+
+    const html = buildStudyLogBlockHtml(ts.fullStamp, customTag, entryText);
+    insertHtmlAtCursor(html);
+    showToast(`Timestamp stamped: ${ts.dateStr} ${ts.clockStr}`, 'success');
+  };
+
+  window.openStudyLogModal = function() {
+    if (!studyLogModal) return;
+    updateLiveStudyClocks();
+    renderStudyLogTimeline();
+    studyLogModal.classList.add('open');
+    setTimeout(() => {
+      const inp = document.getElementById('study-log-input');
+      if (inp) inp.focus();
+    }, 40);
+  };
+
+  window.closeStudyLogModal = function() {
+    if (studyLogModal) studyLogModal.classList.remove('open');
+  };
+
+  window.addStudyLogEntry = function(alsoStampOnPage = false) {
+    const inp = document.getElementById('study-log-input');
+    const tagSel = document.getElementById('study-log-type');
+    const text = (inp?.value || '').trim();
+    const tag = tagSel?.value || '📝 LOG';
+    if (!text) {
+      showToast('Write a log message first', 'info');
+      return;
+    }
+
+    const ts = getFormattedNowTimestamp(new Date());
+    const note = notesList.find(n => n.id === selectedNoteId);
+    const newEntry = {
+      id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      noteId: note ? note.id : null,
+      noteTitle: note ? note.title : 'General Study',
+      subjectId: note ? note.subjectId : null,
+      tag,
+      text,
+      dateStr: ts.dateStr,
+      clockStr: ts.clockStr,
+      fullStamp: ts.fullStamp,
+      iso: ts.iso
+    };
+
+    studyLogsList.unshift(newEntry);
+    saveStudyLogsToStorage();
+    if (inp) inp.value = '';
+    renderStudyLogTimeline();
+
+    if (alsoStampOnPage && editorSurface) {
+      const html = buildStudyLogBlockHtml(ts.fullStamp, tag, text);
+      closeStudyLogModal();
+      insertHtmlAtCursor(html);
+      window.triggerWordDocSave(true);
+      showToast(`Logged & stamped on page (${ts.clockStr})`, 'success');
+    } else {
+      showToast(`Saved to Study Log (${ts.dateStr} ${ts.clockStr})`, 'success');
+    }
+  };
+
+  window.renderStudyLogTimeline = function() {
+    const container = document.getElementById('study-log-timeline');
+    const filterVal = document.getElementById('study-log-filter')?.value || 'all';
+    if (!container) return;
+
+    const filtered = filterVal === 'current'
+      ? studyLogsList.filter(item => item.noteId === selectedNoteId)
+      : studyLogsList;
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div style="padding:1.25rem; text-align:center; color:var(--muted-foreground); font-size:0.78rem; border:1px dashed var(--border); border-radius:6px;">
+          No timestamped log entries yet. Add one above or press <strong>F5</strong> on any page!
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = filtered.map(item => `
+      <div class="study-log-card">
+        <div class="study-log-card-top">
+          <div>
+            <span class="study-log-card-stamp">🕒 ${escapeHtml(item.fullStamp)}</span>
+            <span class="study-log-tag" style="margin-left:0.35rem;">${escapeHtml(item.tag)}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.25rem;">
+            <span style="font-size:0.66rem; color:#64748b;">📄 ${escapeHtml((item.noteTitle || 'Page').slice(0, 24))}</span>
+            <button type="button" class="btn-tiny" onclick="stampExistingLogToPage('${item.id}')" title="Insert this Timestamped Log into Current Page">+Page</button>
+            <button type="button" class="btn-tiny" style="color:var(--destructive);" onclick="deleteStudyLogEntry('${item.id}')" title="Delete Log Entry">✕</button>
+          </div>
+        </div>
+        <div style="font-size:0.8rem; color:#0f172a; line-height:1.45;">${escapeHtml(item.text)}</div>
+      </div>
+    `).join('');
+  };
+
+  window.stampExistingLogToPage = function(logId) {
+    const item = studyLogsList.find(x => x.id === logId);
+    if (!item || !editorSurface) return;
+    const html = buildStudyLogBlockHtml(item.fullStamp, item.tag, item.text);
+    closeStudyLogModal();
+    insertHtmlAtCursor(html);
+    window.triggerWordDocSave(true);
+    showToast('Log entry stamped onto current page!', 'success');
+  };
+
+  window.deleteStudyLogEntry = function(logId) {
+    studyLogsList = studyLogsList.filter(x => x.id !== logId);
+    saveStudyLogsToStorage();
+    renderStudyLogTimeline();
+  };
+
+  window.exportStudyLogsMarkdown = function() {
+    if (studyLogsList.length === 0) {
+      showToast('No log entries to export yet', 'info');
+      return;
+    }
+    const lines = [
+      '# PassKeeper Study Log & Timestamp Journal',
+      `Exported: ${getFormattedNowTimestamp().fullStamp}`,
+      ''
+    ];
+    studyLogsList.forEach(item => {
+      lines.push(`### 🕒 ${item.fullStamp} — [${item.tag}] (${item.noteTitle || 'Study Page'})`);
+      lines.push(item.text);
+      lines.push('');
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Study-Log-${getFormattedNowTimestamp().dateStr}.md`;
+    a.click();
+  };
+
+  // ======================================================
+  // 15. NATURAL HUMAN VOICE READER (READ MODE EXPRESSIVE TTS)
+  // ======================================================
+  function scoreVoiceNaturalness(v) {
+    const name = `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
+    let score = 0;
+    if (v.lang && v.lang.toLowerCase().startsWith('en')) score += 25;
+    if (name.includes('natural')) score += 120;
+    if (name.includes('online')) score += 85;
+    if (name.includes('neural')) score += 90;
+    if (name.includes('aria') || name.includes('jenny') || name.includes('andrew') || name.includes('emma') || name.includes('brian') || name.includes('sonia') || name.includes('ryan') || name.includes('guy')) score += 75;
+    if (name.includes('premium') || name.includes('enhanced') || name.includes('ava') || name.includes('samantha')) score += 70;
+    if (name.includes('google uk english female') || name.includes('google us english')) score += 65;
+    if (name.includes('siri') || name.includes('daniel') || name.includes('karen') || name.includes('moira')) score += 45;
+    if (name.includes('david') || name.includes('zira') || name.includes('mark')) score -= 15; // legacy SAPI voices
+    return score;
+  }
+
+  function populateNaturalVoicesDropdown() {
+    const selectEl = document.getElementById('tts-voice-select');
+    if (!selectEl) return;
+
+    const rawVoices = ('speechSynthesis' in window) ? window.speechSynthesis.getVoices() : [];
+    const sorted = [...rawVoices].sort((a, b) => scoreVoiceNaturalness(b) - scoreVoiceNaturalness(a));
+    ttsAvailableVoices = sorted;
+
+    const options = [];
+    sorted.forEach(v => {
+      const isNatural = scoreVoiceNaturalness(v) >= 85;
+      const badge = isNatural ? '✨ Natural • ' : '';
+      const cleanName = v.name.replace(/Microsoft\s+/i, '').replace(/\s+Online\s+\(Natural\)\s*-\s*/i, ' (Natural) — ');
+      options.push(`<option value="${escapeHtml(v.voiceURI)}">${escapeHtml(`${badge}${cleanName} [${v.lang}]`)}</option>`);
+    });
+
+    // Always include Cloud Natural Voice stream option
+    options.push(`<option value="__CLOUD_NATURAL__">☁️ Cloud Natural Voice (Expressive Stream)</option>`);
+    selectEl.innerHTML = options.join('');
+
+    if (ttsSelectedVoiceURI && (ttsSelectedVoiceURI === '__CLOUD_NATURAL__' || sorted.some(v => v.voiceURI === ttsSelectedVoiceURI))) {
+      selectEl.value = ttsSelectedVoiceURI;
+    } else if (sorted.length > 0) {
+      ttsSelectedVoiceURI = sorted[0].voiceURI;
+      selectEl.value = ttsSelectedVoiceURI;
+    } else {
+      ttsSelectedVoiceURI = '__CLOUD_NATURAL__';
+      selectEl.value = '__CLOUD_NATURAL__';
+    }
+  }
+
+  if ('speechSynthesis' in window) {
+    populateNaturalVoicesDropdown();
+    window.speechSynthesis.onvoiceschanged = () => {
+      populateNaturalVoicesDropdown();
+    };
+  } else {
+    populateNaturalVoicesDropdown();
+  }
+
+  window.toggleVoiceReaderBar = function() {
+    isVoiceBarOpen = !isVoiceBarOpen;
+    if (!isVoiceBarOpen) {
+      window.stopSpeechPlayback();
+    }
+    syncWorkspaceAppearance();
+  };
+
+  window.handleVoiceSelectionChange = function() {
+    const sel = document.getElementById('tts-voice-select');
+    if (!sel) return;
+    ttsSelectedVoiceURI = sel.value;
+    try { localStorage.setItem('pk_tts_voice_uri', ttsSelectedVoiceURI); } catch (e) {}
+    if (ttsPlaying) {
+      playCurrentSpeechSegment();
+    }
+  };
+
+  window.handleVoiceStyleChange = function() {
+    if (ttsPlaying) {
+      const resumeIdx = ttsCurrentIndex;
+      buildHumanizedSpeechQueue();
+      ttsCurrentIndex = Math.min(resumeIdx, Math.max(0, ttsQueue.length - 1));
+      playCurrentSpeechSegment();
+    }
+  };
+
+  function cleanTextForHumanSpeech(rawText) {
+    if (!rawText) return '';
+    return String(rawText)
+      // Remove emojis & decorative dingbats so the narrator never reads "pushpin" or "sparkles"
+      .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, ' ')
+      // Convert arrows & math symbols into conversational English
+      .replace(/<-->|↔/g, ' interacts with ')
+      .replace(/-->|->|→|⇒/g, ' leads to ')
+      .replace(/\bvs\.?\b/gi, 'versus')
+      .replace(/\be\.g\.?\b/gi, 'for example,')
+      .replace(/\bi\.e\.?\b/gi, 'that is,')
+      .replace(/\betc\.?\b/gi, 'and so on')
+      // Strip markdown/table/code formatting noise
+      .replace(/[`#*_|~^]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function splitIntoHumanBreathingClauses(text) {
+    const cleaned = cleanTextForHumanSpeech(text);
+    if (!cleaned) return [];
+    // Split on sentence endings (., !, ?) and major conversational pauses (— or ; when clause is long)
+    const rawSentences = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [cleaned];
+    const clauses = [];
+    rawSentences.forEach(s => {
+      const trimmed = s.trim();
+      if (!trimmed) return;
+      if (trimmed.length > 165 && /[,;—:]/.test(trimmed)) {
+        // Break overly long sentences at natural midpoint punctuation so the voice takes a human breath
+        const parts = trimmed.split(/(?<=[;—:])\s+|(?<=,)\s+(?=(?:and|but|or|while|whereas|because|however|therefore|so)\b)/i);
+        parts.forEach(p => {
+          if (p.trim()) clauses.push(p.trim());
+        });
+      } else {
+        clauses.push(trimmed);
+      }
+    });
+    return clauses;
+  }
+
+  function buildHumanizedSpeechQueue() {
+    ttsQueue = [];
+    if (!editorSurface) return;
+
+    const styleMode = document.getElementById('tts-style-select')?.value || 'storyteller';
+    const baseRate = parseFloat(document.getElementById('tts-rate-select')?.value || '0.96');
+
+    const styleProfiles = {
+      storyteller: { pitchBase: 1.02, pitchVar: [0.0, 0.03, -0.02, 0.02, -0.01], rateVar: [1.0, 0.97, 1.02, 0.98], pauseScale: 1.05 },
+      professor:   { pitchBase: 0.99, pitchVar: [0.0, 0.02, -0.01, 0.01],        rateVar: [0.96, 0.94, 0.98],       pauseScale: 1.15 },
+      calm:        { pitchBase: 0.96, pitchVar: [0.0, 0.01, -0.01],              rateVar: [0.92, 0.90, 0.94],       pauseScale: 1.25 },
+      energetic:   { pitchBase: 1.05, pitchVar: [0.02, 0.04, 0.0, 0.03],         rateVar: [1.04, 1.01, 1.06],       pauseScale: 0.9 }
+    };
+    const profile = styleProfiles[styleMode] || styleProfiles.storyteller;
+
+    // 1. Include Page Title & Subtitle first if present
+    const titleVal = cleanTextForHumanSpeech(sheetTitleInput?.value || '');
+    const subVal = cleanTextForHumanSpeech(sheetSummaryInput?.value || '');
+    if (titleVal) {
+      ttsQueue.push({
+        text: `${titleVal}.`,
+        rate: +(baseRate * 0.91).toFixed(2),
+        pitch: +(profile.pitchBase + 0.04).toFixed(2),
+        pauseMs: Math.round(520 * profile.pauseScale),
+        el: sheetTitleInput
+      });
+    }
+    if (subVal) {
+      ttsQueue.push({
+        text: `${subVal}.`,
+        rate: +(baseRate * 0.95).toFixed(2),
+        pitch: +(profile.pitchBase + 0.01).toFixed(2),
+        pauseMs: Math.round(450 * profile.pauseScale),
+        el: sheetSummaryInput
+      });
+    }
+
+    // 2. Walk semantic blocks in #word-editor-surface
+    const blocks = Array.from(editorSurface.children);
+    let sentenceCounter = 0;
+
+    blocks.forEach(block => {
+      if (block.offsetParent === null) return; // skip hidden elements (e.g., in Cram mode)
+      const tag = block.tagName;
+
+      if (block.classList.contains('ide-code-card')) {
+        const lang = decodeURIComponent(block.getAttribute('data-code-lang') || 'code');
+        ttsQueue.push({
+          text: `Here is a ${lang} code example.`,
+          rate: +(baseRate * 0.94).toFixed(2),
+          pitch: profile.pitchBase,
+          pauseMs: Math.round(450 * profile.pauseScale),
+          el: block
+        });
+        return;
+      }
+
+      if (block.classList.contains('study-chart-card')) {
+        const titleEl = block.querySelector('.study-chart-title');
+        const chartName = cleanTextForHumanSpeech(titleEl ? titleEl.innerText : 'Data chart');
+        ttsQueue.push({
+          text: `Chart: ${chartName}.`,
+          rate: +(baseRate * 0.94).toFixed(2),
+          pitch: profile.pitchBase,
+          pauseMs: Math.round(420 * profile.pauseScale),
+          el: block
+        });
+        return;
+      }
+
+      if (tag === 'H1' || tag === 'H2' || tag === 'H3') {
+        const headingText = cleanTextForHumanSpeech(block.innerText);
+        if (headingText) {
+          ttsQueue.push({
+            text: `${headingText}.`,
+            rate: +(baseRate * 0.91).toFixed(2),
+            pitch: +(profile.pitchBase + 0.04).toFixed(2),
+            pauseMs: Math.round(540 * profile.pauseScale),
+            el: block
+          });
+        }
+        return;
+      }
+
+      if (block.classList.contains('pinned-section-block') || block.classList.contains('md-callout')) {
+        const clauses = splitIntoHumanBreathingClauses(block.innerText);
+        clauses.forEach((clause, idx) => {
+          ttsQueue.push({
+            text: idx === 0 && !/^key\b/i.test(clause) ? `Important note: ${clause}` : clause,
+            rate: +(baseRate * 0.93).toFixed(2),
+            pitch: +(profile.pitchBase + 0.03).toFixed(2),
+            pauseMs: Math.round((idx === clauses.length - 1 ? 520 : 320) * profile.pauseScale),
+            el: block
+          });
+        });
+        return;
+      }
+
+      if (tag === 'UL' || tag === 'OL') {
+        const items = Array.from(block.querySelectorAll('li'));
+        items.forEach((li, liIdx) => {
+          const clauses = splitIntoHumanBreathingClauses(li.innerText);
+          clauses.forEach((clause, cIdx) => {
+            const pMod = profile.pitchVar[sentenceCounter % profile.pitchVar.length];
+            const rMod = profile.rateVar[sentenceCounter % profile.rateVar.length];
+            sentenceCounter++;
+            ttsQueue.push({
+              text: clause,
+              rate: +(baseRate * rMod).toFixed(2),
+              pitch: +(profile.pitchBase + pMod).toFixed(2),
+              pauseMs: Math.round((cIdx === clauses.length - 1 ? 380 : 240) * profile.pauseScale),
+              el: li
+            });
+          });
+          if (liIdx === items.length - 1 && ttsQueue.length > 0) {
+            ttsQueue[ttsQueue.length - 1].pauseMs = Math.round(500 * profile.pauseScale);
+          }
+        });
+        return;
+      }
+
+      if (tag === 'TABLE') {
+        const rows = Array.from(block.querySelectorAll('tr'));
+        rows.forEach((tr, rIdx) => {
+          const rowText = Array.from(tr.children).map(c => cleanTextForHumanSpeech(c.innerText)).filter(Boolean).join(', ');
+          if (rowText) {
+            ttsQueue.push({
+              text: rIdx === 0 ? `Table columns: ${rowText}.` : `${rowText}.`,
+              rate: +(baseRate * 0.95).toFixed(2),
+              pitch: profile.pitchBase,
+              pauseMs: Math.round(380 * profile.pauseScale),
+              el: tr
+            });
+          }
+        });
+        return;
+      }
+
+      // Standard paragraph or general block
+      const clauses = splitIntoHumanBreathingClauses(block.innerText);
+      clauses.forEach((clause, cIdx) => {
+        const isQuestion = clause.endsWith('?');
+        const isExclaim = clause.endsWith('!');
+        const pMod = isQuestion ? 0.06 : isExclaim ? 0.04 : profile.pitchVar[sentenceCounter % profile.pitchVar.length];
+        const rMod = isQuestion ? 0.95 : profile.rateVar[sentenceCounter % profile.rateVar.length];
+        sentenceCounter++;
+
+        const isLastInBlock = cIdx === clauses.length - 1;
+        ttsQueue.push({
+          text: clause,
+          rate: +(baseRate * rMod).toFixed(2),
+          pitch: +(profile.pitchBase + pMod).toFixed(2),
+          pauseMs: Math.round((isLastInBlock ? 480 : 270) * profile.pauseScale),
+          el: block
+        });
+      });
+    });
+  }
+
+  function clearActiveSpeechHighlights() {
+    document.querySelectorAll('.tts-active-reading-block').forEach(el => {
+      el.classList.remove('tts-active-reading-block');
+    });
+  }
+
+  function updateTtsPlayerUiState() {
+    const playBtn = document.getElementById('tts-play-btn');
+    const dot = document.getElementById('tts-live-indicator');
+    const label = document.getElementById('tts-progress-label');
+
+    if (playBtn) {
+      if (ttsPlaying && !ttsPaused) {
+        playBtn.innerHTML = '<span>⏸ Pause</span>';
+      } else if (ttsPlaying && ttsPaused) {
+        playBtn.innerHTML = '<span>▶ Resume</span>';
+      } else {
+        playBtn.innerHTML = '<span>▶ Listen</span>';
+      }
+    }
+    if (dot) {
+      dot.classList.toggle('speaking', ttsPlaying && !ttsPaused);
+    }
+    if (label && !ttsPlaying) {
+      label.textContent = 'Click ▶ Listen or click any paragraph on the page to start reading';
+    }
+  }
+
+  function playCurrentSpeechSegment() {
+    clearTimeout(ttsPauseTimer);
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (ttsAudioEl) {
+      ttsAudioEl.pause();
+      ttsAudioEl = null;
+    }
+
+    if (!ttsPlaying || ttsPaused) {
+      updateTtsPlayerUiState();
+      return;
+    }
+
+    if (ttsCurrentIndex < 0 || ttsCurrentIndex >= ttsQueue.length) {
+      window.stopSpeechPlayback();
+      const label = document.getElementById('tts-progress-label');
+      if (label) label.textContent = '✓ Finished reading page';
+      return;
+    }
+
+    const seg = ttsQueue[ttsCurrentIndex];
+    clearActiveSpeechHighlights();
+    if (seg.el && seg.el.classList) {
+      seg.el.classList.add('tts-active-reading-block');
+      seg.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    const label = document.getElementById('tts-progress-label');
+    if (label) {
+      label.textContent = `(${ttsCurrentIndex + 1}/${ttsQueue.length}) "${seg.text.slice(0, 68)}${seg.text.length > 68 ? '...' : ''}"`;
+    }
+    updateTtsPlayerUiState();
+
+    const advanceToNext = () => {
+      if (!ttsPlaying || ttsPaused) return;
+      ttsPauseTimer = setTimeout(() => {
+        if (!ttsPlaying || ttsPaused) return;
+        ttsCurrentIndex++;
+        playCurrentSpeechSegment();
+      }, seg.pauseMs || 300);
+    };
+
+    // Cloud Natural Voice stream or Web Speech Neural Voice
+    if (ttsSelectedVoiceURI === '__CLOUD_NATURAL__' || !('speechSynthesis' in window)) {
+      const chunk = seg.text.slice(0, 195);
+      ttsAudioEl = new Audio(`/api/study/tts?lang=en&text=${encodeURIComponent(chunk)}`);
+      ttsAudioEl.playbackRate = Math.max(0.75, Math.min(1.4, seg.rate || 1.0));
+      ttsAudioEl.onended = advanceToNext;
+      ttsAudioEl.onerror = advanceToNext;
+      ttsAudioEl.play().catch(advanceToNext);
+      return;
+    }
+
+    const utter = new SpeechSynthesisUtterance(seg.text);
+    const chosenVoice = ttsAvailableVoices.find(v => v.voiceURI === ttsSelectedVoiceURI) || ttsAvailableVoices[0];
+    if (chosenVoice) {
+      utter.voice = chosenVoice;
+      utter.lang = chosenVoice.lang || 'en-US';
+    }
+    utter.rate = seg.rate || 0.96;
+    utter.pitch = seg.pitch || 1.0;
+    utter.onend = advanceToNext;
+    utter.onerror = advanceToNext;
+    window.speechSynthesis.speak(utter);
+  }
+
+  window.toggleSpeechPlayback = function() {
+    if (!ttsPlaying) {
+      buildHumanizedSpeechQueue();
+      if (ttsQueue.length === 0) {
+        showToast('No readable text on this page yet', 'info');
+        return;
+      }
+      ttsPlaying = true;
+      ttsPaused = false;
+      ttsCurrentIndex = 0;
+      playCurrentSpeechSegment();
+      return;
+    }
+
+    if (!ttsPaused) {
+      ttsPaused = true;
+      clearTimeout(ttsPauseTimer);
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      if (ttsAudioEl) ttsAudioEl.pause();
+      updateTtsPlayerUiState();
+    } else {
+      ttsPaused = false;
+      playCurrentSpeechSegment();
+    }
+  };
+
+  window.stepSpeechSegment = function(delta) {
+    if (!ttsPlaying || ttsQueue.length === 0) {
+      buildHumanizedSpeechQueue();
+      if (ttsQueue.length === 0) return;
+      ttsPlaying = true;
+      ttsPaused = false;
+      ttsCurrentIndex = 0;
+    } else {
+      ttsCurrentIndex = Math.max(0, Math.min(ttsQueue.length - 1, ttsCurrentIndex + delta));
+      ttsPaused = false;
+    }
+    playCurrentSpeechSegment();
+  };
+
+  window.stopSpeechPlayback = function() {
+    ttsPlaying = false;
+    ttsPaused = false;
+    clearTimeout(ttsPauseTimer);
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (ttsAudioEl) {
+      ttsAudioEl.pause();
+      ttsAudioEl = null;
+    }
+    clearActiveSpeechHighlights();
+    updateTtsPlayerUiState();
+  };
+
+  // In Read Mode, allow clicking any paragraph/heading on the page while Voice Bar is open to jump narrator there
+  if (editorSurface) {
+    editorSurface.addEventListener('click', (e) => {
+      if (!isReadMode || !isVoiceBarOpen) return;
+      if (e.target.closest('.cloze-pill, a, button, input')) return;
+      const targetBlock = e.target.closest('p, h1, h2, h3, li, tr, .pinned-section-block, .md-callout');
+      if (!targetBlock || !editorSurface.contains(targetBlock)) return;
+
+      buildHumanizedSpeechQueue();
+      const matchIdx = ttsQueue.findIndex(seg => seg.el === targetBlock || targetBlock.contains(seg.el));
+      if (matchIdx !== -1) {
+        ttsPlaying = true;
+        ttsPaused = false;
+        ttsCurrentIndex = matchIdx;
+        playCurrentSpeechSegment();
+      }
+    });
+  }
 });

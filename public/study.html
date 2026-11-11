@@ -79,6 +79,12 @@
           <span>Read Mode</span>
         </button>
 
+        <!-- Timestamped Study Log Button -->
+        <button type="button" class="word-action-btn" onclick="openStudyLogModal()" title="Open Timestamped Study Log (Date &amp; Clock)">
+          <i data-lucide="clock" class="icon-xs" style="color:#0ea5e9;"></i>
+          <span>Log</span>
+        </button>
+
         <!-- AI Prompt & Paste Converter -->
         <button type="button" class="word-action-btn hide-on-mobile" onclick="openAiPromptModal()" title="Copy AI Formatting Instructions (.md) or Paste AI Content into Document">
           <i data-lucide="bot" class="icon-xs"></i>
@@ -216,6 +222,11 @@
           <span>Chart</span>
         </button>
 
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openStudyLogModal()" title="Insert Log with Live Date &amp; Clock Timestamp">
+          <i data-lucide="clock" class="icon-xs" style="color:#0ea5e9;"></i>
+          <span>Log</span>
+        </button>
+
         <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openWhiteboardModal()" title="Draw Freehand Sketch or Diagram">
           <i data-lucide="pen-tool" class="icon-xs" style="color:#ec4899;"></i>
           <span>Draw</span>
@@ -241,7 +252,7 @@
           <span>Code (IDE)</span>
         </button>
 
-        <select class="ribbon-select hide-on-small" onchange="insertDocumentTemplate(this.value); this.value='';" title="Insert Smart Study Page Template">
+        <select class="ribbon-select" onchange="insertDocumentTemplate(this.value); this.value='';" title="Insert Smart Study Page Template">
           <option value="" selected disabled>📄 Templates</option>
           <option value="lecture">📘 Lecture &amp; Summary</option>
           <option value="cornell">📐 Cornell Study Sheet</option>
@@ -353,6 +364,9 @@
           </div>
 
           <div style="display:flex; align-items:center; gap:0.25rem; flex-shrink:0;">
+            <button type="button" id="read-voice-toggle-btn" class="read-ctrl-pill read-voice-pill" onclick="toggleVoiceReaderBar()" title="Read Page Aloud with Natural Human Voice">
+              <span>🔊 Read Aloud</span>
+            </button>
             <button type="button" id="read-cram-btn" class="read-ctrl-pill" onclick="toggleCramHighlightsMode()" title="Show Only Highlights, Callouts &amp; Headings">🎯 Cram</button>
             <button type="button" class="read-ctrl-pill" onclick="revealAllClozesInDoc()" title="Reveal / Hide All Cloze Blanks">🔒 Clozes</button>
             <button type="button" class="read-ctrl-pill" onclick="stepDocZoom(-10)" title="Zoom Out">A-</button>
@@ -364,6 +378,52 @@
               <i data-lucide="x" class="icon-xs"></i>
               <span class="hide-on-mobile">Exit</span>
             </button>
+          </div>
+        </div>
+
+        <!-- ======================================================
+             READ MODE NATURAL VOICE NARRATOR BAR (EXPRESSIVE TTS)
+             ====================================================== -->
+        <div id="read-voice-player-bar" class="read-voice-player-bar" style="display:none;">
+          <div class="voice-player-controls">
+            <button type="button" id="tts-play-btn" class="voice-btn voice-btn-primary" onclick="toggleSpeechPlayback()" title="Play / Pause Natural Voice Reading">
+              <span>▶ Listen</span>
+            </button>
+            <button type="button" class="voice-btn" onclick="stepSpeechSegment(-1)" title="Previous Sentence / Section">⏮</button>
+            <button type="button" class="voice-btn" onclick="stepSpeechSegment(1)" title="Next Sentence / Section">⏭</button>
+            <button type="button" class="voice-btn" onclick="stopSpeechPlayback()" title="Stop Reading">⏹</button>
+          </div>
+
+          <div class="voice-player-settings">
+            <label class="voice-setting-item" title="Choose Natural Neural Voice">
+              <span>🎙️ Voice:</span>
+              <select id="tts-voice-select" class="voice-select" onchange="handleVoiceSelectionChange()"></select>
+            </label>
+
+            <label class="voice-setting-item" title="Intonation &amp; Speaking Feeling">
+              <span>✨ Tone:</span>
+              <select id="tts-style-select" class="voice-select" onchange="handleVoiceStyleChange()">
+                <option value="storyteller" selected>Warm &amp; Expressive (Human)</option>
+                <option value="professor">Clear Mentor (Structured)</option>
+                <option value="calm">Calm &amp; Conversational</option>
+                <option value="energetic">Engaging &amp; Dynamic</option>
+              </select>
+            </label>
+
+            <label class="voice-setting-item" title="Reading Pace">
+              <span>Speed:</span>
+              <select id="tts-rate-select" class="voice-select" style="width:auto;" onchange="handleVoiceStyleChange()">
+                <option value="0.88">0.9x Relaxed</option>
+                <option value="0.96" selected>1.0x Natural</option>
+                <option value="1.08">1.1x Flowing</option>
+                <option value="1.2">1.2x Brisk</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="voice-player-status">
+            <span id="tts-live-indicator" class="tts-wave-dot"></span>
+            <span id="tts-progress-label" class="tts-status-text">Click ▶ Listen or click any paragraph on the page to start reading</span>
           </div>
         </div>
 
@@ -412,6 +472,9 @@
             <select id="status-outline-select" class="word-status-select" onchange="jumpToOutlineHeading(this.value); this.value='';" title="Jump to Section">
               <option value="">📑 Jump to section...</option>
             </select>
+            <button type="button" id="status-live-clock" class="word-status-btn" onclick="openStudyLogModal()" title="Current Date &amp; Clock — Click to Open Study Log or Press F5 to Stamp Page">
+              🕒 --:--:--
+            </button>
             <span id="status-word-count">0 words</span>
             <span class="hide-on-mobile" id="status-char-count">0 chars</span>
             <span class="hide-on-mobile" id="status-read-time">~1 min read</span>
@@ -910,7 +973,75 @@
     <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); createFlashcardFromSelection()" title="Create Flashcard from Selection">✦ +Card</button>
   </div>
 
-  <script src="/js/api.js?v=29"></script>
-  <script src="/js/study.js?v=29"></script>
+  <!-- ======================================================
+       MODAL 7: TIMESTAMPED STUDY LOG (LIVE DATE & CLOCK)
+       ====================================================== -->
+  <div id="study-log-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 42rem;">
+      <div class="modal-header">
+        <h2 style="font-size:1.05rem; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+          <i data-lucide="clock" class="icon-sm" style="color:#0ea5e9;"></i>
+          <span>Insert Timestamped Log</span>
+        </h2>
+        <button onclick="closeStudyLogModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
+      </div>
+
+      <!-- Live Digital Date & Clock Display -->
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#f8fafc; padding:0.75rem 1rem; border-radius:8px; margin-bottom:0.85rem; border:1px solid #334155;">
+        <div>
+          <div style="font-size:0.65rem; font-weight:800; letter-spacing:0.08em; color:#38bdf8; text-transform:uppercase;">CURRENT DATE &amp; CLOCK TIMESTAMP</div>
+          <div id="study-log-live-banner" style="font-size:0.86rem; font-weight:700; color:#e2e8f0; margin-top:0.15rem;">
+            📅 Loading date...
+          </div>
+        </div>
+        <div id="study-log-big-clock" style="font-family:'JetBrains Mono', Consolas, monospace; font-size:1.35rem; font-weight:800; color:#38bdf8; background:rgba(56, 189, 248, 0.12); padding:0.25rem 0.65rem; border-radius:6px; border:1px solid rgba(56, 189, 248, 0.3);">
+          00:00:00
+        </div>
+      </div>
+
+      <!-- Enter Log Content -->
+      <div style="background:#f8fafc; border:1px solid var(--border); border-radius:var(--radius-md); padding:0.85rem; margin-bottom:0.85rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <label class="form-label" style="margin:0; font-size:0.75rem; font-weight:800; color:#334155;">Log Label:</label>
+            <select id="study-log-type" class="form-select" style="width:auto; height:1.8rem; font-size:0.76rem; font-weight:700;">
+              <option value="📝 LOG">📝 Study Log</option>
+              <option value="✅ PROGRESS">✅ Milestone / Progress</option>
+              <option value="💡 INSIGHT">💡 Key Insight</option>
+              <option value="⚠️ REVIEW">⚠️ Needs Review</option>
+              <option value="🔖 BOOKMARK">🔖 Reading Bookmark</option>
+            </select>
+          </div>
+          <span style="font-size:0.68rem; color:var(--muted-foreground);">Press <strong>Ctrl+Enter</strong> to insert</span>
+        </div>
+
+        <textarea id="study-log-input" class="form-textarea" rows="3" style="font-size:0.88rem; margin-bottom:0.65rem;" placeholder="Enter your log note here... (It will be stamped onto your page with the current Date &amp; Clock above)" onkeydown="if((event.ctrlKey||event.metaKey)&amp&ampevent.key==='Enter'){event.preventDefault();addStudyLogEntry(true);}"></textarea>
+
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem; flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline btn-compact" onclick="closeStudyLogModal()">Cancel</button>
+          <button type="button" class="btn btn-primary btn-compact" onclick="addStudyLogEntry(true)">
+            🕒 Insert Log into Page
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Logs History -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem;">
+        <div style="display:flex; align-items:center; gap:0.4rem;">
+          <span style="font-size:0.7rem; font-weight:800; color:var(--muted-foreground); text-transform:uppercase;">RECENT LOG HISTORY</span>
+          <select id="study-log-filter" class="inline-meta-input" style="height:1.45rem; font-size:0.68rem; width:auto;" onchange="renderStudyLogTimeline()">
+            <option value="current">Current Page</option>
+            <option value="all" selected>All Logs</option>
+          </select>
+        </div>
+        <button type="button" class="btn-tiny" onclick="exportStudyLogsMarkdown()">⬇ Export (.md)</button>
+      </div>
+
+      <div id="study-log-timeline" class="study-log-timeline"></div>
+    </div>
+  </div>
+
+  <script src="/js/api.js?v=32"></script>
+  <script src="/js/study.js?v=32"></script>
 </body>
 </html>
