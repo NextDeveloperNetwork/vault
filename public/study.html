@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Study &amp; Notes Studio — PassKeeper</title>
-  <meta name="description" content="Word & Modern Notepad style Study Hub with rich pages, tables, charts, diagrams, and distraction-free reading.">
+  <meta name="description"
+    content="Word & Modern Notepad style Study Hub with rich pages, tables, charts, diagrams, and distraction-free reading.">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,13 +16,14 @@
   <link rel="shortcut icon" href="/favicon.jpg">
   <link rel="apple-touch-icon" href="/favicon.jpg">
 
-  <link rel="stylesheet" href="/css/variables.css?v=27">
-  <link rel="stylesheet" href="/css/global.css?v=27">
-  <link rel="stylesheet" href="/css/mobile.css?v=27">
-  <link rel="stylesheet" href="/css/study.css?v=27">
-  <script src="/js/lucide.min.js?v=27"></script>
+  <link rel="stylesheet" href="/css/variables.css?v=35">
+  <link rel="stylesheet" href="/css/global.css?v=35">
+  <link rel="stylesheet" href="/css/mobile.css?v=35">
+  <link rel="stylesheet" href="/css/study.css?v=35">
+  <script src="/js/lucide.min.js?v=35"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
 </head>
+
 <body class="study-page-body">
   <div class="app-container study-app-container">
 
@@ -34,7 +38,8 @@
         </button>
 
         <!-- Toggle Left Notebooks & Pages Drawer -->
-        <button id="toggle-notes-list-btn" type="button" class="word-icon-btn" onclick="toggleNotesSidebar()" title="Toggle Notebooks &amp; Pages Sidebar (☰)">
+        <button id="toggle-notes-list-btn" type="button" class="word-icon-btn" onclick="toggleNotesSidebar()"
+          title="Toggle Notebooks &amp; Pages Sidebar (☰)">
           <i data-lucide="panel-left" class="icon-xs"></i>
           <span class="hide-on-mobile" style="font-size:0.72rem; font-weight:700;">Pages</span>
         </button>
@@ -44,19 +49,25 @@
         </div>
 
         <!-- Editable Document Title directly in Top Bar -->
-        <input type="text" id="top-doc-title-input" class="word-top-title-input" placeholder="Untitled Document..." onchange="syncDocTitleFromTopbar(this.value)">
+        <input type="text" id="top-doc-title-input" class="word-top-title-input" placeholder="Untitled Document..."
+          onchange="syncDocTitleFromTopbar(this.value)">
 
         <!-- Study Subject / Notebook Selector -->
-        <select id="top-doc-subject-select" class="word-top-select hide-on-mobile" onchange="updateActiveNoteMeta('subjectId', this.value)" title="Assign to Study Notebook">
+        <select id="top-doc-subject-select" class="word-top-select hide-on-mobile"
+          onchange="updateActiveNoteMeta('subjectId', this.value)" title="Assign to Study Notebook">
           <option value="">📚 General Notebook</option>
         </select>
 
         <!-- Chapter / Module Input -->
-        <input type="text" id="top-doc-chapter-input" list="chapter-suggestions" class="word-top-meta-input hide-on-small" placeholder="📂 Chapter..." onblur="updateActiveNoteMeta('chapter', this.value)" onkeydown="if(event.key==='Enter')this.blur();" title="Chapter / Module">
+        <input type="text" id="top-doc-chapter-input" list="chapter-suggestions"
+          class="word-top-meta-input hide-on-small" placeholder="📂 Chapter..."
+          onblur="updateActiveNoteMeta('chapter', this.value)" onkeydown="if(event.key==='Enter')this.blur();"
+          title="Chapter / Module">
         <datalist id="chapter-suggestions"></datalist>
 
         <!-- Mastery Status Pill -->
-        <select id="top-doc-mastery-select" class="word-top-select hide-on-small" onchange="updateActiveNoteMeta('mastery', this.value)" title="Learning Status">
+        <select id="top-doc-mastery-select" class="word-top-select hide-on-small"
+          onchange="updateActiveNoteMeta('mastery', this.value)" title="Learning Status">
           <option value="NEW">🟣 New</option>
           <option value="LEARNING">🔵 Learning</option>
           <option value="REVIEW">🟠 Review</option>
@@ -68,50 +79,60 @@
 
       <div class="word-titlebar-right">
         <!-- Pomodoro Study Focus Timer -->
-        <button type="button" id="pomodoro-timer-btn" class="word-action-btn hide-on-small" onclick="togglePomodoroTimer()" oncontextmenu="event.preventDefault(); resetPomodoroTimer();" title="Click to Start/Pause 25m Focus Timer • Right-click to Reset">
+        <button type="button" id="pomodoro-timer-btn" class="word-action-btn hide-on-small"
+          onclick="togglePomodoroTimer()" oncontextmenu="event.preventDefault(); resetPomodoroTimer();"
+          title="Click to Start/Pause 25m Focus Timer • Right-click to Reset">
           <i data-lucide="timer" class="icon-xs" style="color:#d97706;"></i>
           <span id="pomodoro-time-display" style="font-family:var(--font-mono); font-weight:700;">25:00</span>
         </button>
 
         <!-- Distraction-Free Read Mode -->
-        <button type="button" id="read-mode-toggle-btn" class="word-action-btn word-action-primary-soft" onclick="toggleReadMode()" title="Distraction-Free Read Mode (Esc to exit)">
+        <button type="button" id="read-mode-toggle-btn" class="word-action-btn word-action-primary-soft"
+          onclick="toggleReadMode()" title="Distraction-Free Read Mode (Esc to exit)">
           <i data-lucide="book-open-check" class="icon-xs"></i>
           <span>Read Mode</span>
         </button>
 
         <!-- Timestamped Study Log Button -->
-        <button type="button" class="word-action-btn" onclick="openStudyLogModal()" title="Open Timestamped Study Log (Date &amp; Clock)">
+        <button type="button" class="word-action-btn" onclick="openStudyLogModal()"
+          title="Open Timestamped Study Log (Date &amp; Clock)">
           <i data-lucide="clock" class="icon-xs" style="color:#0ea5e9;"></i>
           <span>Log</span>
         </button>
 
         <!-- AI Prompt & Paste Converter -->
-        <button type="button" class="word-action-btn hide-on-mobile" onclick="openAiPromptModal()" title="Copy AI Formatting Instructions (.md) or Paste AI Content into Document">
+        <button type="button" class="word-action-btn hide-on-mobile" onclick="openAiPromptModal()"
+          title="Copy AI Formatting Instructions (.md) or Paste AI Content into Document">
           <i data-lucide="bot" class="icon-xs"></i>
           <span>AI Assistant</span>
         </button>
 
         <!-- Flashcards -->
-        <button type="button" class="word-action-btn hide-on-mobile" onclick="openFlashcardModalForCurrent()" title="Study Flashcards (Q&amp;A)">
+        <button type="button" class="word-action-btn hide-on-mobile" onclick="openFlashcardModalForCurrent()"
+          title="Study Flashcards (Q&amp;A)">
           <i data-lucide="sparkles" class="icon-xs"></i>
           <span>Cards (<span id="metric-flashcards">0</span>)</span>
         </button>
 
         <!-- Export / Print -->
-        <button type="button" class="word-action-btn hide-on-small" onclick="exportActiveNoteDoc()" title="Export as Markdown (.md)">
+        <button type="button" class="word-action-btn hide-on-small" onclick="exportActiveNoteDoc()"
+          title="Export as Markdown (.md)">
           <i data-lucide="download" class="icon-xs"></i>
           <span>.md</span>
         </button>
-        <button type="button" class="word-action-btn hide-on-small" onclick="window.print()" title="Print / Save as PDF">
+        <button type="button" class="word-action-btn hide-on-small" onclick="window.print()"
+          title="Print / Save as PDF">
           <i data-lucide="printer" class="icon-xs"></i>
         </button>
 
         <!-- New Page & Delete Page Buttons -->
-        <button type="button" class="word-action-btn word-action-primary" onclick="createNewBlankNote()" title="Create New Blank Page">
+        <button type="button" class="word-action-btn word-action-primary" onclick="createNewBlankNote()"
+          title="Create New Blank Page">
           <i data-lucide="plus" class="icon-xs"></i>
           <span>New Page</span>
         </button>
-        <button type="button" class="word-action-btn word-action-danger" onclick="deleteActiveNote()" title="Delete Current Page">
+        <button type="button" class="word-action-btn word-action-danger" onclick="deleteActiveNote()"
+          title="Delete Current Page">
           <i data-lucide="trash-2" class="icon-xs"></i>
           <span>Delete Page</span>
         </button>
@@ -124,10 +145,12 @@
     <div id="word-ribbon-bar" class="word-ribbon-bar">
       <!-- Undo / Redo -->
       <div class="ribbon-group">
-        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('undo')" title="Undo (Ctrl+Z)">
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('undo')"
+          title="Undo (Ctrl+Z)">
           <i data-lucide="undo-2" class="icon-xs"></i>
         </button>
-        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('redo')" title="Redo (Ctrl+Y)">
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('redo')"
+          title="Redo (Ctrl+Y)">
           <i data-lucide="redo-2" class="icon-xs"></i>
         </button>
       </div>
@@ -136,7 +159,8 @@
 
       <!-- Block Style & Font -->
       <div class="ribbon-group">
-        <select id="ribbon-block-style" class="ribbon-select" onchange="applyHeadingStyle(this.value); this.value='';" title="Paragraph / Heading Style">
+        <select id="ribbon-block-style" class="ribbon-select" onchange="applyHeadingStyle(this.value); this.value='';"
+          title="Paragraph / Heading Style">
           <option value="" selected disabled>Style / Heading</option>
           <option value="P">Normal Text</option>
           <option value="H1">Heading 1 (Title)</option>
@@ -146,7 +170,8 @@
           <option value="PRE">Code Block</option>
         </select>
 
-        <select id="ribbon-font-family" class="ribbon-select hide-on-mobile" onchange="applyDocFontFamily(this.value)" title="Document Font">
+        <select id="ribbon-font-family" class="ribbon-select hide-on-mobile" onchange="applyDocFontFamily(this.value)"
+          title="Document Font">
           <option value="sans">Sans (Inter / Modern)</option>
           <option value="serif">Serif (Georgia / Book)</option>
           <option value="calibri">Calibri / Clean</option>
@@ -158,16 +183,20 @@
 
       <!-- Text Formatting: Bold, Italic, Underline, Strikethrough -->
       <div class="ribbon-group">
-        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('bold')" title="Bold (Ctrl+B)">
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('bold')"
+          title="Bold (Ctrl+B)">
           <strong>B</strong>
         </button>
-        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('italic')" title="Italic (Ctrl+I)">
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('italic')"
+          title="Italic (Ctrl+I)">
           <em>I</em>
         </button>
-        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('underline')" title="Underline (Ctrl+U)">
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('underline')"
+          title="Underline (Ctrl+U)">
           <u>U</u>
         </button>
-        <button type="button" class="ribbon-btn hide-on-mobile" onmousedown="event.preventDefault(); execDocCommand('strikeThrough')" title="Strikethrough">
+        <button type="button" class="ribbon-btn hide-on-mobile"
+          onmousedown="event.preventDefault(); execDocCommand('strikeThrough')" title="Strikethrough">
           <s>S</s>
         </button>
       </div>
@@ -177,12 +206,18 @@
       <!-- Highlight Colors & Text Color -->
       <div class="ribbon-group">
         <span class="ribbon-label hide-on-small">Highlight:</span>
-        <button type="button" class="ribbon-color-swatch" style="background:#fef08a;" onmousedown="event.preventDefault(); applyHighlightColor('#fef08a')" title="Yellow Highlight"></button>
-        <button type="button" class="ribbon-color-swatch" style="background:#bbf7d0;" onmousedown="event.preventDefault(); applyHighlightColor('#bbf7d0')" title="Green Highlight"></button>
-        <button type="button" class="ribbon-color-swatch" style="background:#ddd6fe;" onmousedown="event.preventDefault(); applyHighlightColor('#ddd6fe')" title="Purple Highlight"></button>
-        <button type="button" class="ribbon-color-swatch" style="background:#fecdd3;" onmousedown="event.preventDefault(); applyHighlightColor('#fecdd3')" title="Pink Highlight"></button>
-        <button type="button" class="ribbon-color-swatch" style="background:#bae6fd;" onmousedown="event.preventDefault(); applyHighlightColor('#bae6fd')" title="Blue Highlight"></button>
-        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); applyHighlightColor('transparent')" title="Clear Highlight">
+        <button type="button" class="ribbon-color-swatch" style="background:#fef08a;"
+          onmousedown="event.preventDefault(); applyHighlightColor('#fef08a')" title="Yellow Highlight"></button>
+        <button type="button" class="ribbon-color-swatch" style="background:#bbf7d0;"
+          onmousedown="event.preventDefault(); applyHighlightColor('#bbf7d0')" title="Green Highlight"></button>
+        <button type="button" class="ribbon-color-swatch" style="background:#ddd6fe;"
+          onmousedown="event.preventDefault(); applyHighlightColor('#ddd6fe')" title="Purple Highlight"></button>
+        <button type="button" class="ribbon-color-swatch" style="background:#fecdd3;"
+          onmousedown="event.preventDefault(); applyHighlightColor('#fecdd3')" title="Pink Highlight"></button>
+        <button type="button" class="ribbon-color-swatch" style="background:#bae6fd;"
+          onmousedown="event.preventDefault(); applyHighlightColor('#bae6fd')" title="Blue Highlight"></button>
+        <button type="button" class="ribbon-btn"
+          onmousedown="event.preventDefault(); applyHighlightColor('transparent')" title="Clear Highlight">
           <i data-lucide="eraser" class="icon-xs"></i>
         </button>
       </div>
@@ -191,19 +226,24 @@
 
       <!-- Lists & Alignment -->
       <div class="ribbon-group">
-        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('insertUnorderedList')" title="Bullet List">
+        <button type="button" class="ribbon-btn"
+          onmousedown="event.preventDefault(); execDocCommand('insertUnorderedList')" title="Bullet List">
           <i data-lucide="list" class="icon-xs"></i>
         </button>
-        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); execDocCommand('insertOrderedList')" title="Numbered List">
+        <button type="button" class="ribbon-btn"
+          onmousedown="event.preventDefault(); execDocCommand('insertOrderedList')" title="Numbered List">
           <i data-lucide="list-ordered" class="icon-xs"></i>
         </button>
-        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); insertChecklistAtCursor()" title="Insert Interactive Checklist">
+        <button type="button" class="ribbon-btn" onmousedown="event.preventDefault(); insertChecklistAtCursor()"
+          title="Insert Interactive Checklist">
           <i data-lucide="check-square" class="icon-xs"></i>
         </button>
-        <button type="button" class="ribbon-btn hide-on-small" onmousedown="event.preventDefault(); execDocCommand('justifyLeft')" title="Align Left">
+        <button type="button" class="ribbon-btn hide-on-small"
+          onmousedown="event.preventDefault(); execDocCommand('justifyLeft')" title="Align Left">
           <i data-lucide="align-left" class="icon-xs"></i>
         </button>
-        <button type="button" class="ribbon-btn hide-on-small" onmousedown="event.preventDefault(); execDocCommand('justifyCenter')" title="Align Center">
+        <button type="button" class="ribbon-btn hide-on-small"
+          onmousedown="event.preventDefault(); execDocCommand('justifyCenter')" title="Align Center">
           <i data-lucide="align-center" class="icon-xs"></i>
         </button>
       </div>
@@ -212,47 +252,56 @@
 
       <!-- Insert Rich Elements directly at Cursor -->
       <div class="ribbon-group">
-        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); insertTableAtCursor()" title="Insert Editable Word Table">
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); insertTableAtCursor()"
+          title="Insert Editable Word Table">
           <i data-lucide="table" class="icon-xs" style="color:#d97706;"></i>
           <span>Table</span>
         </button>
 
-        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openChartBuilderModal()" title="Insert Bar, Line, Pie or Area Chart">
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openChartBuilderModal()"
+          title="Insert Bar, Line, Pie or Area Chart">
           <i data-lucide="bar-chart-3" class="icon-xs" style="color:#4f46e5;"></i>
           <span>Chart</span>
         </button>
 
-        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openStudyLogModal()" title="Insert Log with Live Date &amp; Clock Timestamp">
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openStudyLogModal()"
+          title="Insert Log with Live Date &amp; Clock Timestamp">
           <i data-lucide="clock" class="icon-xs" style="color:#0ea5e9;"></i>
           <span>Log</span>
         </button>
 
-        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openWhiteboardModal()" title="Draw Freehand Sketch or Diagram">
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openWhiteboardModal()"
+          title="Draw Freehand Sketch or Diagram">
           <i data-lucide="pen-tool" class="icon-xs" style="color:#ec4899;"></i>
           <span>Draw</span>
         </button>
 
-        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openDiagramBuilderModal()" title="Insert Flowchart or Sequence Diagram">
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openDiagramBuilderModal()"
+          title="Insert Flowchart or Sequence Diagram">
           <i data-lucide="git-merge" class="icon-xs" style="color:#10b981;"></i>
           <span>Flowchart</span>
         </button>
 
-        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); insertCalloutBoxAtCursor()" title="Insert Pinned Concept / Callout Box">
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); insertCalloutBoxAtCursor()"
+          title="Insert Pinned Concept / Callout Box">
           <i data-lucide="pin" class="icon-xs" style="color:#f59e0b;"></i>
           <span>Callout Box</span>
         </button>
 
-        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); wrapSelectionAsCloze()" title="Turn Selected Text into a Click-to-Reveal Cloze Blank">
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); wrapSelectionAsCloze()"
+          title="Turn Selected Text into a Click-to-Reveal Cloze Blank">
           <i data-lucide="eye-off" class="icon-xs" style="color:#7c3aed;"></i>
           <span>Cloze</span>
         </button>
 
-        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openCodeEditorModal()" title="Insert or Edit IDE Syntax-Highlighted Code Block">
+        <button type="button" class="ribbon-insert-btn" onmousedown="event.preventDefault(); openCodeEditorModal()"
+          title="Insert or Edit IDE Syntax-Highlighted Code Block">
           <i data-lucide="code-2" class="icon-xs" style="color:#0ea5e9;"></i>
           <span>Code (IDE)</span>
         </button>
 
-        <select class="ribbon-select" onchange="insertDocumentTemplate(this.value); this.value='';" title="Insert Smart Study Page Template">
+        <select class="ribbon-select" onchange="insertDocumentTemplate(this.value); this.value='';"
+          title="Insert Smart Study Page Template">
           <option value="" selected disabled>📄 Templates</option>
           <option value="lecture">📘 Lecture &amp; Summary</option>
           <option value="cornell">📐 Cornell Study Sheet</option>
@@ -263,16 +312,21 @@
 
       <!-- Right side of Ribbon: Cram Filter, Find, Pin & Delete Page -->
       <div class="ribbon-group" style="margin-left:auto;">
-        <button type="button" id="ribbon-cram-btn" class="ribbon-insert-btn" onclick="toggleCramHighlightsMode()" title="Exam Cram Mode: Show Only Headings, Highlights, Callouts &amp; Tables">
+        <button type="button" id="ribbon-cram-btn" class="ribbon-insert-btn" onclick="toggleCramHighlightsMode()"
+          title="Exam Cram Mode: Show Only Headings, Highlights, Callouts &amp; Tables">
           <span>🎯 Cram</span>
         </button>
-        <button type="button" class="ribbon-btn" onclick="toggleFindReplaceBar()" title="Find &amp; Replace in Page (Ctrl+F)">
+        <button type="button" class="ribbon-btn" onclick="toggleFindReplaceBar()"
+          title="Find &amp; Replace in Page (Ctrl+F)">
           <i data-lucide="search" class="icon-xs"></i>
         </button>
-        <button type="button" id="ribbon-pin-note-btn" class="ribbon-btn" onclick="togglePinActiveNote()" title="Pin / Unpin Page">
+        <button type="button" id="ribbon-pin-note-btn" class="ribbon-btn" onclick="togglePinActiveNote()"
+          title="Pin / Unpin Page">
           <i data-lucide="pin" class="icon-xs"></i>
         </button>
-        <button type="button" class="ribbon-insert-btn" style="color:var(--destructive); border-color:#fecaca; background:#fef2f2;" onclick="deleteActiveNote()" title="Delete Current Page">
+        <button type="button" class="ribbon-insert-btn"
+          style="color:var(--destructive); border-color:#fecaca; background:#fef2f2;" onclick="deleteActiveNote()"
+          title="Delete Current Page">
           <i data-lucide="trash-2" class="icon-xs" style="color:var(--destructive);"></i>
           <span>Delete Page</span>
         </button>
@@ -293,16 +347,20 @@
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.35rem;">
             <span class="word-sidebar-label">📚 STUDY NOTEBOOK</span>
             <div style="display:flex; gap:0.2rem;">
-              <button type="button" id="edit-active-study-btn" class="btn-tiny" style="display:none; height:1.35rem; padding:0 0.35rem;" onclick="editCurrentActiveSubject()" title="Edit Selected Study">
+              <button type="button" id="edit-active-study-btn" class="btn-tiny"
+                style="display:none; height:1.35rem; padding:0 0.35rem;" onclick="editCurrentActiveSubject()"
+                title="Edit Selected Study">
                 <i data-lucide="settings-2" class="icon-xs"></i>
               </button>
-              <button type="button" class="btn-tiny" style="height:1.35rem; padding:0 0.4rem; color:var(--primary);" onclick="openStudySubjectModal()" title="Create New Study Subject">
+              <button type="button" class="btn-tiny" style="height:1.35rem; padding:0 0.4rem; color:var(--primary);"
+                onclick="openStudySubjectModal()" title="Create New Study Subject">
                 <i data-lucide="folder-plus" class="icon-xs"></i> +Study
               </button>
             </div>
           </div>
 
-          <select id="sidebar-subject-filter" class="form-select" style="height:1.9rem; font-size:0.78rem; font-weight:700;" onchange="filterStudySubject(this.value)">
+          <select id="sidebar-subject-filter" class="form-select"
+            style="height:1.9rem; font-size:0.78rem; font-weight:700;" onchange="filterStudySubject(this.value)">
             <option value="ALL">📚 All Studies (0)</option>
           </select>
         </div>
@@ -310,20 +368,28 @@
         <!-- Search & Sort Controls -->
         <div class="word-sidebar-section" style="padding-top:0.45rem; padding-bottom:0.45rem;">
           <div style="position:relative; margin-bottom:0.35rem;">
-            <i data-lucide="search" class="icon-xs" style="position:absolute; left:0.55rem; top:50%; transform:translateY(-50%); color:var(--muted-foreground);"></i>
-            <input type="text" id="study-search-input" class="form-input" style="height:1.75rem; padding-left:1.75rem; font-size:0.75rem;" placeholder="Search pages...">
+            <i data-lucide="search" class="icon-xs"
+              style="position:absolute; left:0.55rem; top:50%; transform:translateY(-50%); color:var(--muted-foreground);"></i>
+            <input type="text" id="study-search-input" class="form-input"
+              style="height:1.75rem; padding-left:1.75rem; font-size:0.75rem;" placeholder="Search pages...">
           </div>
 
           <div style="display:flex; align-items:center; justify-content:space-between; gap:0.3rem;">
-            <span id="notes-list-heading" style="font-size:0.68rem; font-weight:800; color:var(--muted-foreground); text-transform:uppercase;">Pages (0)</span>
+            <span id="notes-list-heading"
+              style="font-size:0.68rem; font-weight:800; color:var(--muted-foreground); text-transform:uppercase;">Pages
+              (0)</span>
             <div style="display:flex; align-items:center; gap:0.25rem;">
-              <select id="notes-sort-select" class="inline-meta-input" style="height:1.4rem; font-size:0.65rem; padding:0 0.25rem; width:auto;" onchange="changeNotesSortOrder(this.value)">
+              <select id="notes-sort-select" class="inline-meta-input"
+                style="height:1.4rem; font-size:0.65rem; padding:0 0.25rem; width:auto;"
+                onchange="changeNotesSortOrder(this.value)">
                 <option value="custom_asc">1→N Order</option>
                 <option value="title_asc">A→Z Title</option>
                 <option value="created_desc">Newest</option>
                 <option value="updated_desc">Edited</option>
               </select>
-              <button type="button" class="btn-tiny" style="height:1.4rem; padding:0 0.4rem; background:var(--primary); color:#fff; border-color:var(--primary);" onclick="createNewBlankNote()">
+              <button type="button" class="btn-tiny"
+                style="height:1.4rem; padding:0 0.4rem; background:var(--primary); color:#fff; border-color:var(--primary);"
+                onclick="createNewBlankNote()">
                 + Page
               </button>
             </div>
@@ -354,27 +420,33 @@
               <span>Exit Read Mode</span>
             </button>
 
-            <button type="button" class="read-ctrl-pill" onclick="toggleNotesSidebar()" title="Open Pages &amp; Outline Menu (☰)">
+            <button type="button" class="read-ctrl-pill" onclick="toggleNotesSidebar()"
+              title="Open Pages &amp; Outline Menu (☰)">
               <i data-lucide="menu" class="icon-xs"></i>
               <span class="hide-on-mobile">Pages &amp; Outline</span>
             </button>
 
-            <select id="read-mode-page-select" class="read-mode-select" style="flex:1; max-width:18rem; font-weight:700;" onchange="selectStudyNote(this.value)">
+            <select id="read-mode-page-select" class="read-mode-select"
+              style="flex:1; max-width:18rem; font-weight:700;" onchange="selectStudyNote(this.value)">
             </select>
           </div>
 
           <div style="display:flex; align-items:center; gap:0.25rem; flex-shrink:0;">
-            <button type="button" id="read-voice-toggle-btn" class="read-ctrl-pill read-voice-pill" onclick="toggleVoiceReaderBar()" title="Read Page Aloud with Natural Human Voice">
+            <button type="button" id="read-voice-toggle-btn" class="read-ctrl-pill read-voice-pill"
+              onclick="toggleVoiceReaderBar()" title="Read Page Aloud with Natural Human Voice">
               <span>🔊 Read Aloud</span>
             </button>
-            <button type="button" id="read-cram-btn" class="read-ctrl-pill" onclick="toggleCramHighlightsMode()" title="Show Only Highlights, Callouts &amp; Headings">🎯 Cram</button>
-            <button type="button" class="read-ctrl-pill" onclick="revealAllClozesInDoc()" title="Reveal / Hide All Cloze Blanks">🔒 Clozes</button>
+            <button type="button" id="read-cram-btn" class="read-ctrl-pill" onclick="toggleCramHighlightsMode()"
+              title="Show Only Highlights, Callouts &amp; Headings">🎯 Cram</button>
+            <button type="button" class="read-ctrl-pill" onclick="revealAllClozesInDoc()"
+              title="Reveal / Hide All Cloze Blanks">🔒 Clozes</button>
             <button type="button" class="read-ctrl-pill" onclick="stepDocZoom(-10)" title="Zoom Out">A-</button>
             <button type="button" class="read-ctrl-pill" onclick="stepDocZoom(10)" title="Zoom In">A+</button>
             <button type="button" class="read-ctrl-pill" onclick="setDocTheme('light')" title="Paper White">☀️</button>
             <button type="button" class="read-ctrl-pill" onclick="setDocTheme('sepia')" title="Warm Sepia">📜</button>
             <button type="button" class="read-ctrl-pill" onclick="setDocTheme('dark')" title="Night Dark">🌙</button>
-            <button type="button" class="read-exit-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5;" onclick="toggleReadMode(false)" title="Exit Read Mode (Esc)">
+            <button type="button" class="read-exit-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5;"
+              onclick="toggleReadMode(false)" title="Exit Read Mode (Esc)">
               <i data-lucide="x" class="icon-xs"></i>
               <span class="hide-on-mobile">Exit</span>
             </button>
@@ -386,11 +458,14 @@
              ====================================================== -->
         <div id="read-voice-player-bar" class="read-voice-player-bar" style="display:none;">
           <div class="voice-player-controls">
-            <button type="button" id="tts-play-btn" class="voice-btn voice-btn-primary" onclick="toggleSpeechPlayback()" title="Play / Pause Natural Voice Reading">
+            <button type="button" id="tts-play-btn" class="voice-btn voice-btn-primary" onclick="toggleSpeechPlayback()"
+              title="Play / Pause Natural Voice Reading">
               <span>▶ Listen</span>
             </button>
-            <button type="button" class="voice-btn" onclick="stepSpeechSegment(-1)" title="Previous Sentence / Section">⏮</button>
-            <button type="button" class="voice-btn" onclick="stepSpeechSegment(1)" title="Next Sentence / Section">⏭</button>
+            <button type="button" class="voice-btn" onclick="stepSpeechSegment(-1)"
+              title="Previous Sentence / Section">⏮</button>
+            <button type="button" class="voice-btn" onclick="stepSpeechSegment(1)"
+              title="Next Sentence / Section">⏭</button>
             <button type="button" class="voice-btn" onclick="stopSpeechPlayback()" title="Stop Reading">⏹</button>
           </div>
 
@@ -423,16 +498,20 @@
 
           <div class="voice-player-status">
             <span id="tts-live-indicator" class="tts-wave-dot"></span>
-            <span id="tts-progress-label" class="tts-status-text">Click ▶ Listen or click any paragraph on the page to start reading</span>
+            <span id="tts-progress-label" class="tts-status-text">Click ▶ Listen or click any paragraph on the page to
+              start reading</span>
           </div>
         </div>
 
         <!-- Inline Find & Replace Bar (Ctrl+F) -->
         <div id="doc-find-bar" class="doc-find-bar" style="display:none;">
           <i data-lucide="search" class="icon-xs" style="color:#64748b;"></i>
-          <input type="text" id="doc-find-input" class="form-input" style="height:1.65rem; width:10rem; font-size:0.75rem;" placeholder="Find in page..." onkeydown="if(event.key==='Enter')findNextInDoc();">
+          <input type="text" id="doc-find-input" class="form-input"
+            style="height:1.65rem; width:10rem; font-size:0.75rem;" placeholder="Find in page..."
+            onkeydown="if(event.key==='Enter')findNextInDoc();">
           <button type="button" class="btn-tiny" onclick="findNextInDoc()">Find</button>
-          <input type="text" id="doc-replace-input" class="form-input hide-on-mobile" style="height:1.65rem; width:10rem; font-size:0.75rem;" placeholder="Replace with...">
+          <input type="text" id="doc-replace-input" class="form-input hide-on-mobile"
+            style="height:1.65rem; width:10rem; font-size:0.75rem;" placeholder="Replace with...">
           <button type="button" class="btn-tiny hide-on-mobile" onclick="replaceInDoc(false)">Replace</button>
           <button type="button" class="btn-tiny hide-on-mobile" onclick="replaceInDoc(true)">Replace All</button>
           <button type="button" class="btn-tiny" onclick="toggleFindReplaceBar(false)">✕</button>
@@ -441,12 +520,18 @@
         <!-- Contextual Table Editing Bar (Appears when clicking inside a Table) -->
         <div id="word-table-toolbar" class="word-table-toolbar" style="display:none;">
           <span style="font-size:0.68rem; font-weight:800; color:#b45309; margin-right:0.25rem;">📅 TABLE TOOLS:</span>
-          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('row-below')">+ Row Below</button>
-          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('row-above')">+ Row Above</button>
-          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('col-right')">+ Col Right</button>
-          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('del-row')">− Del Row</button>
-          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('del-col')">− Del Col</button>
-          <button type="button" class="btn-tiny" style="color:var(--destructive);" onmousedown="event.preventDefault(); modifyActiveTable('del-table')">🗑️ Remove Table</button>
+          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('row-below')">+
+            Row Below</button>
+          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('row-above')">+
+            Row Above</button>
+          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('col-right')">+
+            Col Right</button>
+          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('del-row')">−
+            Del Row</button>
+          <button type="button" class="btn-tiny" onmousedown="event.preventDefault(); modifyActiveTable('del-col')">−
+            Del Col</button>
+          <button type="button" class="btn-tiny" style="color:var(--destructive);"
+            onmousedown="event.preventDefault(); modifyActiveTable('del-table')">🗑️ Remove Table</button>
         </div>
 
         <!-- Scrollable Desk Holding the Paper Sheet -->
@@ -454,12 +539,18 @@
           <div id="word-paper-sheet" class="word-paper-sheet">
             <!-- Document Header inside the Paper Sheet -->
             <div class="word-sheet-header">
-              <input type="text" id="sheet-title-input" class="word-sheet-title" placeholder="Document Title..." oninput="handleSheetTitleInput(this.value)">
-              <input type="text" id="sheet-summary-input" class="word-sheet-subtitle" placeholder="Add a subtitle, objective, or key takeaway..." oninput="handleSheetSummaryInput(this.value)">
+              <input type="text" id="sheet-title-input" class="word-sheet-title" placeholder="Document Title..."
+                oninput="handleSheetTitleInput(this.value)">
+              <input type="text" id="sheet-summary-input" class="word-sheet-subtitle"
+                placeholder="Add a subtitle, objective, or key takeaway..."
+                oninput="handleSheetSummaryInput(this.value)">
             </div>
 
             <!-- Rich WYSIWYG Document Body (Like MS Word / Google Docs / Modern Notepad) -->
-            <div id="word-editor-surface" class="word-editor-surface markdown-content" contenteditable="true" spellcheck="true" data-placeholder="Start typing your study notes directly on this page... Use the Word ribbon above to format text, or insert Tables, Charts, Drawings, Flowcharts, and Callout Boxes."></div>
+            <div id="word-editor-surface" class="word-editor-surface markdown-content" contenteditable="true"
+              spellcheck="true"
+              data-placeholder="Start typing your study notes directly on this page... Use the Word ribbon above to format text, or insert Tables, Charts, Drawings, Flowcharts, and Callout Boxes.">
+            </div>
 
             <!-- Prev / Next Page Footer Navigation -->
             <div id="word-sheet-footer-nav" class="word-sheet-footer-nav"></div>
@@ -469,10 +560,12 @@
         <!-- BOTTOM STATUS BAR (LIKE MICROSOFT WORD / WINDOWS 11 NOTEPAD) -->
         <footer class="word-status-bar">
           <div class="word-status-left">
-            <select id="status-outline-select" class="word-status-select" onchange="jumpToOutlineHeading(this.value); this.value='';" title="Jump to Section">
+            <select id="status-outline-select" class="word-status-select"
+              onchange="jumpToOutlineHeading(this.value); this.value='';" title="Jump to Section">
               <option value="">📑 Jump to section...</option>
             </select>
-            <button type="button" id="status-live-clock" class="word-status-btn" onclick="openStudyLogModal()" title="Current Date &amp; Clock — Click to Open Study Log or Press F5 to Stamp Page">
+            <button type="button" id="status-live-clock" class="word-status-btn" onclick="openStudyLogModal()"
+              title="Current Date &amp; Clock — Click to Open Study Log or Press F5 to Stamp Page">
               🕒 --:--:--
             </button>
             <span id="status-word-count">0 words</span>
@@ -482,7 +575,8 @@
 
           <div class="word-status-right">
             <!-- Paper Pattern Style: Plain, Ruled Lines, Dot Grid, Graph Grid -->
-            <select id="paper-pattern-select" class="word-status-select hide-on-mobile" onchange="setPaperPattern(this.value)" title="Paper Surface Pattern">
+            <select id="paper-pattern-select" class="word-status-select hide-on-mobile"
+              onchange="setPaperPattern(this.value)" title="Paper Surface Pattern">
               <option value="plain">📄 Plain Paper</option>
               <option value="lined">📝 Ruled Lines</option>
               <option value="dots">⠿ Dot Grid</option>
@@ -490,7 +584,8 @@
             </select>
 
             <!-- Paper Sheet vs Full-Width Notepad Toggle -->
-            <button type="button" id="layout-mode-btn" class="word-status-btn" onclick="togglePageLayoutMode()" title="Switch between Centered Paper Sheet and Full-Width Notepad">
+            <button type="button" id="layout-mode-btn" class="word-status-btn" onclick="togglePageLayoutMode()"
+              title="Switch between Centered Paper Sheet and Full-Width Notepad">
               <span>📄 Paper View</span>
             </button>
 
@@ -539,22 +634,26 @@
   <div id="study-subject-modal" class="modal-overlay">
     <div class="modal-dialog" style="max-width: 28rem;">
       <div class="modal-header">
-        <h2 id="subject-modal-title" style="font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+        <h2 id="subject-modal-title"
+          style="font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
           <i data-lucide="graduation-cap" class="icon-sm"></i>
           <span>Create New Study</span>
         </h2>
-        <button onclick="closeStudySubjectModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
+        <button onclick="closeStudySubjectModal()" class="modal-close-btn"><i data-lucide="x"
+            class="icon-sm"></i></button>
       </div>
 
       <form id="study-subject-form">
         <div class="form-group">
           <label class="form-label" for="subject-name-input">Study / Course / Notebook Name</label>
-          <input type="text" id="subject-name-input" class="form-input" placeholder="e.g. Financial Accounting, Kubernetes, SQL" required>
+          <input type="text" id="subject-name-input" class="form-input"
+            placeholder="e.g. Financial Accounting, Kubernetes, SQL" required>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="subject-desc-input">Description / Goal</label>
-          <input type="text" id="subject-desc-input" class="form-input" placeholder="e.g. Core principles, formulas &amp; exam notes">
+          <input type="text" id="subject-desc-input" class="form-input"
+            placeholder="e.g. Core principles, formulas &amp; exam notes">
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
@@ -587,17 +686,24 @@
         <div class="form-group">
           <label class="form-label">Color</label>
           <div style="display:flex; gap:0.625rem; align-items:center; margin-top:0.25rem; flex-wrap:wrap;">
-            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#4f46e5" checked> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#4f46e5;vertical-align:middle;"></span></label>
-            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#7c3aed"> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#7c3aed;vertical-align:middle;"></span></label>
-            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#10b981"> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#10b981;vertical-align:middle;"></span></label>
-            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#0ea5e9"> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#0ea5e9;vertical-align:middle;"></span></label>
-            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#f59e0b"> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#f59e0b;vertical-align:middle;"></span></label>
-            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#ec4899"> <span style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#ec4899;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#4f46e5" checked> <span
+                style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#4f46e5;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#7c3aed"> <span
+                style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#7c3aed;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#10b981"> <span
+                style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#10b981;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#0ea5e9"> <span
+                style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#0ea5e9;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#f59e0b"> <span
+                style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#f59e0b;vertical-align:middle;"></span></label>
+            <label style="cursor:pointer;"><input type="radio" name="subject-color" value="#ec4899"> <span
+                style="display:inline-block;width:1.25rem;height:1.25rem;border-radius:50%;background:#ec4899;vertical-align:middle;"></span></label>
           </div>
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
-          <button type="button" id="subject-delete-btn" onclick="deleteEditingSubject()" class="btn btn-danger" style="display:none;">Delete</button>
+          <button type="button" id="subject-delete-btn" onclick="deleteEditingSubject()" class="btn btn-danger"
+            style="display:none;">Delete</button>
           <div style="display:flex; gap:0.5rem; margin-left:auto;">
             <button type="button" onclick="closeStudySubjectModal()" class="btn btn-outline">Cancel</button>
             <button type="submit" id="subject-submit-btn" class="btn btn-primary">Save Study</button>
@@ -617,7 +723,8 @@
           <i data-lucide="bar-chart-3" class="icon-sm" style="color:var(--primary);"></i>
           <span>Insert Data Chart into Page</span>
         </h2>
-        <button onclick="closeChartBuilderModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
+        <button onclick="closeChartBuilderModal()" class="modal-close-btn"><i data-lucide="x"
+            class="icon-sm"></i></button>
       </div>
 
       <div style="display:grid; grid-template-columns: 1.15fr 1fr; gap:1rem; align-items:start;">
@@ -625,11 +732,13 @@
           <div style="display:grid; grid-template-columns: 1.2fr 1fr 0.6fr; gap:0.45rem; margin-bottom:0.65rem;">
             <div>
               <label class="form-label" style="font-size:0.72rem;">Chart Title</label>
-              <input type="text" id="studio-chart-title" class="form-input" style="height:1.85rem; font-size:0.8rem;" value="Performance Metrics" oninput="updateChartModalPreview()">
+              <input type="text" id="studio-chart-title" class="form-input" style="height:1.85rem; font-size:0.8rem;"
+                value="Performance Metrics" oninput="updateChartModalPreview()">
             </div>
             <div>
               <label class="form-label" style="font-size:0.72rem;">Type</label>
-              <select id="studio-chart-type" class="form-select" style="height:1.85rem; font-size:0.8rem;" onchange="updateChartModalPreview()">
+              <select id="studio-chart-type" class="form-select" style="height:1.85rem; font-size:0.8rem;"
+                onchange="updateChartModalPreview()">
                 <option value="bar">📊 Bar Chart</option>
                 <option value="line">📈 Line Chart</option>
                 <option value="area">🌊 Area Chart</option>
@@ -640,7 +749,8 @@
             </div>
             <div>
               <label class="form-label" style="font-size:0.72rem;">Unit</label>
-              <input type="text" id="studio-chart-unit" class="form-input" style="height:1.85rem; font-size:0.8rem;" placeholder="%, $" oninput="updateChartModalPreview()">
+              <input type="text" id="studio-chart-unit" class="form-input" style="height:1.85rem; font-size:0.8rem;"
+                placeholder="%, $" oninput="updateChartModalPreview()">
             </div>
           </div>
 
@@ -649,16 +759,21 @@
             <button type="button" class="btn-tiny" onclick="addChartModalRow()">+ Add Row</button>
           </div>
 
-          <div id="studio-chart-rows" style="display:flex; flex-direction:column; gap:0.35rem; max-height:11rem; overflow-y:auto;"></div>
+          <div id="studio-chart-rows"
+            style="display:flex; flex-direction:column; gap:0.35rem; max-height:11rem; overflow-y:auto;"></div>
         </div>
 
         <div>
-          <div style="font-size:0.7rem; font-weight:700; color:var(--muted-foreground); margin-bottom:0.25rem;">LIVE PREVIEW</div>
-          <div id="studio-chart-live-preview" style="border:1px solid var(--border); border-radius:var(--radius-md); padding:0.5rem; background:#faf9ff;"></div>
+          <div style="font-size:0.7rem; font-weight:700; color:var(--muted-foreground); margin-bottom:0.25rem;">LIVE
+            PREVIEW</div>
+          <div id="studio-chart-live-preview"
+            style="border:1px solid var(--border); border-radius:var(--radius-md); padding:0.5rem; background:#faf9ff;">
+          </div>
         </div>
       </div>
 
-      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border);">
+      <div
+        style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border);">
         <button type="button" class="btn btn-outline" onclick="closeChartBuilderModal()">Cancel</button>
         <button type="button" class="btn btn-primary" onclick="insertChartFromModal()">Insert Chart into Page</button>
       </div>
@@ -674,25 +789,38 @@
         <h2 style="font-size:1.05rem; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
           <i data-lucide="pen-tool" class="icon-sm" style="color:#ec4899;"></i>
           <span>Drawing &amp; Diagram Whiteboard Studio</span>
-          <span style="font-size:0.68rem; font-weight:600; color:var(--muted-foreground); margin-left:0.35rem;">(Tip: Double-click any drawing on your page to re-edit it)</span>
+          <span style="font-size:0.68rem; font-weight:600; color:var(--muted-foreground); margin-left:0.35rem;">(Tip:
+            Double-click any drawing on your page to re-edit it)</span>
         </h2>
-        <button onclick="closeWhiteboardModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
+        <button onclick="closeWhiteboardModal()" class="modal-close-btn"><i data-lucide="x"
+            class="icon-sm"></i></button>
       </div>
 
       <!-- Row 1: Drawing & Shape Tools -->
       <div class="whiteboard-toolbar">
         <div class="wb-tool-group">
-          <button type="button" class="wb-tool-btn active" data-wb-tool="pen" onclick="setWbTool('pen', this)" title="Smooth Freehand Pen">✏️ Pen</button>
-          <button type="button" class="wb-tool-btn" data-wb-tool="marker" onclick="setWbTool('marker', this)" title="Semi-Transparent Highlighter Marker">🖍️ Marker</button>
-          <button type="button" class="wb-tool-btn" data-wb-tool="line" onclick="setWbTool('line', this)" title="Straight Line">📏 Line</button>
-          <button type="button" class="wb-tool-btn" data-wb-tool="arrow" onclick="setWbTool('arrow', this)" title="Directional Arrow">↗️ Arrow</button>
-          <button type="button" class="wb-tool-btn" data-wb-tool="darrow" onclick="setWbTool('darrow', this)" title="Double-Headed Arrow">↔️ 2-Arrow</button>
-          <button type="button" class="wb-tool-btn" data-wb-tool="rect" onclick="setWbTool('rect', this)" title="Rectangle Box">▭ Box</button>
-          <button type="button" class="wb-tool-btn" data-wb-tool="roundrect" onclick="setWbTool('roundrect', this)" title="Rounded Node Box">▢ Rounded</button>
-          <button type="button" class="wb-tool-btn" data-wb-tool="circle" onclick="setWbTool('circle', this)" title="Circle / Ellipse">◯ Circle</button>
-          <button type="button" class="wb-tool-btn" data-wb-tool="diamond" onclick="setWbTool('diamond', this)" title="Decision Diamond Node">◇ Diamond</button>
-          <button type="button" class="wb-tool-btn" data-wb-tool="text" onclick="setWbTool('text', this)" title="Click Canvas to Type Text Label">🔤 Text</button>
-          <button type="button" class="wb-tool-btn" data-wb-tool="eraser" onclick="setWbTool('eraser', this)" title="Eraser">🧽 Eraser</button>
+          <button type="button" class="wb-tool-btn active" data-wb-tool="pen" onclick="setWbTool('pen', this)"
+            title="Smooth Freehand Pen">✏️ Pen</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="marker" onclick="setWbTool('marker', this)"
+            title="Semi-Transparent Highlighter Marker">🖍️ Marker</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="line" onclick="setWbTool('line', this)"
+            title="Straight Line">📏 Line</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="arrow" onclick="setWbTool('arrow', this)"
+            title="Directional Arrow">↗️ Arrow</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="darrow" onclick="setWbTool('darrow', this)"
+            title="Double-Headed Arrow">↔️ 2-Arrow</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="rect" onclick="setWbTool('rect', this)"
+            title="Rectangle Box">▭ Box</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="roundrect" onclick="setWbTool('roundrect', this)"
+            title="Rounded Node Box">▢ Rounded</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="circle" onclick="setWbTool('circle', this)"
+            title="Circle / Ellipse">◯ Circle</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="diamond" onclick="setWbTool('diamond', this)"
+            title="Decision Diamond Node">◇ Diamond</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="text" onclick="setWbTool('text', this)"
+            title="Click Canvas to Type Text Label">🔤 Text</button>
+          <button type="button" class="wb-tool-btn" data-wb-tool="eraser" onclick="setWbTool('eraser', this)"
+            title="Eraser">🧽 Eraser</button>
         </div>
 
         <div style="margin-left:auto; display:flex; align-items:center; gap:0.25rem;">
@@ -707,15 +835,25 @@
         <!-- Color Swatches + Picker -->
         <div style="display:flex; align-items:center; gap:0.28rem;">
           <span class="wb-sub-label">Color:</span>
-          <button type="button" class="sel-color-dot" style="background:#0f172a; border-color:#111827;" onclick="setWbColor('#0f172a', this)" title="Dark Slate"></button>
-          <button type="button" class="sel-color-dot" style="background:#4f46e5;" onclick="setWbColor('#4f46e5', this)" title="Indigo"></button>
-          <button type="button" class="sel-color-dot" style="background:#0ea5e9;" onclick="setWbColor('#0ea5e9', this)" title="Sky Blue"></button>
-          <button type="button" class="sel-color-dot" style="background:#10b981;" onclick="setWbColor('#10b981', this)" title="Emerald"></button>
-          <button type="button" class="sel-color-dot" style="background:#f59e0b;" onclick="setWbColor('#f59e0b', this)" title="Amber"></button>
-          <button type="button" class="sel-color-dot" style="background:#ef4444;" onclick="setWbColor('#ef4444', this)" title="Red"></button>
-          <button type="button" class="sel-color-dot" style="background:#ec4899;" onclick="setWbColor('#ec4899', this)" title="Pink"></button>
-          <button type="button" class="sel-color-dot" style="background:#8b5cf6;" onclick="setWbColor('#8b5cf6', this)" title="Violet"></button>
-          <input type="color" id="wb-custom-color" value="#4f46e5" onchange="setWbColor(this.value, null)" title="Custom Color Picker" style="width:1.35rem; height:1.35rem; padding:0; border:none; background:transparent; cursor:pointer;">
+          <button type="button" class="sel-color-dot" style="background:#0f172a; border-color:#111827;"
+            onclick="setWbColor('#0f172a', this)" title="Dark Slate"></button>
+          <button type="button" class="sel-color-dot" style="background:#4f46e5;" onclick="setWbColor('#4f46e5', this)"
+            title="Indigo"></button>
+          <button type="button" class="sel-color-dot" style="background:#0ea5e9;" onclick="setWbColor('#0ea5e9', this)"
+            title="Sky Blue"></button>
+          <button type="button" class="sel-color-dot" style="background:#10b981;" onclick="setWbColor('#10b981', this)"
+            title="Emerald"></button>
+          <button type="button" class="sel-color-dot" style="background:#f59e0b;" onclick="setWbColor('#f59e0b', this)"
+            title="Amber"></button>
+          <button type="button" class="sel-color-dot" style="background:#ef4444;" onclick="setWbColor('#ef4444', this)"
+            title="Red"></button>
+          <button type="button" class="sel-color-dot" style="background:#ec4899;" onclick="setWbColor('#ec4899', this)"
+            title="Pink"></button>
+          <button type="button" class="sel-color-dot" style="background:#8b5cf6;" onclick="setWbColor('#8b5cf6', this)"
+            title="Violet"></button>
+          <input type="color" id="wb-custom-color" value="#4f46e5" onchange="setWbColor(this.value, null)"
+            title="Custom Color Picker"
+            style="width:1.35rem; height:1.35rem; padding:0; border:none; background:transparent; cursor:pointer;">
         </div>
 
         <span class="ribbon-divider"></span>
@@ -723,7 +861,8 @@
         <!-- Stroke Thickness -->
         <div style="display:flex; align-items:center; gap:0.2rem;">
           <span class="wb-sub-label">Size:</span>
-          <button type="button" class="wb-opt-btn active" data-wb-size="2.5" onclick="setWbStrokeSize(2.5, this)">Thin</button>
+          <button type="button" class="wb-opt-btn active" data-wb-size="2.5"
+            onclick="setWbStrokeSize(2.5, this)">Thin</button>
           <button type="button" class="wb-opt-btn" data-wb-size="4.5" onclick="setWbStrokeSize(4.5, this)">Med</button>
           <button type="button" class="wb-opt-btn" data-wb-size="8" onclick="setWbStrokeSize(8, this)">Thick</button>
         </div>
@@ -732,8 +871,10 @@
 
         <!-- Shape Fill & Dashed Toggle -->
         <div style="display:flex; align-items:center; gap:0.25rem;">
-          <button type="button" id="wb-fill-toggle" class="wb-opt-btn" onclick="toggleWbShapeFill(this)" title="Fill Shapes with Soft Color Tint">🎨 Fill: OFF</button>
-          <button type="button" id="wb-dash-toggle" class="wb-opt-btn" onclick="toggleWbDashed(this)" title="Dashed Stroke">┄ Dashed</button>
+          <button type="button" id="wb-fill-toggle" class="wb-opt-btn" onclick="toggleWbShapeFill(this)"
+            title="Fill Shapes with Soft Color Tint">🎨 Fill: OFF</button>
+          <button type="button" id="wb-dash-toggle" class="wb-opt-btn" onclick="toggleWbDashed(this)"
+            title="Dashed Stroke">┄ Dashed</button>
         </div>
 
         <span class="ribbon-divider"></span>
@@ -741,7 +882,8 @@
         <!-- Canvas Background Mode -->
         <div style="display:flex; align-items:center; gap:0.25rem;">
           <span class="wb-sub-label">Canvas:</span>
-          <select id="wb-bg-select" class="ribbon-select" style="height:1.55rem; font-size:0.7rem;" onchange="setWhiteboardBackground(this.value)">
+          <select id="wb-bg-select" class="ribbon-select" style="height:1.55rem; font-size:0.7rem;"
+            onchange="setWhiteboardBackground(this.value)">
             <option value="dots">⠿ Dot Grid</option>
             <option value="grid">📏 Graph Grid</option>
             <option value="plain">⬜ Clean White</option>
@@ -750,25 +892,30 @@
         </div>
 
         <div style="margin-left:auto; display:flex; align-items:center; gap:0.3rem;">
-          <label class="btn-tiny" style="cursor:pointer; display:inline-flex; align-items:center; gap:0.2rem;" title="Import Image onto Canvas to Annotate">
+          <label class="btn-tiny" style="cursor:pointer; display:inline-flex; align-items:center; gap:0.2rem;"
+            title="Import Image onto Canvas to Annotate">
             🖼️ +Image
             <input type="file" accept="image/*" style="display:none;" onchange="importImageToWhiteboard(event)">
           </label>
-          <button type="button" class="btn-tiny" onclick="downloadWhiteboardPng()" title="Download Drawing as PNG">⬇ PNG</button>
+          <button type="button" class="btn-tiny" onclick="downloadWhiteboardPng()" title="Download Drawing as PNG">⬇
+            PNG</button>
         </div>
       </div>
 
       <!-- Canvas Container + Floating Inline Text Box -->
       <div id="whiteboard-canvas-wrap" class="whiteboard-canvas-wrap" style="position:relative;">
         <canvas id="study-whiteboard-canvas" width="820" height="400"></canvas>
-        <input type="text" id="wb-floating-text-input" class="wb-floating-text-input" placeholder="Type label & press Enter..." style="display:none;">
+        <input type="text" id="wb-floating-text-input" class="wb-floating-text-input"
+          placeholder="Type label & press Enter..." style="display:none;">
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-top:0.85rem;">
-        <input type="text" id="wb-caption-input" class="form-input" style="max-width:22rem; height:1.95rem; font-size:0.8rem;" placeholder="Optional caption for this drawing...">
+        <input type="text" id="wb-caption-input" class="form-input"
+          style="max-width:22rem; height:1.95rem; font-size:0.8rem;" placeholder="Optional caption for this drawing...">
         <div style="display:flex; gap:0.5rem;">
           <button type="button" class="btn btn-outline" onclick="closeWhiteboardModal()">Cancel</button>
-          <button type="button" id="wb-submit-btn" class="btn btn-primary" onclick="insertWhiteboardFromModal()">Insert Drawing into Page</button>
+          <button type="button" id="wb-submit-btn" class="btn btn-primary" onclick="insertWhiteboardFromModal()">Insert
+            Drawing into Page</button>
         </div>
       </div>
     </div>
@@ -784,13 +931,16 @@
           <i data-lucide="code-2" class="icon-sm" style="color:#0ea5e9;"></i>
           <span id="code-modal-heading">IDE Code Block Studio</span>
         </h2>
-        <button onclick="closeCodeEditorModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
+        <button onclick="closeCodeEditorModal()" class="modal-close-btn"><i data-lucide="x"
+            class="icon-sm"></i></button>
       </div>
 
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.65rem;">
+      <div
+        style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.65rem;">
         <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
           <label class="form-label" style="margin:0; font-size:0.75rem;">Language:</label>
-          <select id="ide-code-lang" class="form-select" style="width:auto; height:1.85rem; font-size:0.78rem; font-weight:700;" onchange="updateIdeCodePreview()">
+          <select id="ide-code-lang" class="form-select"
+            style="width:auto; height:1.85rem; font-size:0.78rem; font-weight:700;" onchange="updateIdeCodePreview()">
             <option value="javascript">JavaScript / Node.js</option>
             <option value="typescript">TypeScript</option>
             <option value="python">Python</option>
@@ -802,7 +952,9 @@
             <option value="docker">Dockerfile / DevOps</option>
           </select>
 
-          <input type="text" id="ide-code-filename" class="form-input" style="width:12rem; height:1.85rem; font-size:0.78rem;" placeholder="Filename (e.g. query.sql)" oninput="updateIdeCodePreview()">
+          <input type="text" id="ide-code-filename" class="form-input"
+            style="width:12rem; height:1.85rem; font-size:0.78rem;" placeholder="Filename (e.g. query.sql)"
+            oninput="updateIdeCodePreview()">
         </div>
 
         <div style="display:flex; align-items:center; gap:0.3rem;">
@@ -816,19 +968,26 @@
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; align-items:stretch;">
         <div style="display:flex; flex-direction:column;">
-          <div style="font-size:0.68rem; font-weight:800; color:var(--muted-foreground); margin-bottom:0.25rem; text-transform:uppercase;">Source Code (Tab key supported)</div>
-          <textarea id="ide-code-input" class="form-textarea code-font" rows="12" style="flex:1; background:#0d1117; color:#e6edf3; border-color:#30363d; font-size:0.82rem; line-height:1.55; tab-size:2;" placeholder="// Write or paste your code here..." oninput="updateIdeCodePreview()"></textarea>
+          <div
+            style="font-size:0.68rem; font-weight:800; color:var(--muted-foreground); margin-bottom:0.25rem; text-transform:uppercase;">
+            Source Code (Tab key supported)</div>
+          <textarea id="ide-code-input" class="form-textarea code-font" rows="12"
+            style="flex:1; background:#0d1117; color:#e6edf3; border-color:#30363d; font-size:0.82rem; line-height:1.55; tab-size:2;"
+            placeholder="// Write or paste your code here..." oninput="updateIdeCodePreview()"></textarea>
         </div>
 
         <div style="display:flex; flex-direction:column; min-width:0;">
-          <div style="font-size:0.68rem; font-weight:800; color:var(--muted-foreground); margin-bottom:0.25rem; text-transform:uppercase;">Live IDE Syntax Preview</div>
+          <div
+            style="font-size:0.68rem; font-weight:800; color:var(--muted-foreground); margin-bottom:0.25rem; text-transform:uppercase;">
+            Live IDE Syntax Preview</div>
           <div id="ide-code-live-preview" style="flex:1; max-height:19.5rem; overflow:auto; border-radius:8px;"></div>
         </div>
       </div>
 
       <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.9rem;">
         <button type="button" class="btn btn-outline" onclick="closeCodeEditorModal()">Cancel</button>
-        <button type="button" id="ide-code-submit-btn" class="btn btn-primary" onclick="insertOrUpdateIdeCodeBlock()">Insert IDE Code Block</button>
+        <button type="button" id="ide-code-submit-btn" class="btn btn-primary"
+          onclick="insertOrUpdateIdeCodeBlock()">Insert IDE Code Block</button>
       </div>
     </div>
   </div>
@@ -843,7 +1002,8 @@
           <i data-lucide="git-merge" class="icon-sm" style="color:#10b981;"></i>
           <span>Insert Flowchart / Diagram</span>
         </h2>
-        <button onclick="closeDiagramBuilderModal()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
+        <button onclick="closeDiagramBuilderModal()" class="modal-close-btn"><i data-lucide="x"
+            class="icon-sm"></i></button>
       </div>
 
       <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.65rem;">
@@ -854,16 +1014,20 @@
       </div>
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.85rem;">
-        <textarea id="studio-diagram-code" class="form-textarea code-font" rows="8" oninput="updateDiagramStudioPreview()">graph LR
+        <textarea id="studio-diagram-code" class="form-textarea code-font" rows="8"
+          oninput="updateDiagramStudioPreview()">graph LR
   A[Core Concept] --> B{Decision}
   B -->|Option 1| C[Result A]
   B -->|Option 2| D[Result B]</textarea>
-        <div id="studio-diagram-preview" style="border:1px solid var(--border); border-radius:var(--radius-md); padding:0.75rem; background:#ffffff; min-height:11rem; display:flex; align-items:center; justify-content:center; overflow:auto;"></div>
+        <div id="studio-diagram-preview"
+          style="border:1px solid var(--border); border-radius:var(--radius-md); padding:0.75rem; background:#ffffff; min-height:11rem; display:flex; align-items:center; justify-content:center; overflow:auto;">
+        </div>
       </div>
 
       <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
         <button type="button" class="btn btn-outline" onclick="closeDiagramBuilderModal()">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="insertDiagramFromModal()">Insert Diagram into Page</button>
+        <button type="button" class="btn btn-primary" onclick="insertDiagramFromModal()">Insert Diagram into
+          Page</button>
       </div>
     </div>
   </div>
@@ -885,8 +1049,10 @@
         <div style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:var(--radius-md); padding:0.75rem;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
             <div>
-              <div style="font-size:0.82rem; font-weight:800; color:var(--primary);">1. Get the AI Formatting Instructions (.md)</div>
-              <div style="font-size:0.74rem; color:var(--muted-foreground);">Give this file/prompt to ChatGPT, Claude, or Gemini so it generates rich tables, charts, diagrams &amp; callouts.</div>
+              <div style="font-size:0.82rem; font-weight:800; color:var(--primary);">1. Get the AI Formatting
+                Instructions (.md)</div>
+              <div style="font-size:0.74rem; color:var(--muted-foreground);">Give this file/prompt to ChatGPT, Claude,
+                or Gemini so it generates rich tables, charts, diagrams &amp; callouts.</div>
             </div>
             <div style="display:flex; gap:0.4rem;">
               <button type="button" class="btn btn-secondary btn-compact" onclick="copyAiPromptToClipboard()">
@@ -900,14 +1066,18 @@
         </div>
 
         <div>
-          <label class="form-label" style="font-size:0.8rem; font-weight:700;">2. Paste AI Response Here (Auto-Formats into Your Word Page)</label>
-          <textarea id="ai-paste-input" class="form-textarea code-font" rows="8" placeholder="Paste the Markdown response from ChatGPT / Claude / Gemini here... It will automatically convert into formatted Word headings, tables, charts, diagrams, and callout boxes on your page!"></textarea>
+          <label class="form-label" style="font-size:0.8rem; font-weight:700;">2. Paste AI Response Here (Auto-Formats
+            into Your Word Page)</label>
+          <textarea id="ai-paste-input" class="form-textarea code-font" rows="8"
+            placeholder="Paste the Markdown response from ChatGPT / Claude / Gemini here... It will automatically convert into formatted Word headings, tables, charts, diagrams, and callout boxes on your page!"></textarea>
         </div>
 
         <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
           <button type="button" class="btn btn-outline" onclick="closeAiPromptModal()">Close</button>
-          <button type="button" class="btn btn-outline" onclick="insertAiContentIntoPage(false)">Append to Current Page</button>
-          <button type="button" class="btn btn-primary" onclick="insertAiContentIntoPage(true)">Replace Current Page Content</button>
+          <button type="button" class="btn btn-outline" onclick="insertAiContentIntoPage(false)">Append to Current
+            Page</button>
+          <button type="button" class="btn btn-primary" onclick="insertAiContentIntoPage(true)">Replace Current Page
+            Content</button>
         </div>
       </div>
     </div>
@@ -924,25 +1094,32 @@
             <i data-lucide="sparkles" class="icon-sm" style="color:#8b5cf6;"></i>
             <span>Flashcards (Active Recall)</span>
           </h2>
-          <div id="flashcard-source-subtitle" style="font-size:0.72rem; color:var(--muted-foreground);">Practice or add Q&amp;A cards for this page</div>
+          <div id="flashcard-source-subtitle" style="font-size:0.72rem; color:var(--muted-foreground);">Practice or add
+            Q&amp;A cards for this page</div>
         </div>
         <button onclick="closeFlashcardDeck()" class="modal-close-btn"><i data-lucide="x" class="icon-sm"></i></button>
       </div>
 
       <!-- Quick Add Card to Current Note -->
-      <div style="background:#faf9ff; border:1px solid var(--border); border-radius:var(--radius-md); padding:0.65rem; margin-bottom:0.85rem;">
-        <div style="font-size:0.72rem; font-weight:800; color:var(--primary); margin-bottom:0.35rem;">+ ADD FLASHCARD TO THIS PAGE</div>
+      <div
+        style="background:#faf9ff; border:1px solid var(--border); border-radius:var(--radius-md); padding:0.65rem; margin-bottom:0.85rem;">
+        <div style="font-size:0.72rem; font-weight:800; color:var(--primary); margin-bottom:0.35rem;">+ ADD FLASHCARD TO
+          THIS PAGE</div>
         <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:0.4rem;">
-          <input type="text" id="quick-fc-q" class="form-input" style="height:1.8rem; font-size:0.78rem;" placeholder="Question / Front...">
-          <input type="text" id="quick-fc-a" class="form-input" style="height:1.8rem; font-size:0.78rem;" placeholder="Answer / Back...">
-          <button type="button" class="btn btn-primary btn-compact" onclick="addQuickFlashcardToActiveNote()">Add</button>
+          <input type="text" id="quick-fc-q" class="form-input" style="height:1.8rem; font-size:0.78rem;"
+            placeholder="Question / Front...">
+          <input type="text" id="quick-fc-a" class="form-input" style="height:1.8rem; font-size:0.78rem;"
+            placeholder="Answer / Back...">
+          <button type="button" class="btn btn-primary btn-compact"
+            onclick="addQuickFlashcardToActiveNote()">Add</button>
         </div>
       </div>
 
       <div id="flashcard-stage" class="flashcard-stage" onclick="flipFlashcard()">
         <span id="flashcard-badge" class="flashcard-side-badge">QUESTION</span>
         <div id="flashcard-text" class="flashcard-text">No flashcards yet</div>
-        <span id="flashcard-subject-tag" style="margin-top:0.75rem; font-size:0.72rem; color:var(--muted-foreground);"></span>
+        <span id="flashcard-subject-tag"
+          style="margin-top:0.75rem; font-size:0.72rem; color:var(--muted-foreground);"></span>
       </div>
 
       <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.85rem;">
@@ -957,20 +1134,32 @@
        FLOATING WORD SELECTION MINI-TOOLBAR (LIKE MS WORD / NOTION)
        ====================================================== -->
   <div id="word-selection-toolbar" class="word-selection-toolbar" style="display:none;">
-    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); execDocCommand('bold')" title="Bold"><strong>B</strong></button>
-    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); execDocCommand('italic')" title="Italic"><em>I</em></button>
-    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); execDocCommand('underline')" title="Underline"><u>U</u></button>
-    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); applyHeadingStyle('H2')" title="Heading 2">H2</button>
-    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); applyHeadingStyle('H3')" title="Heading 3">H3</button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); execDocCommand('bold')"
+      title="Bold"><strong>B</strong></button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); execDocCommand('italic')"
+      title="Italic"><em>I</em></button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); execDocCommand('underline')"
+      title="Underline"><u>U</u></button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); applyHeadingStyle('H2')"
+      title="Heading 2">H2</button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); applyHeadingStyle('H3')"
+      title="Heading 3">H3</button>
     <span class="sel-mini-sep"></span>
-    <button type="button" class="sel-color-dot" style="background:#fef08a;" onmousedown="event.preventDefault(); applyHighlightColor('#fef08a')" title="Yellow Highlight"></button>
-    <button type="button" class="sel-color-dot" style="background:#bbf7d0;" onmousedown="event.preventDefault(); applyHighlightColor('#bbf7d0')" title="Green Highlight"></button>
-    <button type="button" class="sel-color-dot" style="background:#ddd6fe;" onmousedown="event.preventDefault(); applyHighlightColor('#ddd6fe')" title="Purple Highlight"></button>
-    <button type="button" class="sel-color-dot" style="background:#fecdd3;" onmousedown="event.preventDefault(); applyHighlightColor('#fecdd3')" title="Pink Highlight"></button>
+    <button type="button" class="sel-color-dot" style="background:#fef08a;"
+      onmousedown="event.preventDefault(); applyHighlightColor('#fef08a')" title="Yellow Highlight"></button>
+    <button type="button" class="sel-color-dot" style="background:#bbf7d0;"
+      onmousedown="event.preventDefault(); applyHighlightColor('#bbf7d0')" title="Green Highlight"></button>
+    <button type="button" class="sel-color-dot" style="background:#ddd6fe;"
+      onmousedown="event.preventDefault(); applyHighlightColor('#ddd6fe')" title="Purple Highlight"></button>
+    <button type="button" class="sel-color-dot" style="background:#fecdd3;"
+      onmousedown="event.preventDefault(); applyHighlightColor('#fecdd3')" title="Pink Highlight"></button>
     <span class="sel-mini-sep"></span>
-    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); wrapSelectionAsCloze()" title="Turn into Click-to-Reveal Cloze Blank">🔒 Cloze</button>
-    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); pinSelectedTextAsCallout()" title="Pin Selection as Callout Box">📌 Pin</button>
-    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); createFlashcardFromSelection()" title="Create Flashcard from Selection">✦ +Card</button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); wrapSelectionAsCloze()"
+      title="Turn into Click-to-Reveal Cloze Blank">🔒 Cloze</button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); pinSelectedTextAsCallout()"
+      title="Pin Selection as Callout Box">📌 Pin</button>
+    <button type="button" class="sel-mini-btn" onmousedown="event.preventDefault(); createFlashcardFromSelection()"
+      title="Create Flashcard from Selection">✦ +Card</button>
   </div>
 
   <!-- ======================================================
@@ -987,24 +1176,33 @@
       </div>
 
       <!-- Live Digital Date & Clock Display -->
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#f8fafc; padding:0.75rem 1rem; border-radius:8px; margin-bottom:0.85rem; border:1px solid #334155;">
+      <div
+        style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#f8fafc; padding:0.75rem 1rem; border-radius:8px; margin-bottom:0.85rem; border:1px solid #334155;">
         <div>
-          <div style="font-size:0.65rem; font-weight:800; letter-spacing:0.08em; color:#38bdf8; text-transform:uppercase;">CURRENT DATE &amp; CLOCK TIMESTAMP</div>
-          <div id="study-log-live-banner" style="font-size:0.86rem; font-weight:700; color:#e2e8f0; margin-top:0.15rem;">
+          <div
+            style="font-size:0.65rem; font-weight:800; letter-spacing:0.08em; color:#38bdf8; text-transform:uppercase;">
+            CURRENT DATE &amp; CLOCK TIMESTAMP</div>
+          <div id="study-log-live-banner"
+            style="font-size:0.86rem; font-weight:700; color:#e2e8f0; margin-top:0.15rem;">
             📅 Loading date...
           </div>
         </div>
-        <div id="study-log-big-clock" style="font-family:'JetBrains Mono', Consolas, monospace; font-size:1.35rem; font-weight:800; color:#38bdf8; background:rgba(56, 189, 248, 0.12); padding:0.25rem 0.65rem; border-radius:6px; border:1px solid rgba(56, 189, 248, 0.3);">
+        <div id="study-log-big-clock"
+          style="font-family:'JetBrains Mono', Consolas, monospace; font-size:1.35rem; font-weight:800; color:#38bdf8; background:rgba(56, 189, 248, 0.12); padding:0.25rem 0.65rem; border-radius:6px; border:1px solid rgba(56, 189, 248, 0.3);">
           00:00:00
         </div>
       </div>
 
       <!-- Enter Log Content -->
-      <div style="background:#f8fafc; border:1px solid var(--border); border-radius:var(--radius-md); padding:0.85rem; margin-bottom:0.85rem;">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+      <div
+        style="background:#f8fafc; border:1px solid var(--border); border-radius:var(--radius-md); padding:0.85rem; margin-bottom:0.85rem;">
+        <div
+          style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.5rem; flex-wrap:wrap;">
           <div style="display:flex; align-items:center; gap:0.4rem;">
-            <label class="form-label" style="margin:0; font-size:0.75rem; font-weight:800; color:#334155;">Log Label:</label>
-            <select id="study-log-type" class="form-select" style="width:auto; height:1.8rem; font-size:0.76rem; font-weight:700;">
+            <label class="form-label" style="margin:0; font-size:0.75rem; font-weight:800; color:#334155;">Log
+              Label:</label>
+            <select id="study-log-type" class="form-select"
+              style="width:auto; height:1.8rem; font-size:0.76rem; font-weight:700;">
               <option value="📝 LOG">📝 Study Log</option>
               <option value="✅ PROGRESS">✅ Milestone / Progress</option>
               <option value="💡 INSIGHT">💡 Key Insight</option>
@@ -1012,10 +1210,13 @@
               <option value="🔖 BOOKMARK">🔖 Reading Bookmark</option>
             </select>
           </div>
-          <span style="font-size:0.68rem; color:var(--muted-foreground);">Press <strong>Ctrl+Enter</strong> to insert</span>
+          <span style="font-size:0.68rem; color:var(--muted-foreground);">Press <strong>Ctrl+Enter</strong> to
+            insert</span>
         </div>
 
-        <textarea id="study-log-input" class="form-textarea" rows="3" style="font-size:0.88rem; margin-bottom:0.65rem;" placeholder="Enter your log note here... (It will be stamped onto your page with the current Date &amp; Clock above)" onkeydown="if((event.ctrlKey||event.metaKey)&amp&ampevent.key==='Enter'){event.preventDefault();addStudyLogEntry(true);}"></textarea>
+        <textarea id="study-log-input" class="form-textarea" rows="3" style="font-size:0.88rem; margin-bottom:0.65rem;"
+          placeholder="Enter your log note here... (It will be stamped onto your page with the current Date &amp; Clock above)"
+          onkeydown="if((event.ctrlKey||event.metaKey) && event.key==='Enter'){event.preventDefault();addStudyLogEntry(true);}"></textarea>
 
         <div style="display:flex; justify-content:flex-end; gap:0.5rem; flex-wrap:wrap;">
           <button type="button" class="btn btn-outline btn-compact" onclick="closeStudyLogModal()">Cancel</button>
@@ -1028,8 +1229,11 @@
       <!-- Recent Logs History -->
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem;">
         <div style="display:flex; align-items:center; gap:0.4rem;">
-          <span style="font-size:0.7rem; font-weight:800; color:var(--muted-foreground); text-transform:uppercase;">RECENT LOG HISTORY</span>
-          <select id="study-log-filter" class="inline-meta-input" style="height:1.45rem; font-size:0.68rem; width:auto;" onchange="renderStudyLogTimeline()">
+          <span
+            style="font-size:0.7rem; font-weight:800; color:var(--muted-foreground); text-transform:uppercase;">RECENT
+            LOG HISTORY</span>
+          <select id="study-log-filter" class="inline-meta-input" style="height:1.45rem; font-size:0.68rem; width:auto;"
+            onchange="renderStudyLogTimeline()">
             <option value="current">Current Page</option>
             <option value="all" selected>All Logs</option>
           </select>
@@ -1041,7 +1245,8 @@
     </div>
   </div>
 
-  <script src="/js/api.js?v=32"></script>
-  <script src="/js/study.js?v=32"></script>
+  <script src="/js/api.js?v=35"></script>
+  <script src="/js/study.js?v=35"></script>
 </body>
+
 </html>

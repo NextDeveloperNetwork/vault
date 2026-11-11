@@ -106,6 +106,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let ttsAvailableVoices = [];
   let ttsSelectedVoiceURI = localStorage.getItem('pk_tts_voice_uri') || '';
   let ttsPauseTimer = null;
+  let ttsWatchdogTimer = null;
+  let ttsKeepAliveInterval = null;
+  let activeUtterance = null;
   let ttsAudioEl = null;
 
   // ======================================================
@@ -3188,25 +3191,73 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
   }
 
   function splitIntoHumanBreathingClauses(text) {
-    const cleaned = cleanTextForHumanSpeech(text);
-    if (!cleaned) return [];
-    // Split on sentence endings (., !, ?) and major conversational pauses (— or ; when clause is long)
-    const rawSentences = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [cleaned];
+    if (!text) return [];
+    // First split by newline paragraphs so multi-line blocks or <br>-separated paragraphs are all preserved
+    const paragraphs = String(text).split(/\r?\n+/).map(p => cleanTextForHumanSpeech(p)).filter(Boolean);
     const clauses = [];
-    rawSentences.forEach(s => {
-      const trimmed = s.trim();
-      if (!trimmed) return;
-      if (trimmed.length > 165 && /[,;—:]/.test(trimmed)) {
-        // Break overly long sentences at natural midpoint punctuation so the voice takes a human breath
-        const parts = trimmed.split(/(?<=[;—:])\s+|(?<=,)\s+(?=(?:and|but|or|while|whereas|because|however|therefore|so)\b)/i);
-        parts.forEach(p => {
-          if (p.trim()) clauses.push(p.trim());
-        });
+
+    paragraphs.forEach(cleaned => {
+      // Split on sentence endings (., !, ?)
+      const rawSentences = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [cleaned];
+      rawSentences.forEach(s => {
+        const trimmed = s.trim();
+        if (!trimmed) return;
+        if (trimmed.length > 140 && /[,;—:]/.test(trimmed)) {
+          // Break long sentences at natural midpoint punctuation so the voice takes a human breath
+          const parts = trimmed.split(/(?<=[;—:])\s+|(?<=,)\s+(?=(?:and|but|or|while|whereas|because|however|therefore|so|which|where)\b)/i);
+          parts.forEach(p => {
+            if (p.trim()) clauses.push(p.trim());
+          });
+        } else {
+          clauses.push(trimmed);
+        }
+      });
+    });
+
+    return clauses;
+  }
+
+  function extractReadableBlocksFromSurface(rootEl) {
+    const results = [];
+    if (!rootEl) return results;
+
+    const childNodes = Array.from(rootEl.childNodes);
+    childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const txt = node.nodeValue ? node.nodeValue.trim() : '';
+        if (txt) {
+          results.push({ type: 'text', text: txt, el: rootEl });
+        }
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const el = node;
+      if (el.offsetParent === null && getComputedStyle(el).display === 'none') return;
+
+      const tag = el.tagName;
+      if (
+        el.classList.contains('ide-code-card') ||
+        el.classList.contains('study-chart-card') ||
+        el.classList.contains('pinned-section-block') ||
+        el.classList.contains('md-callout') ||
+        el.classList.contains('study-log-entry') ||
+        tag === 'H1' || tag === 'H2' || tag === 'H3' || tag === 'H4' ||
+        tag === 'P' || tag === 'UL' || tag === 'OL' || tag === 'TABLE' || tag === 'BLOCKQUOTE'
+      ) {
+        results.push({ type: 'element', el });
+        return;
+      }
+
+      // If it's a generic container (like a wrapper <div>), check if it has block children
+      const hasBlockChildren = el.querySelector('p, div, h1, h2, h3, ul, ol, table, blockquote, .pinned-section-block, .md-callout, .study-log-entry');
+      if (hasBlockChildren) {
+        results.push(...extractReadableBlocksFromSurface(el));
       } else {
-        clauses.push(trimmed);
+        results.push({ type: 'element', el });
       }
     });
-    return clauses;
+
+    return results;
   }
 
   function buildHumanizedSpeechQueue() {
@@ -3217,10 +3268,38 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
     const baseRate = parseFloat(document.getElementById('tts-rate-select')?.value || '0.96');
 
     const styleProfiles = {
-      storyteller: { pitchBase: 1.02, pitchVar: [0.0, 0.03, -0.02, 0.02, -0.01], rateVar: [1.0, 0.97, 1.02, 0.98], pauseScale: 1.05 },
-      professor:   { pitchBase: 0.99, pitchVar: [0.0, 0.02, -0.01, 0.01],        rateVar: [0.96, 0.94, 0.98],       pauseScale: 1.15 },
-      calm:        { pitchBase: 0.96, pitchVar: [0.0, 0.01, -0.01],              rateVar: [0.92, 0.90, 0.94],       pauseScale: 1.25 },
-      energetic:   { pitchBase: 1.05, pitchVar: [0.02, 0.04, 0.0, 0.03],         rateVar: [1.04, 1.01, 1.06],       pauseScale: 0.9 }
+      storyteller: {
+        pitchBase: 1.08,
+        pitchVar: [0.0, 0.06, -0.03, 0.05, -0.02],
+        rateVar: [1.0, 0.95, 1.03, 0.97],
+        pauseScale: 1.1,
+        volume: 1.0,
+        cloudLang: 'en-US'
+      },
+      professor: {
+        pitchBase: 0.90,
+        pitchVar: [0.0, 0.03, -0.02, 0.02],
+        rateVar: [0.92, 0.89, 0.94],
+        pauseScale: 1.32,
+        volume: 1.0,
+        cloudLang: 'en-GB'
+      },
+      calm: {
+        pitchBase: 0.94,
+        pitchVar: [0.0, 0.02, -0.02],
+        rateVar: [0.85, 0.83, 0.87],
+        pauseScale: 1.5,
+        volume: 0.88,
+        cloudLang: 'en-AU'
+      },
+      energetic: {
+        pitchBase: 1.15,
+        pitchVar: [0.03, 0.08, 0.0, 0.06],
+        rateVar: [1.08, 1.04, 1.12],
+        pauseScale: 0.8,
+        volume: 1.0,
+        cloudLang: 'en-US'
+      }
     };
     const profile = styleProfiles[styleMode] || styleProfiles.storyteller;
 
@@ -3246,12 +3325,37 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
       });
     }
 
-    // 2. Walk semantic blocks in #word-editor-surface
-    const blocks = Array.from(editorSurface.children);
+    // 2. Walk all semantic blocks & text nodes in #word-editor-surface
+    const extracted = extractReadableBlocksFromSurface(editorSurface);
     let sentenceCounter = 0;
 
-    blocks.forEach(block => {
-      if (block.offsetParent === null) return; // skip hidden elements (e.g., in Cram mode)
+    function pushParagraphClauses(rawText, blockEl) {
+      const clauses = splitIntoHumanBreathingClauses(rawText);
+      clauses.forEach((clause, cIdx) => {
+        const isQuestion = clause.endsWith('?');
+        const isExclaim = clause.endsWith('!');
+        const pMod = isQuestion ? 0.06 : isExclaim ? 0.04 : profile.pitchVar[sentenceCounter % profile.pitchVar.length];
+        const rMod = isQuestion ? 0.95 : profile.rateVar[sentenceCounter % profile.rateVar.length];
+        sentenceCounter++;
+
+        const isLastInBlock = cIdx === clauses.length - 1;
+        ttsQueue.push({
+          text: clause,
+          rate: +(baseRate * rMod).toFixed(2),
+          pitch: +(profile.pitchBase + pMod).toFixed(2),
+          pauseMs: Math.round((isLastInBlock ? 480 : 260) * profile.pauseScale),
+          el: blockEl
+        });
+      });
+    }
+
+    extracted.forEach(item => {
+      if (item.type === 'text') {
+        pushParagraphClauses(item.text, item.el);
+        return;
+      }
+
+      const block = item.el;
       const tag = block.tagName;
 
       if (block.classList.contains('ide-code-card')) {
@@ -3279,7 +3383,7 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
         return;
       }
 
-      if (tag === 'H1' || tag === 'H2' || tag === 'H3') {
+      if (tag === 'H1' || tag === 'H2' || tag === 'H3' || tag === 'H4') {
         const headingText = cleanTextForHumanSpeech(block.innerText);
         if (headingText) {
           ttsQueue.push({
@@ -3293,14 +3397,14 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
         return;
       }
 
-      if (block.classList.contains('pinned-section-block') || block.classList.contains('md-callout')) {
+      if (block.classList.contains('pinned-section-block') || block.classList.contains('md-callout') || block.classList.contains('study-log-entry')) {
         const clauses = splitIntoHumanBreathingClauses(block.innerText);
         clauses.forEach((clause, idx) => {
           ttsQueue.push({
-            text: idx === 0 && !/^key\b/i.test(clause) ? `Important note: ${clause}` : clause,
+            text: clause,
             rate: +(baseRate * 0.93).toFixed(2),
             pitch: +(profile.pitchBase + 0.03).toFixed(2),
-            pauseMs: Math.round((idx === clauses.length - 1 ? 520 : 320) * profile.pauseScale),
+            pauseMs: Math.round((idx === clauses.length - 1 ? 520 : 300) * profile.pauseScale),
             el: block
           });
         });
@@ -3310,19 +3414,7 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
       if (tag === 'UL' || tag === 'OL') {
         const items = Array.from(block.querySelectorAll('li'));
         items.forEach((li, liIdx) => {
-          const clauses = splitIntoHumanBreathingClauses(li.innerText);
-          clauses.forEach((clause, cIdx) => {
-            const pMod = profile.pitchVar[sentenceCounter % profile.pitchVar.length];
-            const rMod = profile.rateVar[sentenceCounter % profile.rateVar.length];
-            sentenceCounter++;
-            ttsQueue.push({
-              text: clause,
-              rate: +(baseRate * rMod).toFixed(2),
-              pitch: +(profile.pitchBase + pMod).toFixed(2),
-              pauseMs: Math.round((cIdx === clauses.length - 1 ? 380 : 240) * profile.pauseScale),
-              el: li
-            });
-          });
+          pushParagraphClauses(li.innerText, li);
           if (liIdx === items.length - 1 && ttsQueue.length > 0) {
             ttsQueue[ttsQueue.length - 1].pauseMs = Math.round(500 * profile.pauseScale);
           }
@@ -3348,23 +3440,7 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
       }
 
       // Standard paragraph or general block
-      const clauses = splitIntoHumanBreathingClauses(block.innerText);
-      clauses.forEach((clause, cIdx) => {
-        const isQuestion = clause.endsWith('?');
-        const isExclaim = clause.endsWith('!');
-        const pMod = isQuestion ? 0.06 : isExclaim ? 0.04 : profile.pitchVar[sentenceCounter % profile.pitchVar.length];
-        const rMod = isQuestion ? 0.95 : profile.rateVar[sentenceCounter % profile.rateVar.length];
-        sentenceCounter++;
-
-        const isLastInBlock = cIdx === clauses.length - 1;
-        ttsQueue.push({
-          text: clause,
-          rate: +(baseRate * rMod).toFixed(2),
-          pitch: +(profile.pitchBase + pMod).toFixed(2),
-          pauseMs: Math.round((isLastInBlock ? 480 : 270) * profile.pauseScale),
-          el: block
-        });
-      });
+      pushParagraphClauses(block.innerText || block.textContent || '', block);
     });
   }
 
@@ -3396,14 +3472,45 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
     }
   }
 
-  function playCurrentSpeechSegment() {
+  function silenceActiveSpeechEngine() {
     clearTimeout(ttsPauseTimer);
+    clearTimeout(ttsWatchdogTimer);
+    clearInterval(ttsKeepAliveInterval);
+    if (activeUtterance) {
+      activeUtterance.onend = null;
+      activeUtterance.onerror = null;
+      activeUtterance = null;
+    }
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+      try { window.speechSynthesis.cancel(); } catch (e) {}
     }
     if (ttsAudioEl) {
+      ttsAudioEl.onended = null;
+      ttsAudioEl.onerror = null;
       ttsAudioEl.pause();
       ttsAudioEl = null;
+    }
+  }
+
+  function playCurrentSpeechSegment(fromNaturalAdvance = false) {
+    clearTimeout(ttsPauseTimer);
+    clearTimeout(ttsWatchdogTimer);
+    clearInterval(ttsKeepAliveInterval);
+
+    if (!fromNaturalAdvance) {
+      silenceActiveSpeechEngine();
+    } else {
+      if (activeUtterance) {
+        activeUtterance.onend = null;
+        activeUtterance.onerror = null;
+        activeUtterance = null;
+      }
+      if (ttsAudioEl) {
+        ttsAudioEl.onended = null;
+        ttsAudioEl.onerror = null;
+        ttsAudioEl.pause();
+        ttsAudioEl = null;
+      }
     }
 
     if (!ttsPlaying || ttsPaused) {
@@ -3419,6 +3526,8 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
     }
 
     const seg = ttsQueue[ttsCurrentIndex];
+    const segIdxAtStart = ttsCurrentIndex;
+
     clearActiveSpeechHighlights();
     if (seg.el && seg.el.classList) {
       seg.el.classList.add('tts-active-reading-block');
@@ -3431,37 +3540,84 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
     }
     updateTtsPlayerUiState();
 
+    let hasAdvanced = false;
     const advanceToNext = () => {
-      if (!ttsPlaying || ttsPaused) return;
+      if (hasAdvanced) return;
+      hasAdvanced = true;
+      clearTimeout(ttsWatchdogTimer);
+      clearInterval(ttsKeepAliveInterval);
+      if (!ttsPlaying || ttsPaused || ttsCurrentIndex !== segIdxAtStart) return;
       ttsPauseTimer = setTimeout(() => {
-        if (!ttsPlaying || ttsPaused) return;
+        if (!ttsPlaying || ttsPaused || ttsCurrentIndex !== segIdxAtStart) return;
         ttsCurrentIndex++;
-        playCurrentSpeechSegment();
-      }, seg.pauseMs || 300);
+        playCurrentSpeechSegment(true);
+      }, seg.pauseMs || 280);
     };
 
     // Cloud Natural Voice stream or Web Speech Neural Voice
-    if (ttsSelectedVoiceURI === '__CLOUD_NATURAL__' || !('speechSynthesis' in window)) {
+    const styleMode = document.getElementById('tts-style-select')?.value || 'storyteller';
+    const cloudLangMap = { storyteller: 'en-US', professor: 'en-GB', calm: 'en-AU', energetic: 'en-US' };
+    const volumeMap = { storyteller: 1.0, professor: 1.0, calm: 0.88, energetic: 1.0 };
+
+    if (ttsSelectedVoiceURI === '__CLOUD_NATURAL__' || !('speechSynthesis' in window) || ttsAvailableVoices.length === 0) {
       const chunk = seg.text.slice(0, 195);
-      ttsAudioEl = new Audio(`/api/study/tts?lang=en&text=${encodeURIComponent(chunk)}`);
-      ttsAudioEl.playbackRate = Math.max(0.75, Math.min(1.4, seg.rate || 1.0));
+      const tl = cloudLangMap[styleMode] || 'en-US';
+      ttsAudioEl = new Audio(`/api/study/tts?lang=${encodeURIComponent(tl)}&text=${encodeURIComponent(chunk)}`);
+      ttsAudioEl.volume = volumeMap[styleMode] || 1.0;
+      ttsAudioEl.playbackRate = Math.max(0.75, Math.min(1.45, seg.rate || 1.0));
       ttsAudioEl.onended = advanceToNext;
       ttsAudioEl.onerror = advanceToNext;
       ttsAudioEl.play().catch(advanceToNext);
       return;
     }
 
-    const utter = new SpeechSynthesisUtterance(seg.text);
-    const chosenVoice = ttsAvailableVoices.find(v => v.voiceURI === ttsSelectedVoiceURI) || ttsAvailableVoices[0];
-    if (chosenVoice) {
-      utter.voice = chosenVoice;
-      utter.lang = chosenVoice.lang || 'en-US';
+    const startBrowserUtterance = () => {
+      if (!ttsPlaying || ttsPaused || ttsCurrentIndex !== segIdxAtStart) return;
+      const utter = new SpeechSynthesisUtterance(seg.text);
+      activeUtterance = utter; // Keep global reference so V8 GC never collects it mid-speech!
+
+      const chosenVoice = ttsAvailableVoices.find(v => v.voiceURI === ttsSelectedVoiceURI) || ttsAvailableVoices[0];
+      if (chosenVoice) {
+        utter.voice = chosenVoice;
+        utter.lang = chosenVoice.lang || 'en-US';
+      }
+      utter.volume = volumeMap[styleMode] || 1.0;
+      utter.rate = Math.max(0.65, Math.min(1.6, seg.rate || 0.96));
+      utter.pitch = Math.max(0.6, Math.min(1.5, seg.pitch || 1.0));
+      utter.onend = () => advanceToNext();
+      utter.onerror = (ev) => {
+        if (ev && (ev.error === 'canceled' || ev.error === 'interrupted')) return;
+        advanceToNext();
+      };
+
+      // Watchdog timer in case browser speech engine drops an onend event
+      const wordCount = seg.text.split(/\s+/).length;
+      const estimatedDurationMs = Math.max(4500, Math.round((wordCount / 2.1) * 1000 / (utter.rate || 1)) + 3000);
+      ttsWatchdogTimer = setTimeout(() => {
+        advanceToNext();
+      }, estimatedDurationMs);
+
+      // Chromium 14-second speech synthesis pause bug workaround
+      ttsKeepAliveInterval = setInterval(() => {
+        if ('speechSynthesis' in window && window.speechSynthesis.speaking && !ttsPaused) {
+          window.speechSynthesis.resume();
+        }
+      }, 9000);
+
+      try {
+        window.speechSynthesis.resume();
+        window.speechSynthesis.speak(utter);
+      } catch (e) {
+        advanceToNext();
+      }
+    };
+
+    if (fromNaturalAdvance) {
+      startBrowserUtterance();
+    } else {
+      // Small delay after cancel() so Chromium does not swallow the new speak() call
+      setTimeout(startBrowserUtterance, 45);
     }
-    utter.rate = seg.rate || 0.96;
-    utter.pitch = seg.pitch || 1.0;
-    utter.onend = advanceToNext;
-    utter.onerror = advanceToNext;
-    window.speechSynthesis.speak(utter);
   }
 
   window.toggleSpeechPlayback = function() {
@@ -3474,19 +3630,17 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
       ttsPlaying = true;
       ttsPaused = false;
       ttsCurrentIndex = 0;
-      playCurrentSpeechSegment();
+      playCurrentSpeechSegment(false);
       return;
     }
 
     if (!ttsPaused) {
       ttsPaused = true;
-      clearTimeout(ttsPauseTimer);
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-      if (ttsAudioEl) ttsAudioEl.pause();
+      silenceActiveSpeechEngine();
       updateTtsPlayerUiState();
     } else {
       ttsPaused = false;
-      playCurrentSpeechSegment();
+      playCurrentSpeechSegment(false);
     }
   };
 
@@ -3501,20 +3655,13 @@ Generate comprehensive, well-structured study notes on **[INSERT TOPIC HERE]** u
       ttsCurrentIndex = Math.max(0, Math.min(ttsQueue.length - 1, ttsCurrentIndex + delta));
       ttsPaused = false;
     }
-    playCurrentSpeechSegment();
+    playCurrentSpeechSegment(false);
   };
 
   window.stopSpeechPlayback = function() {
     ttsPlaying = false;
     ttsPaused = false;
-    clearTimeout(ttsPauseTimer);
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-    if (ttsAudioEl) {
-      ttsAudioEl.pause();
-      ttsAudioEl = null;
-    }
+    silenceActiveSpeechEngine();
     clearActiveSpeechHighlights();
     updateTtsPlayerUiState();
   };

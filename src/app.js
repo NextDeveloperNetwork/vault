@@ -37,8 +37,10 @@ app.use(express.static(path.join(__dirname, '../public'), {
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
     } else if (filePath.endsWith('.css') || filePath.endsWith('.js')) {
-      // CSS & JS: browser must revalidate each request (cache-busted by ?v= query string)
-      res.set('Cache-Control', 'no-cache, must-revalidate');
+      // Prevent Cloudflare / proxy / browser from serving stale cached CSS or JS on deploy
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
     } else if (filePath.endsWith('.ico') || filePath.endsWith('.jpg') || filePath.endsWith('.png') || filePath.endsWith('.svg')) {
       res.set('Cache-Control', 'public, max-age=604800'); // 7 days for images
     }
